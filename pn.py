@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
 
+"""
+Petri Net Parser
+
+File format: .net
+Documentation: http://projects.laas.fr/tina//manuals/formats.html
+"""
+
+import sys
+
 class PetriNet:
     """
-    Petri Net
+    Petri Net defined by:
+    - an identifier
+    - a finite set of places
+    - a finite set of transitions
     """
     def __init__(self, id):
         self.id = id
@@ -10,16 +22,18 @@ class PetriNet:
         self.transitions = {}
 
     def __str__(self):
-        result = "net {}\n".format(self.id)
+        text = "net {}\n".format(self.id)
         for pl in self.places.values():
-            result += str(pl)
+            text += str(pl)
         for tr in self.transitions.values():
-            result += str(tr)
-        return result
+            text += str(tr)
+        return text
 
 class Place:
     """
-    Place
+    Place defined by:
+    - an identifier
+    - a marking
     """
     def __init__(self, id, marking = 0):
         self.id = id
@@ -27,13 +41,16 @@ class Place:
 
     def __str__(self):
         text = ""
-        if self.marking != 0:
+        if self.marking:
             text = "pl {} ({})\n".format(self.id, self.marking)
         return text
 
 class Transition:
     """
-    Transition
+    Transition defined by:
+    - an identifier
+    - a list of input places
+    - a list of output places
     """
     def __init__(self, id):
         self.id = id
@@ -58,7 +75,6 @@ class NetParser:
     def __init__(self, filename):
         self.net = None
         self.parseNet(filename)
-        print(self.net)
 
     def parseNet(self, filename):
         try:
@@ -72,6 +88,7 @@ class NetParser:
                         self.parseTransition(content)
                     if element == "pl":
                         self.parsePlace(content)
+            fp.close()
         except FileNotFoundError as e:
             exit(e)
 
@@ -96,10 +113,17 @@ class NetParser:
 
 
     def parsePlace(self, content):
-        placeId = content.pop(0)
+        placeId = content[0]
+        marking = content[1].replace('(', '').replace(')', '')
+       
         if placeId not in self.net.places:
-            self.net.places[placeId] = Place(placeId)
-        self.net.places.get(placeId).marking = content[0].replace('(', '').replace(')', '')
+            self.net.places[placeId] = Place(placeId, marking)
+        else:
+            self.net.places.get(placeId).marking = marking
+
 
 if __name__ == "__main__":
-    parser = NetParser("../nets_examples/airplane.net")
+    if (len(sys.argv) == 1):
+        exit("File missing: ./np <path_to_file>")
+    parser = NetParser(sys.argv[1])
+    print(parser.net)
