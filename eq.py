@@ -23,6 +23,12 @@ class System:
             text += str(eq) + '\n'
         return text
 
+    def smtlib(self):
+        text = ""
+        for eq in self.system:
+            text += eq.smtlib() + '\n'
+        return text
+
     def parser(self, filename):
         try:
             with open(filename, 'r') as fp:
@@ -84,8 +90,30 @@ class Equation:
             text += rMember + " "
         return text
 
+    def smtlib(self):
+        text = "(assert ({}".format(self.operator)
+        if len(self.left) > 1:
+            text += " (+"
+        for member in self.left:
+            text += " {}".format(member)
+        if len(self.left) > 1:
+            text += ")"
+        if len(self.right) > 1:
+            text += " (+"
+        for member in self.right:
+            text += " {}".format(member)
+        if len(self.right) > 1:
+            text += ")"
+        text += "))"
+        return text
+
 if __name__ == "__main__":
     if (len(sys.argv) == 1):
         exit("File missing: ./eq <path_to_file>")
     system = System(sys.argv[1])
+    print("Equations")
+    print("---------")
     print(system)
+    print("\nSMTlib2 Format")
+    print("--------------")
+    print(system.smtlib())

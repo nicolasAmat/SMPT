@@ -30,6 +30,12 @@ class PetriNet:
             text += str(tr)
         return text
 
+    def smtlib(self):
+        text = ""
+        for place in self.places.values():
+            text += place.smtlib()
+        return text
+
     def parseNet(self, filename):
             try:
                 with open(filename, 'r') as fp:
@@ -91,6 +97,9 @@ class Place:
             text = "pl {} ({})\n".format(self.id, self.marking)
         return text
 
+    def smtlib(self):
+        return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
+
 class Transition:
     """
     Transition defined by:
@@ -116,6 +125,11 @@ class Transition:
 
 if __name__ == "__main__":
     if (len(sys.argv) == 1):
-        exit("File missing: ./np <path_to_file>")
+        exit("File missing: ./pn <path_to_file>")
     net = PetriNet(sys.argv[1])
+    print("Petri Net")
+    print("---------")
     print(net)
+    print("SMTlib")
+    print("------")
+    print(net.smtlib())
