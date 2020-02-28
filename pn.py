@@ -3,11 +3,12 @@
 """
 Petri Net Parser
 
-File format: .net
+Input file format: .net
 Documentation: http://projects.laas.fr/tina//manuals/formats.html
 """
 
 import sys
+import re
 
 class PetriNet:
     """
@@ -40,7 +41,7 @@ class PetriNet:
             try:
                 with open(filename, 'r') as fp:
                     for line in fp.readlines():
-                        content = line.strip().split(' ')
+                        content = re.split('\s+', line.strip())
                         element = content.pop(0)
                         if element == "net":
                             self.id = content[0]
@@ -53,10 +54,11 @@ class PetriNet:
                 exit(e)
 
     def parseTransition(self, content):
-        tr = Transition(content.pop(0))
+        tr = Transition(content[0])
+        self.transitions[tr.id] = tr
         
         arrow = content.index("->")
-        src = content[0:arrow]
+        src = content[1:arrow]
         dst = content[arrow + 1:]
 
         for pl in src:
@@ -68,9 +70,6 @@ class PetriNet:
             if pl not in self.places:
                 self.places[pl] = Place(pl)
             tr.dest.append(self.places.get(pl))
-
-        self.transitions[tr.id] = tr
-
 
     def parsePlace(self, content):
         placeId = content[0]
@@ -124,6 +123,7 @@ class Transition:
 
 
 if __name__ == "__main__":
+    
     if (len(sys.argv) == 1):
         exit("File missing: ./pn <path_to_file>")
     net = PetriNet(sys.argv[1])

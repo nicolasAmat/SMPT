@@ -3,20 +3,23 @@
 """
 Linear Equations Parser
 
-File format: .net
-Documentation: http://projects.laas.fr/tina//manuals/formats.html
+Input file format: .net
 """
 
 import sys
+import re
 
 class System:
     """
-    Equation system
+    Equation system defined by:
+    - a set of places from the original Petri Net
+    - a set of additional variables
+    - a set of equations / inequations
     """
     def __init__(self, filename, places = []):
         self.places = places
-        self.system = []
         self.additionalVars = []
+        self.system = []
         self.parser(filename)
 
     def __str__(self):
@@ -36,42 +39,31 @@ class System:
     def parser(self, filename):
         try:
             with open(filename, 'r') as fp:
-                eq = False
+                lines = re.split('\n+', re.search(r'# generated equations\n(.*)?\n\n', fp.read(), re.DOTALL).group())[1:-1]
+                equations = [re.split('\s+', line.partition(' |- ')[2]) for line in lines]
 
-                for line in fp.readlines():
-                    
-                    content = line.strip().split(' ')
-                    if content.pop(0) != '#':
-                        eq = False
-                    
-                    if eq:
-                        lRead = False
-                        rRead = False
+                for eq in equations:
+                    left = True
 
-                        leftMembers = []
-                        rightMembers = []
-                        operator = ""
+                    leftMembers = []
+                    rightMembers = []
+                    operator = ""
 
-                        for element in content:
-                            if element == '|-':
-                                lRead = True
-                            elif element != '+':
-                                if element in ['=', '<=']:
-                                    operator = element
-                                    lRead = False
-                                    rRead = True
+                    for element in eq:
+                        if element != '+':
+                            if element in ['=', '<=', '>=', '<', '>']:
+                                operator = element
+                                left = False
+                            else:
+                                if not element.isnumeric() and element not in self.places and element not in self.additionalVars:
+                                    self.additionalVars.append(element)
+                                if left:
+                                    leftMembers.append(element)
                                 else:
-                                    if (lRead or rRead) and not element.isnumeric() and element not in self.places and element not in self.additionalVars:
-                                        self.additionalVars.append(element)
-                                    if lRead:
-                                        leftMembers.append(element)
-                                    elif rRead:
-                                        rightMembers.append(element)
+                                    rightMembers.append(element)
 
-                        self.system.append(Equation(leftMembers, rightMembers, operator))
+                    self.system.append(Equation(leftMembers, rightMembers, operator))
 
-                    if "# generated equations" in line:
-                        eq = True
             fp.close()
         except FileNotFoundError as e:
             exit(e)        
@@ -79,40 +71,39 @@ class System:
 class Equation:
     """
     Equation defined by:
-    - Left members
-    - Right members
+    - Left member
+    - Right member
     - Operator
     """
-    def __init__(self, leftMembers, rightMembers, operator):
-        self.left = leftMembers
-        self.right = rightMembers
+    def __init__(self, leftMember, rightMember, operator):
+        self.left = leftMember
+        self.right = rightMember
         self.operator = operator
 
     def __str__(self):
+        return self.memberStr(self.left) + '= ' + self.memberStr(self.right)
+
+    def memberStr(self, member):
         text = ""
-        for lMember in self.left:
-            text += lMember + " "
-        text += self.operator + " "
-        for rMember in self.right:
-            text += rMember + " "
+        for index, elem in enumerate(member):
+            text += elem + " "
+            if index != len(member) - 1:
+                text += '+ '
         return text
 
     def smtlib(self):
-        text = "(assert ({}".format(self.operator)
-        if len(self.left) > 1:
+        return "(assert ({}".format(self.operator) + self.memberSmtlib(self.left) + self.memberSmtlib(self.right) + "))"
+
+    def memberSmtlib(self, member):
+        text = "" 
+        if len(member) > 1:
             text += " (+"
-        for member in self.left:
-            text += " {}".format(member)
-        if len(self.left) > 1:
+        for elem in member:
+            text += " {}".format(elem)
+        if len(member) > 1:
             text += ")"
-        if len(self.right) > 1:
-            text += " (+"
-        for member in self.right:
-            text += " {}".format(member)
-        if len(self.right) > 1:
-            text += ")"
-        text += "))"
         return text
+
 
 if __name__ == "__main__":
     if (len(sys.argv) == 1):

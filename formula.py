@@ -8,6 +8,12 @@ from pn import *
 import sys
 
 class Inequality:
+    """
+    Inequality defined by:
+    - a left member
+    - a right member
+    - an operator (=, <=, >=, <, >)
+    """
     def __init__(self, leftMember, rightMember, operator):
         self.left = leftMember
         self.right = rightMember
@@ -20,6 +26,10 @@ class Inequality:
         return "({} {} {})".format(self.operator, self.left.id, self.right)
 
 class Clause:
+    """
+    Clause defined by:
+    - a set of inequalities
+    """
     def __init__(self, inequalities):
         self.inequalities = inequalities
 
@@ -43,6 +53,7 @@ class Formula:
     def __init__(self, pn, prop = "deadlock"):
         self.pn = pn
         self.clauses = []
+        self.prop = prop
         if prop == "deadlock":
             self.deadlock()
 
@@ -68,14 +79,21 @@ class Formula:
                 inequalities.append(ineq)
             self.clauses.append(Clause(inequalities))
 
+    def result(self, sat):
+        if self.prop == "deadlock":
+            if sat:
+                print("The input Petri Net can deadlock!")
+            else:
+                print("The input Petri Net is deadlock free.")
+
 
 if __name__=='__main__':
     if (len(sys.argv) == 1):
         exit("File missing: ./formula <path_to_file>")
     net = PetriNet(sys.argv[1])
     phi = Formula(net)
-    print("Formula")
-    print("-------")
+    print("Logic Formula")
+    print("-------------")
     print(phi)
     print("\nSMTlib2 Format")
     print("--------------")
