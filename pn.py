@@ -56,7 +56,7 @@ class PetriNet:
         tr = Transition(content.pop(0))
         
         arrow = content.index("->")
-        src = content[1:arrow]
+        src = content[0:arrow]
         dst = content[arrow + 1:]
 
         for pl in src:
