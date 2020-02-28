@@ -13,8 +13,10 @@ class System:
     """
     Equation system
     """
-    def __init__(self, filename):
+    def __init__(self, filename, places = []):
+        self.places = places
         self.system = []
+        self.additionalVars = []
         self.parser(filename)
 
     def __str__(self):
@@ -25,6 +27,8 @@ class System:
 
     def smtlib(self):
         text = ""
+        for var in self.additionalVars:
+            text += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var, var)
         for eq in self.system:
             text += eq.smtlib() + '\n'
         return text
@@ -52,14 +56,17 @@ class System:
                             if element == '|-':
                                 lRead = True
                             elif element != '+':
-                                if element == '=':
+                                if element in ['=', '<=']:
                                     operator = element
                                     lRead = False
                                     rRead = True
-                                elif lRead:
-                                    leftMembers.append(element)
-                                elif rRead:
-                                    rightMembers.append(element)
+                                else:
+                                    if (lRead or rRead) and not element.isnumeric() and element not in self.places and element not in self.additionalVars:
+                                        self.additionalVars.append(element)
+                                    if lRead:
+                                        leftMembers.append(element)
+                                    elif rRead:
+                                        rightMembers.append(element)
 
                         self.system.append(Equation(leftMembers, rightMembers, operator))
 

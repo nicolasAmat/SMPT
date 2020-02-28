@@ -35,7 +35,7 @@ class Clause:
         text = "(assert (or "
         for ineq in self.inequalities:
             text += ineq.smtlib()
-        text += ")"
+        text += "))"
         return text
 
 
