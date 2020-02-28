@@ -1,0 +1,22 @@
+net kanban
+tr dead P1 ->
+tr tback1 Pback1 -> Pm1 
+tr tback2 Pback2 -> Pm2 
+tr tback3 Pback3 -> Pm3 
+tr tback4 Pback4 -> Pm4 
+tr tin4 P4 -> Pm4 
+tr tok1 Pm1 -> Pout1 
+tr tok2 Pm2 -> Pout2 
+tr tok3 Pm3 -> Pout3 
+tr tok4 Pm4 -> Pout4 
+tr tout1 Pout1 -> P1 
+tr tredo1 Pm1 -> Pback1 
+tr tredo2 Pm2 -> Pback2 
+tr tredo3 Pm3 -> Pback3 
+tr tredo4 Pm4 -> Pback4 
+tr tsynch1_23 P1 Pout2 Pout3 -> P2 P3 Pm1 
+tr tsynch4_23 P2 P3 Pout4 -> P4 Pm2 Pm3 
+pl P1 (5)
+pl P2 (5)
+pl P3 (5)
+pl P4 (5)
