@@ -27,7 +27,16 @@ class Marking:
 
     def smtlib(self):
         text = ""
-        // TODO
+        text += "(assert (or "
+        for marking in self.markings:
+            text += "(and "
+            for place, counter in marking.items():
+                text += "(= {} {})". format(place, counter)
+            for place in self.pn.places:
+                if place not in marking:
+                    text += "(= {} 0)". format(place)
+            text += ")"
+        text += "))\n"
         return text
 
     def parseMarking(self, filename):
@@ -52,13 +61,13 @@ class Marking:
 
 
 if __name__=='__main__':
-    if (len(sys.argv) == 1):
-        exit("File missing: ./marking <path_to_file>")
-    net = PetriNet(sys.argv[1])
+    if (len(sys.argv) != 3):
+        exit("File missing: ./marking <path_to_aut_file> <path_to_net_file>")
+    net = PetriNet(sys.argv[2])
     marks = Marking(sys.argv[1], net)
     print("TODO")
     print("-------------")
     print(marks)
     print("\nSMTlib2 Format")
     print("--------------")
-    # print(phi.smtlib())
+    print(marks.smtlib())
