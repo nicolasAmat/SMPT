@@ -79,13 +79,26 @@ class Formula:
                 inequalities.append(ineq)
             self.clauses.append(Clause(inequalities))
 
-    def result(self, sat):
-        if self.prop == "deadlock":
-            if sat:
-                print("The input Petri Net can deadlock!")
-            else:
-                print("The input Petri Net is deadlock free.")
+    def result(self, solver):
+        if (solver.stdout.readline().decode('utf-8').strip() == 'unsat'):
+            print("The input Petri Net is deadlock free.")
+        else:
+            model = ""
 
+            # Read the model
+            solver.stdout.readline()
+
+            # Parse the model and fill the grid
+            while(True):
+                place_content = solver.stdout.readline().decode('utf-8').strip().split(' ')
+                place_marking =  solver.stdout.readline().decode('utf-8').strip().replace(' ', '').replace(')', '')
+                if len(place_content) < 2 and solver.poll() is not None:
+                    break
+                if (place_marking and int(place_marking) > 0) and place_content[1] in self.pn.places:
+                    model += ' ' + place_content[1]
+
+            print("The input Petri Net can deadlock!")
+            print("Model:{}".format(model))
 
 if __name__=='__main__':
     if (len(sys.argv) == 1):

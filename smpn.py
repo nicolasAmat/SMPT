@@ -28,14 +28,13 @@ def main(argv):
         + "; Reduction Equations\n" \
         + eq.smtlib() \
         + "; Property Formula\n" \
-        + phi.smtlib() \
-        + "; Reduced Net Markings\n" \
+        + phi.smtlib()
     
     if len(argv) > 3:    
         smtlib += "; Reduced Net Markings\n" \
             + marks.smtlib() 
     
-    smtlib += "(check-sat)\n"
+    smtlib += "(check-sat)\n(get-model)\n"
 
     print("Input into the SMT Solver")
     print("-------------------------")
@@ -46,15 +45,11 @@ def main(argv):
     smt_file.write(smtlib)
     smt_file.close()
     proc = subprocess.Popen(['z3', '-smt2', smt_filename], stdout=subprocess.PIPE)
-    
-    if proc.stdout.readline().decode('utf-8').strip() != 'sat':
-        sat = False
-    else:		
-        sat = True
+
 
     print("Result computed using z3")
     print("------------------------")
-    phi.result(sat)
+    phi.result(proc)
 
     proc.poll()
     os.remove(smt_filename)
