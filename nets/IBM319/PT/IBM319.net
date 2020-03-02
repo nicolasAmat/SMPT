@@ -1,0 +1,180 @@
+net {IBM319-PT-none}
+tr {callToProcess.s00001108.inputCriterion.s00001053} {callToProcess.s00001108.input.s00001052} -> {callToProcess.s00001108.inputCriterion.s00001053.used} 
+tr {callToProcess.s00001108.outputCriterion.s00001055} {callToProcess.s00001108.inputCriterion.s00001053.used} -> {callToProcess.s00001108.output.s00001054} {callToProcess.s00001108.output.s00001077} 
+tr {callToProcess.s00002038.inputCriterion.s00001053} {callToTask.s00002961.output.s00001054} {callToTask.s00002961.output.s00001077} -> {callToProcess.s00002038.inputCriterion.s00001053.used} 
+tr {callToProcess.s00002038.outputCriterion.s00001055} {callToProcess.s00002038.inputCriterion.s00001053.used} -> {callToProcess.s00002038.output.s00001077} 
+tr {callToProcess.s00002121.inputCriterion.s00001053} {callToTask.s00002962.output.s00001054} {callToTask.s00002962.output.s00001077} -> {callToProcess.s00002121.inputCriterion.s00001053.used} 
+tr {callToProcess.s00002121.outputCriterion.s00001055} {callToProcess.s00002121.inputCriterion.s00001053.used} -> {callToProcess.s00002121.output.s00001054} {callToProcess.s00002121.output.s00001077} 
+tr {callToProcess.s00002499.inputCriterion.s00001053} {callToProcess.s00002499.input.s00001052} {callToProcess.s00002499.input.s00001066} -> {callToProcess.s00002499.inputCriterion.s00001053.used} 
+tr {callToProcess.s00002499.outputCriterion.s00001055} {callToProcess.s00002499.inputCriterion.s00001053.used} -> {callToProcess.s00002499.output.s00001054} {callToProcess.s00002499.output.s00001083} 
+tr {callToProcess.s00002802.inputCriterion.s00001053} {callToTask.s00002063.output.s00001054} {callToTask.s00002063.output.s00001077} -> {callToProcess.s00002802.inputCriterion.s00001053.used} 
+tr {callToProcess.s00002802.outputCriterion.s00001055} {callToProcess.s00002802.inputCriterion.s00001053.used} -> {callToProcess.s00002802.output.s00001054} {callToProcess.s00002802.output.s00001077} 
+tr {callToProcess.s00002882.inputCriterion.s00001053} {callToTask.s00002965.output.s00001054} {callToTask.s00002965.output.s00001077} -> {callToProcess.s00002882.inputCriterion.s00001053.used} 
+tr {callToProcess.s00002882.outputCriterion.s00001055} {callToProcess.s00002882.inputCriterion.s00001053.used} -> {callToProcess.s00002882.output.s00001054} {callToProcess.s00002882.output.s00001077} 
+tr {callToProcess.s00002943.inputCriterion.s00001053} {callToTask.s00002966.output.s00001054} {callToTask.s00002966.output.s00001077} -> {callToProcess.s00002943.inputCriterion.s00001053.used} 
+tr {callToProcess.s00002943.outputCriterion.s00001055} {callToProcess.s00002943.inputCriterion.s00001053.used} -> {callToProcess.s00002943.output.s00001054} {callToProcess.s00002943.output.s00001077} 
+tr {callToProcess.s00002944.inputCriterion.s00001053} {callToTask.s00002960.output.s00001054} {callToTask.s00002960.output.s00001077} -> {callToProcess.s00002944.inputCriterion.s00001053.used} 
+tr {callToProcess.s00002944.outputCriterion.s00001055} {callToProcess.s00002944.inputCriterion.s00001053.used} -> {callToProcess.s00002944.output.s00001054} {callToProcess.s00002944.output.s00001077} 
+tr {callToTask.s00001168.inputCriterion.s00001053} {callToTask.s00001168.input.s00001052} {callToTask.s00001168.input.s00001066} {callToTask.s00001168.input.s00001068} {callToTask.s00001168.input.s00001127} -> {callToTask.s00001168.inputCriterion.s00001053.used} 
+tr {callToTask.s00001168.outputCriterion.s00001055} {callToTask.s00001168.inputCriterion.s00001053.used} -> {callToTask.s00001168.output.s00001054} 
+tr {callToTask.s00001406.inputCriterion.s00001053} {callToTask.s00001406.input.s00001052} {callToTask.s00001406.input.s00001066} -> {callToTask.s00001406.inputCriterion.s00001053.used} 
+tr {callToTask.s00001406.outputCriterion.s00001055} {callToTask.s00001406.inputCriterion.s00001053.used} -> {callToTask.s00001406.output.s00001054} {callToTask.s00001406.output.s00001077} 
+tr {callToTask.s00001852.inputCriterion.s00001053} {callToProcess.s00002802.output.s00001054} {callToProcess.s00002802.output.s00001077} -> {callToTask.s00001852.inputCriterion.s00001053.used} 
+tr {callToTask.s00001852.outputCriterion.s00001055} {callToTask.s00001852.inputCriterion.s00001053.used} -> {callToTask.s00001852.output.s00001054} {callToTask.s00001852.output.s00001077} 
+tr {callToTask.s00002044.inputCriterion.s00001053} {callToTask.s00001406.output.s00001054} {callToTask.s00001406.output.s00001077} -> {callToTask.s00002044.inputCriterion.s00001053.used} 
+tr {callToTask.s00002044.outputCriterion.s00001055} {callToTask.s00002044.inputCriterion.s00001053.used} -> {callToTask.s00002044.output.s00001077} 
+tr {callToTask.s00002063.inputCriterion.s00001053} {callToTask.s00002063.input.s00001052} {callToTask.s00002063.input.s00001066} -> {callToTask.s00002063.inputCriterion.s00001053.used} 
+tr {callToTask.s00002063.outputCriterion.s00001055} {callToTask.s00002063.inputCriterion.s00001053.used} -> {callToTask.s00002063.output.s00001054} {callToTask.s00002063.output.s00001077} 
+tr {callToTask.s00002254.inputCriterion.s00001053} {callToProcess.s00002943.output.s00001054} {callToProcess.s00002943.output.s00001077} -> {callToTask.s00002254.inputCriterion.s00001053.used} 
+tr {callToTask.s00002254.outputCriterion.s00001055} {callToTask.s00002254.inputCriterion.s00001053.used} -> {callToTask.s00002254.output.s00001054} 
+tr {callToTask.s00002667.inputCriterion.s00001053} {callToTask.s00002667.input.s00001052} {callToTask.s00002667.input.s00001066} -> {callToTask.s00002667.inputCriterion.s00001053.used} 
+tr {callToTask.s00002667.outputCriterion.s00001055} {callToTask.s00002667.inputCriterion.s00001053.used} -> {callToTask.s00002667.output.s00001054} {callToTask.s00002667.output.s00001077} 
+tr {callToTask.s00002824.inputCriterion.s00001053} {callToTask.s00002964.output.s00001054} {callToTask.s00002964.output.s00001077} -> {callToTask.s00002824.inputCriterion.s00001053.used} 
+tr {callToTask.s00002824.outputCriterion.s00001055} {callToTask.s00002824.inputCriterion.s00001053.used} -> {callToTask.s00002824.output.s00001077} 
+tr {callToTask.s00002869.inputCriterion.s00001053} {callToTask.s00002869.input.s00001052} {callToTask.s00002869.input.s00001066} -> {callToTask.s00002869.inputCriterion.s00001053.used} 
+tr {callToTask.s00002869.outputCriterion.s00001055} {callToTask.s00002869.inputCriterion.s00001053.used} -> {callToTask.s00002869.output.s00001054} {callToTask.s00002869.output.s00001077} 
+tr {callToTask.s00002870.inputCriterion.s00001053} {callToTask.s00002896.output.s00001054} {callToTask.s00002896.output.s00001077} -> {callToTask.s00002870.inputCriterion.s00001053.used} 
+tr {callToTask.s00002870.outputCriterion.s00001055} {callToTask.s00002870.inputCriterion.s00001053.used} -> {callToTask.s00002870.output.s00001054} {callToTask.s00002870.output.s00001077} 
+tr {callToTask.s00002896.inputCriterion.s00001053} {callToProcess.s00002882.output.s00001054} {callToProcess.s00002882.output.s00001077} -> {callToTask.s00002896.inputCriterion.s00001053.used} 
+tr {callToTask.s00002896.outputCriterion.s00001055} {callToTask.s00002896.inputCriterion.s00001053.used} -> {callToTask.s00002896.output.s00001054} {callToTask.s00002896.output.s00001077} 
+tr {callToTask.s00002929.inputCriterion.s00001053} {callToTask.s00002929.input.s00001052} {callToTask.s00002929.input.s00001066} -> {callToTask.s00002929.inputCriterion.s00001053.used} 
+tr {callToTask.s00002929.outputCriterion.s00001055} {callToTask.s00002929.inputCriterion.s00001053.used} -> {callToTask.s00002929.output.s00001054} {callToTask.s00002929.output.s00001077} 
+tr {callToTask.s00002930.inputCriterion.s00001053} {callToTask.s00002930.input.s00001052} {callToTask.s00002930.input.s00001066} -> {callToTask.s00002930.inputCriterion.s00001053.used} 
+tr {callToTask.s00002930.outputCriterion.s00001055} {callToTask.s00002930.inputCriterion.s00001053.used} -> {callToTask.s00002930.output.s00001054} {callToTask.s00002930.output.s00001077} 
+tr {callToTask.s00002931.inputCriterion.s00001053} {callToTask.s00002931.input.s00001052} {callToTask.s00002931.input.s00001066} -> {callToTask.s00002931.inputCriterion.s00001053.used} 
+tr {callToTask.s00002931.outputCriterion.s00001055} {callToTask.s00002931.inputCriterion.s00001053.used} -> {callToTask.s00002931.output.s00001054} {callToTask.s00002931.output.s00001077} 
+tr {callToTask.s00002932.inputCriterion.s00001053} {callToTask.s00002932.input.s00001052} {callToTask.s00002932.input.s00001066} -> {callToTask.s00002932.inputCriterion.s00001053.used} 
+tr {callToTask.s00002932.outputCriterion.s00001055} {callToTask.s00002932.inputCriterion.s00001053.used} -> {callToTask.s00002932.output.s00001054} {callToTask.s00002932.output.s00001077} 
+tr {callToTask.s00002949.inputCriterion.s00001053} {callToTask.s00002951.output.s00001054} {callToTask.s00002951.output.s00001077} -> {callToTask.s00002949.inputCriterion.s00001053.used} 
+tr {callToTask.s00002949.outputCriterion.s00001055} {callToTask.s00002949.inputCriterion.s00001053.used} -> {callToTask.s00002949.output.s00001054} {callToTask.s00002949.output.s00001077} 
+tr {callToTask.s00002950.inputCriterion.s00001053} {callToTask.s00002950.input.s00001052} {callToTask.s00002950.input.s00001066} -> {callToTask.s00002950.inputCriterion.s00001053.used} 
+tr {callToTask.s00002950.outputCriterion.s00001055} {callToTask.s00002950.inputCriterion.s00001053.used} -> {callToTask.s00002950.output.s00001054} {callToTask.s00002950.output.s00001077} 
+tr {callToTask.s00002951.inputCriterion.s00001053} {callToTask.s00002951.input.s00001052} {callToTask.s00002951.input.s00001066} -> {callToTask.s00002951.inputCriterion.s00001053.used} 
+tr {callToTask.s00002951.outputCriterion.s00001055} {callToTask.s00002951.inputCriterion.s00001053.used} -> {callToTask.s00002951.output.s00001054} {callToTask.s00002951.output.s00001077} 
+tr {callToTask.s00002952.inputCriterion.s00001053} {callToTask.s00002952.input.s00001052} {callToTask.s00002952.input.s00001066} -> {callToTask.s00002952.inputCriterion.s00001053.used} 
+tr {callToTask.s00002952.outputCriterion.s00001055} {callToTask.s00002952.inputCriterion.s00001053.used} -> {callToTask.s00002952.output.s00001054} {callToTask.s00002952.output.s00001077} 
+tr {callToTask.s00002953.inputCriterion.s00001053} {callToTask.s00002953.input.s00001052} {callToTask.s00002953.input.s00001066} -> {callToTask.s00002953.inputCriterion.s00001053.used} 
+tr {callToTask.s00002953.outputCriterion.s00001055} {callToTask.s00002953.inputCriterion.s00001053.used} -> {callToTask.s00002953.output.s00001077} 
+tr {callToTask.s00002954.inputCriterion.s00001053} {callToTask.s00002954.input.s00001052} {callToTask.s00002954.input.s00001066} -> {callToTask.s00002954.inputCriterion.s00001053.used} 
+tr {callToTask.s00002954.outputCriterion.s00001055} {callToTask.s00002954.inputCriterion.s00001053.used} -> {callToTask.s00002954.output.s00001054} {callToTask.s00002954.output.s00001077} 
+tr {callToTask.s00002955.inputCriterion.s00001053} {callToTask.s00002959.output.s00001054} {callToTask.s00002959.output.s00001077} -> {callToTask.s00002955.inputCriterion.s00001053.used} 
+tr {callToTask.s00002955.outputCriterion.s00001055} {callToTask.s00002955.inputCriterion.s00001053.used} -> {callToTask.s00002955.output.s00001054} {callToTask.s00002955.output.s00001077} 
+tr {callToTask.s00002956.inputCriterion.s00001053} {callToTask.s00002956.input.s00001052} {callToTask.s00002956.input.s00001066} -> {callToTask.s00002956.inputCriterion.s00001053.used} 
+tr {callToTask.s00002956.outputCriterion.s00001055} {callToTask.s00002956.inputCriterion.s00001053.used} -> {callToTask.s00002956.output.s00001054} {callToTask.s00002956.output.s00001077} 
+tr {callToTask.s00002957.inputCriterion.s00001053} {callToTask.s00002957.input.s00001052} {callToTask.s00002957.input.s00001066} -> {callToTask.s00002957.inputCriterion.s00001053.used} 
+tr {callToTask.s00002957.outputCriterion.s00001055} {callToTask.s00002957.inputCriterion.s00001053.used} -> {callToTask.s00002957.output.s00001054} {callToTask.s00002957.output.s00001077} 
+tr {callToTask.s00002958.inputCriterion.s00001053} {callToTask.s00002950.output.s00001054} {callToTask.s00002950.output.s00001077} -> {callToTask.s00002958.inputCriterion.s00001053.used} 
+tr {callToTask.s00002958.outputCriterion.s00001055} {callToTask.s00002958.inputCriterion.s00001053.used} -> {callToTask.s00002958.output.s00001054} {callToTask.s00002958.output.s00001077} 
+tr {callToTask.s00002959.inputCriterion.s00001053} {callToTask.s00002959.input.s00001052} {callToTask.s00002959.input.s00001066} -> {callToTask.s00002959.inputCriterion.s00001053.used} 
+tr {callToTask.s00002959.outputCriterion.s00001055} {callToTask.s00002959.inputCriterion.s00001053.used} -> {callToTask.s00002959.output.s00001054} {callToTask.s00002959.output.s00001077} 
+tr {callToTask.s00002960.inputCriterion.s00001053} {callToTask.s00002960.input.s00001052} {callToTask.s00002960.input.s00001066} {callToTask.s00002960.input.s00001068} {callToTask.s00002960.input.s00001127} {callToTask.s00002960.input.s00001128} -> {callToTask.s00002960.inputCriterion.s00001053.used} 
+tr {callToTask.s00002960.outputCriterion.s00001055} {callToTask.s00002960.inputCriterion.s00001053.used} -> {callToTask.s00002960.output.s00001054} {callToTask.s00002960.output.s00001077} 
+tr {callToTask.s00002961.inputCriterion.s00001053} {callToTask.s00002961.input.s00001052} {callToTask.s00002961.input.s00001066} -> {callToTask.s00002961.inputCriterion.s00001053.used} 
+tr {callToTask.s00002961.outputCriterion.s00001055} {callToTask.s00002961.inputCriterion.s00001053.used} -> {callToTask.s00002961.output.s00001054} {callToTask.s00002961.output.s00001077} 
+tr {callToTask.s00002962.inputCriterion.s00001053} {callToTask.s00002962.input.s00001052} {callToTask.s00002962.input.s00001066} -> {callToTask.s00002962.inputCriterion.s00001053.used} 
+tr {callToTask.s00002962.outputCriterion.s00001055} {callToTask.s00002962.inputCriterion.s00001053.used} -> {callToTask.s00002962.output.s00001054} {callToTask.s00002962.output.s00001077} 
+tr {callToTask.s00002963.inputCriterion.s00001053} {callToTask.s00002963.input.s00001052} {callToTask.s00002963.input.s00001066} -> {callToTask.s00002963.inputCriterion.s00001053.used} 
+tr {callToTask.s00002963.outputCriterion.s00001055} {callToTask.s00002963.inputCriterion.s00001053.used} -> {callToTask.s00002963.output.s00001054} {callToTask.s00002963.output.s00001077} 
+tr {callToTask.s00002964.inputCriterion.s00001053} {callToTask.s00002964.input.s00001052} {callToTask.s00002964.input.s00001066} -> {callToTask.s00002964.inputCriterion.s00001053.used} 
+tr {callToTask.s00002964.outputCriterion.s00001055} {callToTask.s00002964.inputCriterion.s00001053.used} -> {callToTask.s00002964.output.s00001054} {callToTask.s00002964.output.s00001077} 
+tr {callToTask.s00002965.inputCriterion.s00001053} {callToTask.s00002965.input.s00001052} {callToTask.s00002965.input.s00001066} -> {callToTask.s00002965.inputCriterion.s00001053.used} 
+tr {callToTask.s00002965.outputCriterion.s00001055} {callToTask.s00002965.inputCriterion.s00001053.used} -> {callToTask.s00002965.output.s00001054} {callToTask.s00002965.output.s00001077} 
+tr {callToTask.s00002966.inputCriterion.s00001053} {callToTask.s00002966.input.s00001052} {callToTask.s00002966.input.s00001066} -> {callToTask.s00002966.inputCriterion.s00001053.used} 
+tr {callToTask.s00002966.outputCriterion.s00001055} {callToTask.s00002966.inputCriterion.s00001053.used} -> {callToTask.s00002966.output.s00001054} {callToTask.s00002966.output.s00001077} 
+tr {decision.s00001123.activate.s00001072} {decision.s00001123.input.s00001052} {decision.s00001123.input.s00001066} -> {decision.s00001123.activated} 
+tr {decision.s00001123.fire.s00001073} {decision.s00001123.activated} -> {merge.s00002240.input.s00001066} {merge.s00002240.input.s00001127} 
+tr {decision.s00001123.fire.s00001075} {decision.s00001123.activated} -> {callToTask.s00001406.input.s00001052} {callToTask.s00001406.input.s00001066} 
+tr {decision.s00001126.activate.s00001072} {decision.s00001126.input.s00001052} {decision.s00001126.input.s00001066} -> {decision.s00001126.activated} 
+tr {decision.s00001126.fire.s00001073} {decision.s00001126.activated} -> {merge.s00002241.input.s00001066} {merge.s00002241.input.s00001127} 
+tr {decision.s00001126.fire.s00001075} {decision.s00001126.activated} -> {callToTask.s00002964.input.s00001052} {callToTask.s00002964.input.s00001066} 
+tr {decision.s00001157.activate.s00001072} {callToTask.s00001852.output.s00001054} {callToTask.s00001852.output.s00001077} -> {decision.s00001157.activated} 
+tr {decision.s00001157.fire.s00001073} {decision.s00001157.activated} -> {endNode.s00001057.input.default} {process.s00000343##s00003019.output.s00001249} 
+tr {decision.s00001157.fire.s00001075} {decision.s00001157.activated} -> {callToTask.s00002667.input.s00001052} {callToTask.s00002667.input.s00001066} 
+tr {decision.s00001158.activate.s00001072} {callToTask.s00002044.output.s00001077} -> {decision.s00001158.activated} 
+tr {decision.s00001158.fire.s00001073} {decision.s00001158.activated} -> {merge.s00002240.input.s00001052} 
+tr {decision.s00001158.fire.s00001075} {decision.s00001158.activated} -> {callToTask.s00001168.input.s00001052} 
+tr {decision.s00001159.activate.s00001072} {callToTask.s00002824.output.s00001077} -> {decision.s00001159.activated} 
+tr {decision.s00001159.fire.s00001073} {decision.s00001159.activated} -> {merge.s00002241.input.s00001052} 
+tr {decision.s00001159.fire.s00001075} {decision.s00001159.activated} -> {callToTask.s00001168.input.s00001066} 
+tr {decision.s00001840.activate.s00001072} {callToTask.s00002929.output.s00001054} {callToTask.s00002929.output.s00001077} -> {decision.s00001840.activated} 
+tr {decision.s00001840.fire.s00001073} {decision.s00001840.activated} -> {merge.s00002239.input.s00001066} {merge.s00002239.input.s00001128} 
+tr {decision.s00001840.fire.s00001075} {decision.s00001840.activated} -> {callToTask.s00002957.input.s00001052} {callToTask.s00002957.input.s00001066} 
+tr {decision.s00001840.fire.s00001078} {decision.s00001840.activated} -> {callToTask.s00001168.input.s00001068} 
+tr {decision.s00001840.fire.s00001081} {decision.s00001840.activated} -> {merge.s00002239.input.s00001068} {merge.s00002239.input.s00001129} 
+tr {decision.s00001841.activate.s00001072} {decision.s00001841.input.s00001052} {decision.s00001841.input.s00001066} -> {decision.s00001841.activated} 
+tr {decision.s00001841.fire.s00001073} {decision.s00001841.activated} -> {merge.s00001161.input.s00001052} {merge.s00001161.input.s00001068} 
+tr {decision.s00001841.fire.s00001075} {decision.s00001841.activated} -> {callToTask.s00002931.input.s00001052} {callToTask.s00002931.input.s00001066} 
+tr {decision.s00002055.activate.s00001072} {decision.s00002055.input.s00001052} {decision.s00002055.input.s00001066} -> {decision.s00002055.activated} 
+tr {decision.s00002055.fire.s00001073} {decision.s00002055.activated} -> {merge.s00001162.input.s00001052} {merge.s00001162.input.s00001068} 
+tr {decision.s00002055.fire.s00001075} {decision.s00002055.activated} -> {callToTask.s00002932.input.s00001052} {callToTask.s00002932.input.s00001066} 
+tr {decision.s00002056.activate.s00001072} {callToTask.s00002952.output.s00001054} {callToTask.s00002952.output.s00001077} -> {decision.s00002056.activated} 
+tr {decision.s00002056.fire.s00001073} {decision.s00002056.activated} -> {callToTask.s00002956.input.s00001052} {callToTask.s00002956.input.s00001066} 
+tr {decision.s00002056.fire.s00001075} {decision.s00002056.activated} -> {merge.s00001160.input.s00001068} {merge.s00001160.input.s00001129} 
+tr {decision.s00002760.activate.s00001072} {callToProcess.s00002944.output.s00001054} {callToProcess.s00002944.output.s00001077} -> {decision.s00002760.activated} 
+tr {decision.s00002760.fire.s00001073} {decision.s00002760.activated} -> {callToTask.s00002869.input.s00001066} 
+tr {decision.s00002760.fire.s00001075} {decision.s00002760.activated} -> {merge.s00001061.input.s00001052} {merge.s00001061.input.s00001068} 
+tr {decision.s00002761.activate.s00001072} {callToProcess.s00002121.output.s00001054} {callToProcess.s00002121.output.s00001077} -> {decision.s00002761.activated} 
+tr {decision.s00002761.fire.s00001073} {decision.s00002761.activated} -> {callToTask.s00002959.input.s00001052} {callToTask.s00002959.input.s00001066} 
+tr {decision.s00002761.fire.s00001075} {decision.s00002761.activated} -> {callToTask.s00001168.input.s00001127} 
+tr {decision.s00002762.activate.s00001072} {callToTask.s00002667.output.s00001054} {callToTask.s00002667.output.s00001077} -> {decision.s00002762.activated} 
+tr {decision.s00002762.fire.s00001073} {decision.s00002762.activated} -> {merge.s00002238.input.s00001052} {merge.s00002238.input.s00001068} 
+tr {decision.s00002762.fire.s00001075} {decision.s00002762.activated} -> {callToProcess.s00002499.input.s00001052} {callToProcess.s00002499.input.s00001066} 
+tr {decision.s00002948.activate.s00001072} {callToTask.s00002957.output.s00001054} {callToTask.s00002957.output.s00001077} -> {decision.s00002948.activated} 
+tr {decision.s00002948.fire.s00001073} {decision.s00002948.activated} -> {callToTask.s00002954.input.s00001052} {callToTask.s00002954.input.s00001066} 
+tr {decision.s00002948.fire.s00001075} {decision.s00002948.activated} -> {callToTask.s00002961.input.s00001052} {callToTask.s00002961.input.s00001066} 
+tr {decision.s00003020.activate.s00001072} {callToTask.s00002949.output.s00001054} {callToTask.s00002949.output.s00001077} -> {decision.s00003020.activated} 
+tr {decision.s00003020.fire.s00001073} {decision.s00003020.activated} -> {callToTask.s00002952.input.s00001052} {callToTask.s00002952.input.s00001066} 
+tr {decision.s00003020.fire.s00001075} {decision.s00003020.activated} -> {merge.s00001160.input.s00001052} {merge.s00001160.input.s00001127} 
+tr {decision.s00003021.activate.s00001072} {callToTask.s00002956.output.s00001054} {callToTask.s00002956.output.s00001077} -> {decision.s00003021.activated} 
+tr {decision.s00003021.fire.s00001073} {decision.s00003021.activated} -> {callToTask.s00002953.input.s00001052} {callToTask.s00002953.input.s00001066} 
+tr {decision.s00003021.fire.s00001075} {decision.s00003021.activated} -> {callToTask.s00002966.input.s00001052} {callToTask.s00002966.input.s00001066} 
+tr {decision.s00003021.fire.s00001078} {decision.s00003021.activated} -> {callToTask.s00002963.input.s00001052} {callToTask.s00002963.input.s00001066} 
+tr {decision.s00003022.activate.s00001072} {callToTask.s00001168.output.s00001054} -> {decision.s00003022.activated} 
+tr {decision.s00003022.fire.s00001073} {decision.s00003022.activated} -> {endNode.s00001401.input.default} 
+tr {decision.s00003022.fire.s00001075} {decision.s00003022.activated} -> {callToProcess.s00001108.input.s00001052} 
+tr {fork.s00001071.activate.s00001072} {callToTask.s00002955.output.s00001054} {callToTask.s00002955.output.s00001077} -> {fork.s00001071.activated.s00001073} {fork.s00001071.activated.s00001075} 
+tr {fork.s00001071.fire.s00001073} {fork.s00001071.activated.s00001073} -> {decision.s00001123.input.s00001052} {decision.s00001123.input.s00001066} 
+tr {fork.s00001071.fire.s00001075} {fork.s00001071.activated.s00001075} -> {decision.s00001126.input.s00001052} {decision.s00001126.input.s00001066} 
+tr {fork.s00001298.activate.s00001072} {callToTask.s00002870.output.s00001054} {callToTask.s00002870.output.s00001077} -> {fork.s00001298.activated.s00001075} {fork.s00001298.activated.s00001078} {fork.s00001298.activated.s00001073} 
+tr {fork.s00001298.fire.s00001073} {fork.s00001298.activated.s00001073} -> {decision.s00001841.input.s00001052} {decision.s00001841.input.s00001066} 
+tr {fork.s00001298.fire.s00001075} {fork.s00001298.activated.s00001075} -> {decision.s00002055.input.s00001052} {decision.s00002055.input.s00001066} 
+tr {fork.s00001298.fire.s00001078} {fork.s00001298.activated.s00001078} -> {callToTask.s00002930.input.s00001052} {callToTask.s00002930.input.s00001066} 
+tr {fork.s00001403.activate.s00001072} {process.s00000343##s00003019.input.s00001109} -> {fork.s00001403.activated.s00001073} {fork.s00001403.activated.s00001075} 
+tr {fork.s00001403.fire.s00001073} {fork.s00001403.activated.s00001073} -> {callToTask.s00002869.input.s00001052} 
+tr {fork.s00001403.fire.s00001075} {fork.s00001403.activated.s00001075} -> {callToTask.s00002960.input.s00001052} 
+tr {join.s00001163.activate.s00001062} {join.s00001163.input.s00001052} {join.s00001163.input.s00001127} -> {join.s00001163.activated.s00001062} 
+tr {join.s00001163.activate.s00001064} {join.s00001163.input.s00001066} {join.s00001163.input.s00001128} -> {join.s00001163.activated.s00001064} 
+tr {join.s00001163.activate.s00001065} {callToTask.s00002930.output.s00001054} {callToTask.s00002930.output.s00001077} -> {join.s00001163.activated.s00001065} 
+tr {join.s00001163.fire.s00001069} {join.s00001163.activated.s00001062} {join.s00001163.activated.s00001064} {join.s00001163.activated.s00001065} -> {callToTask.s00002929.input.s00001052} {callToTask.s00002929.input.s00001066} 
+tr {join.s00001164.activate.s00001062} {join.s00001164.input.s00001052} {join.s00001164.input.s00001068} -> {join.s00001164.activated.s00001062} 
+tr {join.s00001164.activate.s00001064} {join.s00001164.input.s00001066} {join.s00001164.input.s00001127} -> {join.s00001164.activated.s00001064} 
+tr {join.s00001164.fire.s00001069} {join.s00001164.activated.s00001062} {join.s00001164.activated.s00001064} -> {callToTask.s00002951.input.s00001052} {callToTask.s00002951.input.s00001066} 
+tr {merge.s00001061.activate.s00001062} {merge.s00001061.input.s00001052} {merge.s00001061.input.s00001068} -> {merge.s00001061.activated} 
+tr {merge.s00001061.activate.s00001064} {callToTask.s00002869.output.s00001054} {callToTask.s00002869.output.s00001077} -> {merge.s00001061.activated} 
+tr {merge.s00001061.fire.s00001069} {merge.s00001061.activated} -> {callToTask.s00002063.input.s00001052} {callToTask.s00002063.input.s00001066} 
+tr {merge.s00001160.activate.s00001062} {merge.s00001160.input.s00001052} {merge.s00001160.input.s00001127} -> {merge.s00001160.activated} 
+tr {merge.s00001160.activate.s00001064} {callToTask.s00002963.output.s00001054} {callToTask.s00002963.output.s00001077} -> {merge.s00001160.activated} 
+tr {merge.s00001160.activate.s00001065} {merge.s00001160.input.s00001068} {merge.s00001160.input.s00001129} -> {merge.s00001160.activated} 
+tr {merge.s00001160.fire.s00001069} {merge.s00001160.activated} -> {callToTask.s00002950.input.s00001052} {callToTask.s00002950.input.s00001066} 
+tr {merge.s00001161.activate.s00001062} {merge.s00001161.input.s00001052} {merge.s00001161.input.s00001068} -> {merge.s00001161.activated} 
+tr {merge.s00001161.activate.s00001064} {callToTask.s00002931.output.s00001054} {callToTask.s00002931.output.s00001077} -> {merge.s00001161.activated} 
+tr {merge.s00001161.fire.s00001069} {merge.s00001161.activated} -> {join.s00001163.input.s00001052} {join.s00001163.input.s00001127} 
+tr {merge.s00001162.activate.s00001062} {merge.s00001162.input.s00001052} {merge.s00001162.input.s00001068} -> {merge.s00001162.activated} 
+tr {merge.s00001162.activate.s00001064} {callToTask.s00002932.output.s00001054} {callToTask.s00002932.output.s00001077} -> {merge.s00001162.activated} 
+tr {merge.s00001162.fire.s00001069} {merge.s00001162.activated} -> {join.s00001163.input.s00001066} {join.s00001163.input.s00001128} 
+tr {merge.s00002238.activate.s00001062} {merge.s00002238.input.s00001052} {merge.s00002238.input.s00001068} -> {merge.s00002238.activated} 
+tr {merge.s00002238.activate.s00001064} {callToProcess.s00002499.output.s00001054} {callToProcess.s00002499.output.s00001083} -> {merge.s00002238.activated} 
+tr {merge.s00002238.fire.s00001069} {merge.s00002238.activated} -> {callToTask.s00002965.input.s00001052} {callToTask.s00002965.input.s00001066} 
+tr {merge.s00002239.activate.s00001062} {callToTask.s00002954.output.s00001054} {callToTask.s00002954.output.s00001077} -> {merge.s00002239.activated} 
+tr {merge.s00002239.activate.s00001064} {merge.s00002239.input.s00001066} {merge.s00002239.input.s00001128} -> {merge.s00002239.activated} 
+tr {merge.s00002239.activate.s00001065} {merge.s00002239.input.s00001068} {merge.s00002239.input.s00001129} -> {merge.s00002239.activated} 
+tr {merge.s00002239.fire.s00001069} {merge.s00002239.activated} -> {callToTask.s00002962.input.s00001052} {callToTask.s00002962.input.s00001066} 
+tr {merge.s00002240.activate.s00001062} {merge.s00002240.input.s00001052} -> {merge.s00002240.activated} 
+tr {merge.s00002240.activate.s00001064} {merge.s00002240.input.s00001066} {merge.s00002240.input.s00001127} -> {merge.s00002240.activated} 
+tr {merge.s00002240.fire.s00001069} {merge.s00002240.activated} -> {join.s00001164.input.s00001052} {join.s00001164.input.s00001068} 
+tr {merge.s00002241.activate.s00001062} {merge.s00002241.input.s00001052} -> {merge.s00002241.activated} 
+tr {merge.s00002241.activate.s00001064} {merge.s00002241.input.s00001066} {merge.s00002241.input.s00001127} -> {merge.s00002241.activated} 
+tr {merge.s00002241.fire.s00001069} {merge.s00002241.activated} -> {join.s00001164.input.s00001066} {join.s00001164.input.s00001127} 
+tr {process.s00000343##s00003019.inputCriterion.s00001053} alpha -> {callToTask.s00002960.input.s00001066} {callToTask.s00002960.input.s00001068} {callToTask.s00002960.input.s00001127} {callToTask.s00002960.input.s00001128} {process.s00000343##s00003019.input.s00001109} 
+tr {process.s00000343##s00003019.outputCriterion.s00001055} {callToProcess.s00001108.output.s00001054} {callToTask.s00002958.output.s00001054} {process.s00000343##s00003019.output.s00001249} -> {process.s00000343##s00003019.outputCriterion.s00001055_omega} 
+pl alpha (1)

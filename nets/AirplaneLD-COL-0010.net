@@ -1,0 +1,128 @@
+#net AirplaneLD-COL-0010 has 89 places and 88 transitions
+net {AirplaneLD-COL-0010}
+pl AltitudePossibleVal_13 (1)
+pl AltitudePossibleVal_14 (1)
+pl AltitudePossibleVal_15 (1)
+pl AltitudePossibleVal_16 (1)
+pl AltitudePossibleVal_17 (1)
+pl AltitudePossibleVal_18 (1)
+pl AltitudePossibleVal_19 (1)
+pl AltitudePossibleVal_20 (1)
+pl AltitudePossibleVal_21 (1)
+pl AltitudePossibleVal_22 (1)
+pl AltitudePossibleVal_23 (1)
+pl AltitudePossibleVal_24 (1)
+pl AltitudePossibleVal_25 (1)
+pl AltitudePossibleVal_26 (1)
+pl AltitudePossibleVal_27 (1)
+pl AltitudePossibleVal_28 (1)
+pl AltitudePossibleVal_29 (1)
+pl AltitudePossibleVal_30 (1)
+pl AltitudePossibleVal_31 (1)
+pl AltitudePossibleVal_32 (1)
+pl P1 (1)
+pl SpeedPossibleVal_10 (1)
+pl SpeedPossibleVal_11 (1)
+pl SpeedPossibleVal_12 (1)
+pl SpeedPossibleVal_3 (1)
+pl SpeedPossibleVal_4 (1)
+pl SpeedPossibleVal_5 (1)
+pl SpeedPossibleVal_6 (1)
+pl SpeedPossibleVal_7 (1)
+pl SpeedPossibleVal_8 (1)
+pl SpeedPossibleVal_9 (1)
+pl WeightPossibleVal_1 (1)
+pl WeightPossibleVal_2 (1)
+pl stp1 (1)
+pl stp2 (1)
+pl stp3 (1)
+pl stp4 (1)
+pl stp5 (1)
+tr t0  AltitudePossibleVal_13 stp3 -> AltitudePossibleVal_13 TheAltitude_13
+tr t1  AltitudePossibleVal_14 stp3 -> AltitudePossibleVal_14 TheAltitude_14
+tr t2  AltitudePossibleVal_15 stp3 -> AltitudePossibleVal_15 TheAltitude_15
+tr t3  AltitudePossibleVal_16 stp3 -> AltitudePossibleVal_16 TheAltitude_16
+tr t4  AltitudePossibleVal_17 stp3 -> AltitudePossibleVal_17 TheAltitude_17
+tr t5  AltitudePossibleVal_18 stp3 -> AltitudePossibleVal_18 TheAltitude_18
+tr t6  AltitudePossibleVal_19 stp3 -> AltitudePossibleVal_19 TheAltitude_19
+tr t7  AltitudePossibleVal_20 stp3 -> AltitudePossibleVal_20 TheAltitude_20
+tr t8  AltitudePossibleVal_21 stp3 -> AltitudePossibleVal_21 TheAltitude_21
+tr t9  AltitudePossibleVal_22 stp3 -> AltitudePossibleVal_22 TheAltitude_22
+tr t10  AltitudePossibleVal_23 stp3 -> AltitudePossibleVal_23 TheAltitude_23
+tr t11  AltitudePossibleVal_24 stp3 -> AltitudePossibleVal_24 TheAltitude_24
+tr t12  AltitudePossibleVal_25 stp3 -> AltitudePossibleVal_25 TheAltitude_25
+tr t13  AltitudePossibleVal_26 stp3 -> AltitudePossibleVal_26 TheAltitude_26
+tr t14  AltitudePossibleVal_27 stp3 -> AltitudePossibleVal_27 TheAltitude_27
+tr t15  AltitudePossibleVal_28 stp3 -> AltitudePossibleVal_28 TheAltitude_28
+tr t16  AltitudePossibleVal_29 stp3 -> AltitudePossibleVal_29 TheAltitude_29
+tr t17  AltitudePossibleVal_30 stp3 -> AltitudePossibleVal_30 TheAltitude_30
+tr t18  AltitudePossibleVal_31 stp3 -> AltitudePossibleVal_31 TheAltitude_31
+tr t19  AltitudePossibleVal_32 stp3 -> AltitudePossibleVal_32 TheAltitude_32
+tr t20  P1 Weight_Left_Wheel_1 -> P6 Plane_On_Ground_Signal_no_33
+tr t21  P1 Weight_Left_Wheel_2 -> P2
+tr t22  P2 Weight_Right_Wheel_1 -> P6 Plane_On_Ground_Signal_no_33
+tr t23  P2 Weight_Right_Wheel_2 -> P3
+tr t24  P3 TheAltitude_13 -> P6 Plane_On_Ground_Signal_no_33
+tr t25  P3 TheAltitude_14 -> P6 Plane_On_Ground_Signal_no_33
+tr t26  P3 TheAltitude_15 -> P6 Plane_On_Ground_Signal_no_33
+tr t27  P3 TheAltitude_16 -> P6 Plane_On_Ground_Signal_no_33
+tr t28  P3 TheAltitude_17 -> P6 Plane_On_Ground_Signal_no_33
+tr t29  P3 TheAltitude_18 -> P6 Plane_On_Ground_Signal_no_33
+tr t30  P3 TheAltitude_19 -> P6 Plane_On_Ground_Signal_no_33
+tr t31  P3 TheAltitude_20 -> P6 Plane_On_Ground_Signal_no_33
+tr t32  P3 TheAltitude_21 -> P6 Plane_On_Ground_Signal_no_33
+tr t33  P3 TheAltitude_22 -> P4
+tr t34  P3 TheAltitude_23 -> P4
+tr t35  P3 TheAltitude_24 -> P4
+tr t36  P3 TheAltitude_25 -> P4
+tr t37  P3 TheAltitude_26 -> P4
+tr t38  P3 TheAltitude_27 -> P4
+tr t39  P3 TheAltitude_28 -> P4
+tr t40  P3 TheAltitude_29 -> P4
+tr t41  P3 TheAltitude_30 -> P4
+tr t42  P3 TheAltitude_31 -> P4
+tr t43  P3 TheAltitude_32 -> P4
+tr t44  P4 Speed_Left_Wheel_10 -> P6 Plane_On_Ground_Signal_no_33
+tr t45  P4 Speed_Left_Wheel_11 -> P6 Plane_On_Ground_Signal_no_33
+tr t46  P4 Speed_Left_Wheel_12 -> P5
+tr t47  P4 Speed_Left_Wheel_3 -> P5
+tr t48  P4 Speed_Left_Wheel_4 -> P5
+tr t49  P4 Speed_Left_Wheel_5 -> P5
+tr t50  P4 Speed_Left_Wheel_6 -> P5
+tr t51  P4 Speed_Left_Wheel_7 -> P5
+tr t52  P4 Speed_Left_Wheel_8 -> P6 Plane_On_Ground_Signal_no_33
+tr t53  P4 Speed_Left_Wheel_9 -> P6 Plane_On_Ground_Signal_no_33
+tr t54  P5 Speed_Right_Wheel_10 -> P6 Plane_On_Ground_Signal_no_33
+tr t55  P5 Speed_Right_Wheel_11 -> P6 Plane_On_Ground_Signal_no_33
+tr t56  P5 Speed_Right_Wheel_12 -> P6 Plane_On_Ground_Signal_no_34
+tr t57  P5 Speed_Right_Wheel_3 -> P6 Plane_On_Ground_Signal_no_34
+tr t58  P5 Speed_Right_Wheel_4 -> P6 Plane_On_Ground_Signal_no_34
+tr t59  P5 Speed_Right_Wheel_5 -> P6 Plane_On_Ground_Signal_no_34
+tr t60  P5 Speed_Right_Wheel_6 -> P6 Plane_On_Ground_Signal_no_34
+tr t61  P5 Speed_Right_Wheel_7 -> P6 Plane_On_Ground_Signal_no_34
+tr t62  P5 Speed_Right_Wheel_8 -> P6 Plane_On_Ground_Signal_no_33
+tr t63  P5 Speed_Right_Wheel_9 -> P6 Plane_On_Ground_Signal_no_33
+tr t64  SpeedPossibleVal_10 stp4 -> SpeedPossibleVal_10 Speed_Left_Wheel_10
+tr t65  SpeedPossibleVal_10 stp5 -> SpeedPossibleVal_10 Speed_Right_Wheel_10
+tr t66  SpeedPossibleVal_11 stp4 -> SpeedPossibleVal_11 Speed_Left_Wheel_11
+tr t67  SpeedPossibleVal_11 stp5 -> SpeedPossibleVal_11 Speed_Right_Wheel_11
+tr t68  SpeedPossibleVal_12 stp4 -> SpeedPossibleVal_12 Speed_Left_Wheel_12
+tr t69  SpeedPossibleVal_12 stp5 -> SpeedPossibleVal_12 Speed_Right_Wheel_12
+tr t70  SpeedPossibleVal_3 stp4 -> SpeedPossibleVal_3 Speed_Left_Wheel_3
+tr t71  SpeedPossibleVal_3 stp5 -> SpeedPossibleVal_3 Speed_Right_Wheel_3
+tr t72  SpeedPossibleVal_4 stp4 -> SpeedPossibleVal_4 Speed_Left_Wheel_4
+tr t73  SpeedPossibleVal_4 stp5 -> SpeedPossibleVal_4 Speed_Right_Wheel_4
+tr t74  SpeedPossibleVal_5 stp4 -> SpeedPossibleVal_5 Speed_Left_Wheel_5
+tr t75  SpeedPossibleVal_5 stp5 -> SpeedPossibleVal_5 Speed_Right_Wheel_5
+tr t76  SpeedPossibleVal_6 stp4 -> SpeedPossibleVal_6 Speed_Left_Wheel_6
+tr t77  SpeedPossibleVal_6 stp5 -> SpeedPossibleVal_6 Speed_Right_Wheel_6
+tr t78  SpeedPossibleVal_7 stp4 -> SpeedPossibleVal_7 Speed_Left_Wheel_7
+tr t79  SpeedPossibleVal_7 stp5 -> SpeedPossibleVal_7 Speed_Right_Wheel_7
+tr t80  SpeedPossibleVal_8 stp4 -> SpeedPossibleVal_8 Speed_Left_Wheel_8
+tr t81  SpeedPossibleVal_8 stp5 -> SpeedPossibleVal_8 Speed_Right_Wheel_8
+tr t82  SpeedPossibleVal_9 stp4 -> SpeedPossibleVal_9 Speed_Left_Wheel_9
+tr t83  SpeedPossibleVal_9 stp5 -> SpeedPossibleVal_9 Speed_Right_Wheel_9
+tr t84  WeightPossibleVal_1 stp1 -> WeightPossibleVal_1 Weight_Left_Wheel_1
+tr t85  WeightPossibleVal_1 stp2 -> WeightPossibleVal_1 Weight_Right_Wheel_1
+tr t86  WeightPossibleVal_2 stp1 -> WeightPossibleVal_2 Weight_Left_Wheel_2
+tr t87  WeightPossibleVal_2 stp2 -> WeightPossibleVal_2 Weight_Right_Wheel_2
