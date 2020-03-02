@@ -88,7 +88,7 @@ class Formula:
             # Read the model
             solver.stdout.readline()
 
-            # Parse the model and fill the grid
+            # Parse the model
             while(True):
                 place_content = solver.stdout.readline().decode('utf-8').strip().split(' ')
                 place_marking =  solver.stdout.readline().decode('utf-8').strip().replace(' ', '').replace(')', '')
@@ -96,8 +96,11 @@ class Formula:
                     break
                 if (place_marking and int(place_marking) > 0) and place_content[1] in self.pn.places:
                     model += ' ' + place_content[1]
-
+ 
             print("The input Petri Net can deadlock!")
+            
+            if model == "":
+                model = " empty marking"
             print("Model:{}".format(model))
 
 if __name__=='__main__':
