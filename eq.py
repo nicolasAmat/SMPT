@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Linear Equations Parser
+Linear System Parser
 
 Input file format: .net
 """
@@ -18,8 +18,8 @@ class System:
     """
     def __init__(self, filename, places = []):
         self.places = places
-        self.additionalVars = []
         self.system = []
+        self.additionalVars = []
         self.parser(filename)
 
     def __str__(self):
@@ -55,6 +55,7 @@ class System:
                                 operator = element
                                 left = False
                             else:
+                                element = element.replace('{', '').replace('}', '').replace('#', '')
                                 if not element.isnumeric() and element not in self.places and element not in self.additionalVars:
                                     self.additionalVars.append(element)
                                 if left:

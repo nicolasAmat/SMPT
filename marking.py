@@ -53,7 +53,7 @@ class Marking:
                             if place_data[0] != 'S':
                                 consistent = False
                                 break
-                            marking[place_data[1].replace('`', '')] = 1
+                            marking[place_data[1].replace('`', '').replace('{', '').replace('}', '')] = 1
                         if consistent:
                             self.markings.append(marking)
         except FileNotFoundError as e:

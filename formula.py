@@ -75,7 +75,7 @@ class Formula:
         for tr in self.pn.transitions.values():
             inequalities = []
             for src in tr.src:
-                ineq = Inequality(src, 1, '<')
+                ineq = Inequality(src[0], src[1], '<')
                 inequalities.append(ineq)
             self.clauses.append(Clause(inequalities))
 

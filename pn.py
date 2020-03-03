@@ -41,7 +41,7 @@ class PetriNet:
             try:
                 with open(filename, 'r') as fp:
                     for line in fp.readlines():
-                        content = re.split('\s+', line.strip())
+                        content = re.split('\s+', line.strip().replace('{', '').replace('}', '').replace('#', ''))
                         element = content.pop(0)
                         if element == "net":
                             self.id = content[0]
@@ -62,14 +62,20 @@ class PetriNet:
         dst = content[arrow + 1:]
 
         for pl in src:
-            if pl not in self.places:
-                self.places[pl] = Place(pl)
-            tr.src.append(self.places.get(pl))
+            tr.src.append(self.parseArc(pl))
 
         for pl in dst:
-            if pl not in self.places:
-                self.places[pl] = Place(pl)
-            tr.dest.append(self.places.get(pl))
+            tr.dest.append(self.parseArc(pl))
+
+    def parseArc(self, pl):
+        pl = pl.split('*')
+        if pl[0] not in self.places:
+            self.places[pl[0]] = Place(pl[0])
+        if len(pl) == 1:
+            weight = 1
+        else:
+            weight = int(pl[1])
+        return (self.places.get(pl[0]), weight)
 
     def parsePlace(self, content):
         placeId = content[0]
@@ -114,11 +120,19 @@ class Transition:
     def __str__(self):
         text = "tr {}  ".format(self.id)
         for src in self.src:
-            text += src.id + " "
+            text += self.strArc(src)
         text += '-> '
         for dest in self.dest:
-            text += dest.id + " "
+            text += self.strArc(dest)
         text += '\n'
+        return text
+
+    def strArc(self, pl):
+        text = ""
+        text += pl[0].id
+        if len(pl) == 2:
+            text += '*' + str(pl[1])
+        text += ' '
         return text
 
 
