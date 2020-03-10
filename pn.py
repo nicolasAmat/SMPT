@@ -73,8 +73,13 @@ class PetriNet:
                 exit(e)
 
     def parseTransition(self, content):
-        tr = Transition(content.pop(0), self)
-        self.transitions[tr.id] = tr
+        tr_id = content.pop(0)
+        
+        if tr_id in self.transitions:
+            tr = self.transitions[tr.id]
+        else:
+            tr = Transition(tr_id, self)
+            self.transitions[tr.id] = tr
 
         content = self.parseLabel(content)
 
