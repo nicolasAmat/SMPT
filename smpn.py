@@ -4,27 +4,30 @@
 Satisfiability Modulo Petri Net
 """
 
-from pn import *
-from formula import *
-from eq import *
-from marking import *
+from pn import PetriNet
+from formula import Formula
+from eq import System
+from marking import Marking
 
 import sys
 import os
 import subprocess
 
 def main(argv):
+
     if len(argv) < 3:
         exit("File missing: ./smpn <path_to_initial_petri_net> <path_to_reduce_net> <path_to_aut_file>")
+
     net = PetriNet(argv[1])
     reduced_net = PetriNet(argv[2])
     eq = System(argv[2], net.places.keys())
     phi = Formula(net)
+
     if len(argv) > 3:
         marks = Marking(argv[3], reduced_net)
 
     smtlib = "; Variable Definitions\n" \
-        + net.smtlib() \
+        + net.smtlibDeclarePlaces() \
         + "; Reduction Equations\n" \
         + eq.smtlib() \
         + "; Property Formula\n" \

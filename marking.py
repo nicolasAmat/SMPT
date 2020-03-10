@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 
 """
-Marking
+Enumerative Marking Module
 
 Input file format: .aut
 Documentation: http://projects.laas.fr/tina//manuals/formats.html
 """
 
-from pn import *
+from pn import PetriNet
+
 import re
+import sys
 
 class Marking:
+    """
+    Marking defined by:
+    - a Petri Net
+    - a set of reachable markings
+    """
     def __init__(self, filename, pn):
         self.pn = pn
         self.markings = []
-        self.parseMarking(filename)
+        self.parseMarkings(filename)
 
     def __str__(self):
         text = ""
@@ -39,7 +46,7 @@ class Marking:
         text += "))\n"
         return text
 
-    def parseMarking(self, filename):
+    def parseMarkings(self, filename):
         try:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
@@ -61,13 +68,17 @@ class Marking:
 
 
 if __name__=='__main__':
+
     if (len(sys.argv) != 3):
         exit("File missing: ./marking <path_to_aut_file> <path_to_net_file>")
+
     net = PetriNet(sys.argv[2])
     marks = Marking(sys.argv[1], net)
-    print("TODO")
-    print("-------------")
+
+    print("Markings Enumeration")
+    print("--------------------")
     print(marks)
+
     print("\nSMTlib2 Format")
     print("--------------")
     print(marks.smtlib())

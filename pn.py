@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Petri Net Parser
+Petri Net Module
 
 Input file format: .net
 Documentation: http://projects.laas.fr/tina//manuals/formats.html
@@ -14,8 +14,8 @@ class PetriNet:
     """
     Petri Net defined by:
     - an identifier
-    - a finite set of places
-    - a finite set of transitions
+    - a finite set of places (identified by names)
+    - a finite set of transitions (identified by names)
     """
     def __init__(self, filename):
         self.id = ""
@@ -31,10 +31,29 @@ class PetriNet:
             text += str(tr)
         return text
 
-    def smtlib(self):
+    def smtlibDeclarePlaces(self):
         text = ""
         for place in self.places.values():
-            text += place.smtlib()
+            text += place.smtlibDeclare()
+        return text
+
+    def smtlibDeclarePlacesOrdered(self, k):
+        text = ""
+        for place in self.places.values():
+            text += place.smtlibDeclareOrdered(k)
+        return text
+
+    def smtlibSetMarkingOrdered(self, k):
+        text = ""
+        for pl in self.places.values():
+            text += pl.smtlibSetMarkingOrdered(k)
+        return text
+
+    def smtlibTransitionsOrdered(self, k):
+        text = "(assert (or \n"
+        for tr in self.transitions.values():
+            text += tr.smtlibOrdered(k)
+        text += "))\n"
         return text
 
     def parseNet(self, filename):
@@ -54,7 +73,7 @@ class PetriNet:
                 exit(e)
 
     def parseTransition(self, content):
-        tr = Transition(content[0])
+        tr = Transition(content[0], self)
         self.transitions[tr.id] = tr
         
         arrow = content.index("->")
@@ -62,10 +81,14 @@ class PetriNet:
         dst = content[arrow + 1:]
 
         for pl in src:
-            tr.src.append(self.parseArc(pl))
+            arc = self.parseArc(pl)
+            tr.src.append(arc)
+            tr.pl_linked.append(arc[0])
 
         for pl in dst:
-            tr.dest.append(self.parseArc(pl))
+            arc = self.parseArc(pl)
+            tr.dest.append(arc)
+            tr.pl_linked.append(arc[0])
 
     def parseArc(self, pl):
         pl = pl.split('*')
@@ -102,8 +125,14 @@ class Place:
             text = "pl {} ({})\n".format(self.id, self.marking)
         return text
 
-    def smtlib(self):
+    def smtlibDeclare(self):
         return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
+
+    def smtlibDeclareOrdered(self, k):
+        return "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(self.id, k, self.id, k)
+
+    def smtlibSetMarkingOrdered(self, k):
+        return "(assert (= {}@{} {}))\n".format(self.id, k, self.marking)
 
 class Transition:
     """
@@ -112,10 +141,12 @@ class Transition:
     - a list of input places
     - a list of output places
     """
-    def __init__(self, id):
+    def __init__(self, id, pn):
         self.id = id
+        self.pn = pn
         self.src = []
         self.dest = []
+        self.pl_linked = []
 
     def __str__(self):
         text = "tr {}  ".format(self.id)
@@ -135,15 +166,39 @@ class Transition:
         text += ' '
         return text
 
+    def smtlibOrdered(self, k):
+        text = "\t(and\n\t\t(=>\n\t\t\t(and "
+        for arc in self.src:
+            text += "(>= {}@{} {})".format(arc[0].id, k, arc[1])
+        text += ")\n\t\t\t(and "
+        for arc in self.src:
+            text += "(= {}@{} (- {}@{} {}))".format(arc[0].id, k + 1, arc[0].id, k, arc[1])
+        for arc in self.dest:
+            text += "(= {}@{} (+ {}@{} {}))".format(arc[0].id, k + 1, arc[0].id, k, arc[1])
+        for pl in self.pn.places.values():
+            if pl not in self.pl_linked:
+                text += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
+        text += ")\n\t\t)\n\t\t(=>\n\t\t\t(or "
+        for arc in self.src:
+            text += "(< {}@{} {})".format(arc[0].id, k, arc[1])
+        text += ")\n\t\t\t(and "
+        for pl in self.pn.places.values():
+            text += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
+        text += ")\n\t\t)\n\t)\n"
+        return text
+
 
 if __name__ == "__main__":
     
     if (len(sys.argv) == 1):
         exit("File missing: ./pn <path_to_file>")
+    
     net = PetriNet(sys.argv[1])
+    
     print("Petri Net")
     print("---------")
     print(net)
+    
     print("SMTlib")
     print("------")
-    print(net.smtlib())
+    print(net.smtlibDeclarePlaces())
