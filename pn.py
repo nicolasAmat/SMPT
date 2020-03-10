@@ -60,7 +60,7 @@ class PetriNet:
             try:
                 with open(filename, 'r') as fp:
                     for line in fp.readlines():
-                        content = re.split('\s+', line.strip().replace('{', '').replace('}', '').replace('#', ''))
+                        content = re.split('\s+', line.strip().replace('#', ''))
                         element = content.pop(0)
                         if element == "net":
                             self.id = content[0]
@@ -73,11 +73,13 @@ class PetriNet:
                 exit(e)
 
     def parseTransition(self, content):
-        tr = Transition(content[0], self)
+        tr = Transition(content.pop(0), self)
         self.transitions[tr.id] = tr
-        
+
+        content = self.parseLabel(content)
+
         arrow = content.index("->")
-        src = content[1:arrow]
+        src = content[0:arrow]
         dst = content[arrow + 1:]
 
         for pl in src:
@@ -101,13 +103,29 @@ class PetriNet:
         return (self.places.get(pl[0]), weight)
 
     def parsePlace(self, content):
-        placeId = content[0]
-        marking = content[1].replace('(', '').replace(')', '')
-    
+        placeId = content.pop(0)
+        
+        content = self.parseLabel(content)
+
+        if len(content) == 1:
+            marking = content[0].replace('(', '').replace(')', '')
+        else:
+            marking = 0
+
         if placeId not in self.places:
             self.places[placeId] = Place(placeId, marking)
         else:
             self.places.get(placeId).marking = marking
+
+    def parseLabel(self, content):
+        index_pl = 0
+        if content[index_pl] == ':':
+            label_skipped = content[index_pl + 1][0] != '{'
+            index_pl = 2
+            while not label_skipped:
+                label_skipped = content[index_pl][-1] == '}'             
+                index_pl += 1
+        return content[index_pl:]
 
 class Place:
     """
