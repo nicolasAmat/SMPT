@@ -61,7 +61,9 @@ class System:
     def parser(self, filename):
         try:
             with open(filename, 'r') as fp:
-                lines = re.split('\n+', re.search(r'# generated equations\n(.*)?\n\n', fp.read(), re.DOTALL).group())[1:-1]
+                content = re.search(r'# generated equations\n(.*)?\n\n', fp.read(), re.DOTALL) 
+                if content:
+                    lines = re.split('\n+', content.group())[1:-1]
                 equations = [re.split('\s+', line.partition(' |- ')[2]) for line in lines]
                 for eq in equations:
                     self.system.append(Equation(eq, self))
