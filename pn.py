@@ -98,7 +98,8 @@ class PetriNet:
             tr.pl_linked.append(arc[0])
 
     def parseArc(self, pl):
-        pl = pl.split('*')
+        pl = pl.replace('{', '').replace('}', '').split('*')
+        
         if pl[0] not in self.places:
             self.places[pl[0]] = Place(pl[0])
         if len(pl) == 1:
@@ -108,7 +109,7 @@ class PetriNet:
         return (self.places.get(pl[0]), weight)
 
     def parsePlace(self, content):
-        placeId = content.pop(0)
+        place_id = content.pop(0).replace('{', '').replace('}', '')
         
         content = self.parseLabel(content)
 
@@ -117,10 +118,10 @@ class PetriNet:
         else:
             marking = 0
 
-        if placeId not in self.places:
-            self.places[placeId] = Place(placeId, marking)
+        if place_id not in self.places:
+            self.places[place_id] = Place(place_id, marking)
         else:
-            self.places.get(placeId).marking = marking
+            self.places.get(place_id).marking = marking
 
     def parseLabel(self, content):
         index_pl = 0
