@@ -87,26 +87,45 @@ class PetriNet:
         src = content[0:arrow]
         dst = content[arrow + 1:]
 
-        for pl in src:
-            arc = self.parseArc(pl)
-            tr.src.append(arc)
-            tr.pl_linked.append(arc[0])
+        for arc in src:
+            tr.pl_linked.append(self.parseArc(arc, tr.src, tr.dest))
 
-        for pl in dst:
-            arc = self.parseArc(pl)
-            tr.dest.append(arc)
-            tr.pl_linked.append(arc[0])
+        for arc in dst:
+            tr.pl_linked.append(self.parseArc(arc, tr.dest))
 
-    def parseArc(self, pl):
-        pl = pl.replace('{', '').replace('}', '').split('*')
+    def parseArc(self, arc, arcs, opposite_arcs = []):
+        arc = arc.replace('{', '').replace('}', '')
+
+        test_arc, inhibitor_arc = False, False 
+
+        if '?-' in arc:
+            inhibitor_arc = True
+            arc = arc.split('?-')
+        elif '?' in arc:
+            test_arc = True
+            arc = arc.split('?')
+        elif '*' in arc:
+            arc = arc.split('*')
+        else:
+            arc = [arc]
+
+        if arc[0] not in self.places:
+            self.places[arc[0]] = Place(arc[0])
         
-        if pl[0] not in self.places:
-            self.places[pl[0]] = Place(pl[0])
-        if len(pl) == 1:
+        if len(arc) == 1:
             weight = 1
         else:
-            weight = int(pl[1])
-        return (self.places.get(pl[0]), weight)
+            weight = int(arc[1])
+        
+        if inhibitor_arc:
+            weight = -weight
+
+        arcs.append((self.places.get(arc[0]), weight))
+
+        if test_arc:
+            opposite_arcs.append((self.places.get(arc[0]), weight))
+        
+        return self.places.get(arc[0])
 
     def parsePlace(self, content):
         place_id = content.pop(0).replace('{', '').replace('}', '')
@@ -185,8 +204,10 @@ class Transition:
     def strArc(self, pl):
         text = ""
         text += pl[0].id
-        if len(pl) == 2:
+        if pl[1] > 1:
             text += '*' + str(pl[1])
+        if pl[1] < 0:
+            text += '?-' + str(- pl[1])
         text += ' '
         return text
 
