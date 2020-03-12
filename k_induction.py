@@ -10,7 +10,11 @@ from formula import Formula
 
 import sys
 from subprocess import PIPE, Popen
+# from multiprocessing import Process
+from threading import Thread, Event
+import time
 
+stop_it = Event()
 class KInduction:
     
     def __init__(self, pn, pn_reduced, eq, formula):
@@ -45,7 +49,7 @@ class KInduction:
             text += "; Transition Relation: {} -> {}\n".format(i, i + 1)
             text += self.pn_reduced.smtlibTransitionsOrdered(i)
 
-        text += "; Reduction equation\n"
+        text += "; Reduction Equations\n"
         text += self.eq.smtlibOrdered(k)
 
         text += "(check-sat)\n(get-model)\n"
@@ -53,8 +57,8 @@ class KInduction:
         return text
 
     def solve(self):
+        print("K-Induction running:")
         k = 0 
-        
         self.solver.stdin.write(bytes(self.pn.smtlibDeclarePlaces(), 'utf-8'))
         self.solver.stdin.write(bytes(self.formula.smtlib(), 'utf-8'))
         self.solver.stdin.write(bytes(self.eq.smtlibOnlyNonReducedPlaces(), 'utf-8'))
@@ -63,24 +67,34 @@ class KInduction:
         self.solver.stdin.write(bytes("(push)\n", 'utf-8'))
         self.solver.stdin.write(bytes(self.eq.smtlibOrdered(k), 'utf-8'))
         
-        while not self.formula.checkSat(self.solver):
+        while not self.formula.checkSat(self.solver) and not stop_it.is_set():
+            print("k =", k)
             self.solver.stdin.write(bytes("(pop)\n", 'utf-8'))
             self.solver.stdin.write(bytes(self.pn_reduced.smtlibDeclarePlacesOrdered(k + 1), 'utf-8'))
             self.solver.stdin.write(bytes(self.pn_reduced.smtlibTransitionsOrdered(k), 'utf-8'))
             self.solver.stdin.write(bytes("(push)\n", 'utf-8'))
             self.solver.stdin.write(bytes(self.eq.smtlibOrdered(k + 1), 'utf-8'))
-            k += k + 1
+            k += 1
         
-        self.formula.getModel(self.solver)
+        if not stop_it.is_set():
+            self.formula.getModel(self.solver)
+        else:
+            print("Timeouts!")
 
 if __name__=='__main__':
     
-    if len(sys.argv) < 3:
-        exit("File missing: ./smpn <path_to_initial_petri_net> <path_to_reduce_net>")
+    if len(sys.argv) < 2:
+        exit("File missing: ./smpn <path_to_initial_petri_net> [<path_to_reduce_net>]")
 
     pn = PetriNet(sys.argv[1])
-    pn_reduced = PetriNet(sys.argv[2])
-    system = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
+    
+    if len(sys.argv) == 3:
+        pn_reduced = PetriNet(sys.argv[2])
+        system = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
+    else:
+        pn_reduced = PetriNet(sys.argv[1])
+        system = System(sys.argv[1], pn.places.keys(), pn_reduced.places.keys())
+    
     formula = Formula(pn)
     
     k_induction = KInduction(pn, pn_reduced, system, formula)
@@ -91,4 +105,8 @@ if __name__=='__main__':
 
     print("Result computed using z3")
     print("------------------------")
-    k_induction.solve()
+    # k_induction.solve()
+    proc = Thread(target= k_induction.solve)
+    proc.start()
+    proc.join(timeout = 5)
+    stop_it.set()

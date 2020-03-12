@@ -64,9 +64,9 @@ class System:
                 content = re.search(r'# generated equations\n(.*)?\n\n', fp.read(), re.DOTALL) 
                 if content:
                     lines = re.split('\n+', content.group())[1:-1]
-                equations = [re.split('\s+', line.partition(' |- ')[2]) for line in lines]
-                for eq in equations:
-                    self.system.append(Equation(eq, self))
+                    equations = [re.split('\s+', line.partition(' |- ')[2]) for line in lines]
+                    for eq in equations:
+                        self.system.append(Equation(eq, self))
             fp.close()
         except FileNotFoundError as e:
             exit(e)

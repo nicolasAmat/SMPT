@@ -60,7 +60,7 @@ class PetriNet:
             try:
                 with open(filename, 'r') as fp:
                     for line in fp.readlines():
-                        content = re.split('\s+', line.strip().replace('#', ''))
+                        content = re.split(r'\s+', line.strip().replace('#', ''))
                         element = content.pop(0)
                         if element == "net":
                             self.id = content[0]
@@ -120,12 +120,13 @@ class PetriNet:
         if inhibitor_arc:
             weight = -weight
 
-        arcs.append((self.places.get(arc[0]), weight))
+        pl = self.places.get(arc[0])
+        arcs[pl] = weight
 
         if test_arc:
-            opposite_arcs.append((self.places.get(arc[0]), weight))
+            opposite_arcs[pl] = weight
         
-        return self.places.get(arc[0])
+        return pl
 
     def parsePlace(self, content):
         place_id = content.pop(0).replace('{', '').replace('}', '')
@@ -187,45 +188,56 @@ class Transition:
     def __init__(self, id, pn):
         self.id = id
         self.pn = pn
-        self.src = []
-        self.dest = []
+        self.src = {}
+        self.dest = {}
         self.pl_linked = []
 
     def __str__(self):
         text = "tr {}  ".format(self.id)
-        for src in self.src:
-            text += self.strArc(src)
+        for src, weight in self.src.items():
+            text += self.strArc(src, weight)
         text += '-> '
-        for dest in self.dest:
-            text += self.strArc(dest)
+        for dest, weight in self.dest.items():
+            text += self.strArc(dest, weight)
         text += '\n'
         return text
 
-    def strArc(self, pl):
+    def strArc(self, pl, weight):
         text = ""
-        text += pl[0].id
-        if pl[1] > 1:
-            text += '*' + str(pl[1])
-        if pl[1] < 0:
-            text += '?-' + str(- pl[1])
+        text += pl.id
+        if weight > 1:
+            text += '*' + str(weight)
+        if weight < 0:
+            text += '?-' + str(- weight)
         text += ' '
         return text
 
     def smtlibOrdered(self, k):
         text = "\t(and\n\t\t(=>\n\t\t\t(and "
-        for arc in self.src:
-            text += "(>= {}@{} {})".format(arc[0].id, k, arc[1])
+        for pl, weight in self.src.items():
+            if weight > 0:
+                text += "(>= {}@{} {})".format(pl.id, k, weight)
+            else:
+                text += "(< {}@{} {})".format(pl.id, k, - weight)
         text += ")\n\t\t\t(and "
-        for arc in self.src:
-            text += "(= {}@{} (- {}@{} {}))".format(arc[0].id, k + 1, arc[0].id, k, arc[1])
-        for arc in self.dest:
-            text += "(= {}@{} (+ {}@{} {}))".format(arc[0].id, k + 1, arc[0].id, k, arc[1])
+        for pl, weight in self.src.items():
+            if weight > 0:
+                if pl in self.dest:
+                    text += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.dest[pl], weight)
+                else:
+                    text += "(= {}@{} (- {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
+        for pl, weight in self.dest.items():
+            if pl not in self.src or self.src[pl] < 0:
+                text += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
         for pl in self.pn.places.values():
             if pl not in self.pl_linked:
                 text += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         text += ")\n\t\t)\n\t\t(=>\n\t\t\t(or "
-        for arc in self.src:
-            text += "(< {}@{} {})".format(arc[0].id, k, arc[1])
+        for pl, weight in self.src.items():
+            if weight > 0:
+                text += "(< {}@{} {})".format(pl.id, k, weight)
+            else:
+                text += "(>= {}@{} {})".format(pl.id, k, - weight)
         text += ")\n\t\t\t(and "
         for pl in self.pn.places.values():
             text += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)

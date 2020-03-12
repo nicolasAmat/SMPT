@@ -40,8 +40,11 @@ class Formula:
     def generateDeadlock(self):
         for tr in self.pn.transitions.values():
             inequalities = []
-            for src in tr.src:
-                ineq = Inequality(src[0], src[1], '<')
+            for pl, weight in tr.src.items():
+                if weight > 0:
+                    ineq = Inequality(pl, weight, '<')
+                else:
+                    ineq = Inequality(pl, - weight, '>=')
                 inequalities.append(ineq)
             self.clauses.append(Clause(inequalities))
 
