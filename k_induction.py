@@ -10,9 +10,7 @@ from formula import Formula
 
 import sys
 from subprocess import PIPE, Popen
-# from multiprocessing import Process
 from threading import Thread, Event
-import time
 
 stop_it = Event()
 class KInduction:
@@ -105,7 +103,6 @@ if __name__=='__main__':
 
     print("Result computed using z3")
     print("------------------------")
-    # k_induction.solve()
     proc = Thread(target= k_induction.solve)
     proc.start()
     proc.join(timeout = 5)
