@@ -1,0 +1,311 @@
+# from 273 place(s), 179 transition(s), 572 arc(s)
+# R1  |- removed 91 constant or duplicated place(s)
+# R4  |- agglomerated 60 place(s)
+# .   |- removed 60 identity transition(s)
+# R4  |- agglomerated 28 place(s)
+# .   |- removed 28 identity transition(s)
+# R4  |- agglomerated 32 place(s)
+# .   |- removed 32 identity transition(s)
+# R1  |- removed 1 constant or duplicated place(s)
+# R2  |- removed 1 identity or duplicated transition(s)
+# R4  |- agglomerated 10 place(s)
+# .   |- removed 10 identity transition(s)
+# R4l |- agglomerated 1 place(s)
+# .   |- removed 2 identity transition(s)
+# R2  |- removed 4 identity or duplicated transition(s)
+# R4  |- agglomerated 3 place(s)
+# .   |- removed 3 identity transition(s)
+# R4l |- agglomerated 1 place(s)
+# .   |- removed 2 identity transition(s)
+# R4  |- agglomerated 1 place(s)
+# .   |- removed 1 identity transition(s)
+# R1b |- removed 6 redundant place(s)
+# R4  |- agglomerated 3 place(s)
+# .   |- removed 3 identity transition(s)
+# R4  |- agglomerated 2 place(s)
+# .   |- removed 2 identity transition(s)
+# R1  |- removed 1 constant or duplicated place(s)
+# R4  |- agglomerated 1 place(s)
+# .   |- removed 1 identity transition(s)
+# R4  |- agglomerated 1 place(s)
+# .   |- removed 1 identity transition(s)
+# left 31 place(s), 29 transition(s), 76 arc(s)
+# 0.016s
+
+# prefix = aa
+
+# generated equations
+# R |- {callToProcess.s00003859.input.s00001066} = {callToProcess.s00003859.input.s00001052}
+# R |- {callToProcess.s00003859.input.s00001068} = {callToProcess.s00003859.input.s00001052}
+# R |- {callToProcess.s00003859.output.s00001077} = {callToProcess.s00003859.output.s00001054}
+# R |- {callToProcess.s00003859.output.s00001080} = {callToProcess.s00003859.output.s00001054}
+# R |- {callToProcess.s00003859.output.s00001083} = {callToProcess.s00003859.output.s00001054}
+# R |- {callToProcess.s00003872.input.s00001066} = {callToProcess.s00003872.input.s00001052}
+# R |- {callToProcess.s00003872.output.s00001077} = {callToProcess.s00003872.output.s00001054}
+# R |- {callToProcess.s00003876.input.s00001068} = {callToProcess.s00003876.input.s00001052}
+# R |- {callToProcess.s00003876.output.s00001077} = {callToProcess.s00003876.output.s00001054}
+# R |- {callToProcess.s00003880.input.s00001066} = {callToProcess.s00003880.input.s00001052}
+# R |- {callToProcess.s00003884.input.s00001066} = {callToProcess.s00003884.input.s00001052}
+# R |- {callToProcess.s00003884.input.s00001068} = {callToProcess.s00003884.input.s00001052}
+# R |- {callToProcess.s00003884.input.s00001127} = {callToProcess.s00003884.input.s00001052}
+# R |- {callToProcess.s00003884.output.s00001083} = {callToProcess.s00003884.output.s00001054}
+# R |- {callToProcess.s00003904.input.s00001066} = {callToProcess.s00003904.input.s00001052}
+# R |- {callToProcess.s00003904.output.s00001077} = {callToProcess.s00003904.output.s00001054}
+# R |- {callToProcess.s00003957.input.s00001068} = {callToProcess.s00003957.input.s00001052}
+# R |- {callToProcess.s00003957.output.s00001080} = {callToProcess.s00003957.output.s00001077}
+# R |- {callToTask.s00001360.output.s00001077} = {callToTask.s00001360.output.s00001054}
+# R |- {callToTask.s00003908.input.s00001066} = {callToTask.s00003908.input.s00001052}
+# R |- {callToTask.s00003908.output.s00001077} = {callToTask.s00003908.output.s00001054}
+# R |- {callToTask.s00003908.output.s00001083} = {callToTask.s00003908.output.s00001054}
+# R |- {callToTask.s00003913.input.s00001066} = {callToTask.s00003913.input.s00001052}
+# R |- {callToTask.s00003913.output.s00001077} = {callToTask.s00003913.output.s00001054}
+# R |- {callToTask.s00003962.input.s00001066} = {callToTask.s00003962.input.s00001052}
+# R |- {callToTask.s00003962.input.s00001068} = {callToTask.s00003962.input.s00001052}
+# R |- {callToTask.s00003962.output.s00001077} = {callToTask.s00003962.output.s00001054}
+# R |- {callToTask.s00003962.output.s00001080} = {callToTask.s00003962.output.s00001054}
+# R |- {callToTask.s00003963.input.s00001066} = {callToTask.s00003963.input.s00001052}
+# R |- {callToTask.s00003964.input.s00001066} = {callToTask.s00003964.input.s00001052}
+# R |- {callToTask.s00003964.output.s00001077} = {callToTask.s00003964.output.s00001054}
+# R |- {callToTask.s00003965.input.s00001066} = {callToTask.s00003965.input.s00001052}
+# R |- {callToTask.s00003965.output.s00001077} = {callToTask.s00003965.output.s00001054}
+# R |- {callToTask.s00003966.input.s00001068} = {callToTask.s00003966.input.s00001052}
+# R |- {callToTask.s00003968.output.s00001077} = {callToTask.s00003968.output.s00001054}
+# R |- {callToTask.s00003968.output.s00001080} = {callToTask.s00003968.output.s00001054}
+# R |- {callToTask.s00003969.input.s00001066} = {callToTask.s00003969.input.s00001052}
+# R |- {callToTask.s00003969.output.s00001077} = {callToTask.s00003969.output.s00001054}
+# R |- {callToTask.s00003969.output.s00001080} = {callToTask.s00003969.output.s00001054}
+# R |- {callToTask.s00003970.input.s00001066} = {callToTask.s00003970.input.s00001052}
+# R |- {callToTask.s00003970.input.s00001068} = {callToTask.s00003970.input.s00001052}
+# R |- {callToTask.s00003970.output.s00001077} = {callToTask.s00003970.output.s00001054}
+# R |- {callToTask.s00003971.input.s00001066} = {callToTask.s00003971.input.s00001052}
+# R |- {callToTask.s00003971.output.s00001077} = {callToTask.s00003971.output.s00001054}
+# R |- {callToTask.s00003972.input.s00001066} = {callToTask.s00003972.input.s00001052}
+# R |- {callToTask.s00003972.output.s00001077} = {callToTask.s00003972.output.s00001054}
+# R |- {callToTask.s00003973.input.s00001066} = {callToTask.s00003973.input.s00001052}
+# R |- {callToTask.s00003973.input.s00001068} = {callToTask.s00003973.input.s00001052}
+# R |- {callToTask.s00003973.output.s00001077} = {callToTask.s00003973.output.s00001054}
+# R |- {callToTask.s00003974.output.s00001077} = {callToTask.s00003974.output.s00001054}
+# R |- {callToTask.s00003975.input.s00001066} = {callToTask.s00003975.input.s00001052}
+# R |- {callToTask.s00003975.input.s00001068} = {callToTask.s00003975.input.s00001052}
+# R |- {callToTask.s00003975.input.s00001127} = {callToTask.s00003975.input.s00001052}
+# R |- {callToTask.s00003975.output.s00001077} = {callToTask.s00003975.output.s00001054}
+# R |- {callToTask.s00003975.output.s00001080} = {callToTask.s00003975.output.s00001054}
+# R |- {callToTask.s00003976.input.s00001066} = {callToTask.s00003976.input.s00001052}
+# R |- {callToTask.s00003976.output.s00001077} = {callToTask.s00003976.output.s00001054}
+# R |- {callToTask.s00003977.input.s00001066} = {callToTask.s00003977.input.s00001052}
+# R |- {callToTask.s00003977.output.s00001077} = {callToTask.s00003977.output.s00001054}
+# R |- {callToTask.s00003978.output.s00001080} = {callToTask.s00003978.output.s00001077}
+# R |- {callToTask.s00003979.output.s00001077} = {callToTask.s00003979.output.s00001054}
+# R |- {callToTask.s00003980.input.s00001066} = {callToTask.s00003980.input.s00001052}
+# R |- {callToTask.s00003980.input.s00001068} = {callToTask.s00003980.input.s00001052}
+# R |- {callToTask.s00003980.input.s00001127} = {callToTask.s00003980.input.s00001052}
+# R |- {callToTask.s00003980.output.s00001080} = {callToTask.s00003980.output.s00001077}
+# R |- {callToTask.s00003980.output.s00001083} = {callToTask.s00003980.output.s00001077}
+# R |- {callToTask.s00003981.input.s00001066} = {callToTask.s00003981.input.s00001052}
+# R |- {callToTask.s00003981.output.s00001077} = {callToTask.s00003981.output.s00001054}
+# R |- {fork.s00001298.input.s00001066} = {fork.s00001298.input.s00001052}
+# R |- {fork.s00001298.input.s00001068} = {fork.s00001298.input.s00001052}
+# R |- {fork.s00001403.input.s00001066} = {fork.s00001403.input.s00001052}
+# R |- {fork.s00002500.input.s00001066} = {fork.s00002500.input.s00001052}
+# R |- {join.s00001163.input.s00001128} = {join.s00001163.input.s00001066}
+# R |- {join.s00001163.input.s00001259} = {join.s00001163.input.s00001052}
+# R |- {join.s00002243.input.s00001127} = {join.s00002243.input.s00001052}
+# R |- {join.s00002243.input.s00001166} = {join.s00002243.input.s00001066}
+# R |- {join.s00002243.input.s00001167} = {join.s00002243.input.s00001068}
+# R |- {join.s00002243.input.s00001263} = {join.s00002243.input.s00001068}
+# R |- {merge.s00001061.input.s00001165} = {merge.s00001061.input.s00001068}
+# R |- {merge.s00001061.input.s00001166} = {merge.s00001061.input.s00001127}
+# R |- {merge.s00001160.input.s00001165} = {merge.s00001160.input.s00001068}
+# R |- {merge.s00001160.input.s00001166} = {merge.s00001160.input.s00001127}
+# R |- {merge.s00001161.input.s00001068} = {merge.s00001161.input.s00001052}
+# R |- {merge.s00001161.input.s00001127} = {merge.s00001161.input.s00001066}
+# R |- {merge.s00001161.input.s00001128} = {merge.s00001161.input.s00001052}
+# R |- {merge.s00001161.input.s00001129} = {merge.s00001161.input.s00001066}
+# R |- {merge.s00001162.input.s00001166} = {merge.s00001162.input.s00001052}
+# R |- {merge.s00001162.input.s00001299} = {merge.s00001162.input.s00001129}
+# R |- {merge.s00002239.input.s00001068} = {merge.s00002239.input.s00001052}
+# R |- {merge.s00002240.input.s00001127} = {merge.s00002240.input.s00001052}
+# R |- {merge.s00002240.input.s00001129} = {merge.s00002240.input.s00001068}
+# A |- aa1 = {callToProcess.s00001108.inputCriterion.s00001053.used} + {callToProcess.s00001108.input.s00001066}
+# A |- aa2 = {callToProcess.s00003859.inputCriterion.s00001053.used} + {callToProcess.s00003859.input.s00001052}
+# A |- aa3 = {callToProcess.s00003872.inputCriterion.s00001053.used} + {callToProcess.s00003872.input.s00001052}
+# A |- aa4 = {decision.s00002056.activated} + {callToProcess.s00003872.output.s00001054}
+# A |- aa5 = {callToProcess.s00003876.output.s00001054} + {callToProcess.s00003876.inputCriterion.s00001053.used}
+# A |- aa6 = {callToProcess.s00003880.inputCriterion.s00001053.used} + {callToProcess.s00003880.input.s00001052}
+# A |- aa7 = {callToProcess.s00003884.inputCriterion.s00001053.used} + {callToProcess.s00003884.input.s00001052}
+# A |- aa8 = {callToProcess.s00003904.inputCriterion.s00001053.used} + {callToProcess.s00003904.input.s00001052}
+# A |- aa9 = {decision.s00002760.activated} + {callToProcess.s00003904.output.s00001054}
+# A |- aa10 = {callToProcess.s00003957.output.s00001077} + {callToProcess.s00003957.inputCriterion.s00001053.used}
+# A |- aa11 = {callToTask.s00001360.output.s00001054} + {callToTask.s00001360.inputCriterion.s00001053.used}
+# A |- aa12 = {callToTask.s00003908.inputCriterion.s00001053.used} + {callToTask.s00003908.input.s00001052}
+# A |- aa13 = {decision.s00001841.activated} + {callToTask.s00003908.output.s00001054}
+# A |- aa14 = {callToTask.s00003913.inputCriterion.s00001053.used} + {callToTask.s00003913.input.s00001052}
+# A |- aa15 = {decision.s00003020.activated} + {callToTask.s00003913.output.s00001054}
+# A |- aa16 = {callToTask.s00003961.output.s00001080} + {callToTask.s00003961.inputCriterion.s00001053.used}
+# A |- aa17 = {callToTask.s00003962.inputCriterion.s00001053.used} + {callToTask.s00003962.input.s00001052}
+# A |- aa18 = {decision.s00001123.activated} + {callToTask.s00003962.output.s00001054}
+# A |- aa19 = {callToTask.s00003963.inputCriterion.s00001053.used} + {callToTask.s00003963.input.s00001052}
+# A |- aa20 = {callToTask.s00003964.inputCriterion.s00001053.used} + {callToTask.s00003964.input.s00001052}
+# A |- aa21 = {callToTask.s00003967.inputCriterion.s00001053.used} + {callToTask.s00003964.output.s00001054}
+# A |- aa22 = {callToTask.s00003965.inputCriterion.s00001053.used} + {callToTask.s00003965.input.s00001052}
+# A |- aa23 = {callToTask.s00003966.inputCriterion.s00001053.used} + {callToTask.s00003966.input.s00001052}
+# A |- aa24 = {callToTask.s00003968.output.s00001054} + {callToTask.s00003968.inputCriterion.s00001053.used}
+# A |- aa25 = {callToTask.s00003969.inputCriterion.s00001053.used} + {callToTask.s00003969.input.s00001052}
+# A |- aa26 = {callToTask.s00003970.inputCriterion.s00001053.used} + {callToTask.s00003970.input.s00001052}
+# A |- aa27 = {decision.s00001157.activated} + {callToTask.s00003970.output.s00001054}
+# A |- aa28 = {callToTask.s00003971.inputCriterion.s00001053.used} + {callToTask.s00003971.input.s00001052}
+# A |- aa29 = {decision.s00001158.activated} + {callToTask.s00003971.output.s00001054}
+# A |- aa30 = {callToTask.s00003972.inputCriterion.s00001053.used} + {callToTask.s00003972.input.s00001052}
+# A |- aa31 = {decision.s00001159.activated} + {callToTask.s00003972.output.s00001054}
+# A |- aa32 = {callToTask.s00003973.inputCriterion.s00001053.used} + {callToTask.s00003973.input.s00001052}
+# A |- aa33 = {decision.s00001840.activated} + {callToTask.s00003973.output.s00001054}
+# A |- aa34 = {callToTask.s00003974.output.s00001054} + {callToTask.s00003974.inputCriterion.s00001053.used}
+# A |- aa35 = {callToTask.s00003975.inputCriterion.s00001053.used} + {callToTask.s00003975.input.s00001052}
+# A |- aa36 = {decision.s00002761.activated} + {callToTask.s00003975.output.s00001054}
+# A |- aa37 = {callToTask.s00003976.inputCriterion.s00001053.used} + {callToTask.s00003976.input.s00001052}
+# A |- aa38 = {decision.s00002948.activated} + {callToTask.s00003976.output.s00001054}
+# A |- aa39 = {callToTask.s00003977.inputCriterion.s00001053.used} + {callToTask.s00003977.input.s00001052}
+# A |- aa40 = {callToTask.s00003979.inputCriterion.s00001053.used} + {callToTask.s00003977.output.s00001054}
+# A |- aa41 = {callToTask.s00003978.output.s00001077} + {callToTask.s00003978.inputCriterion.s00001053.used}
+# A |- aa42 = {callToTask.s00003980.inputCriterion.s00001053.used} + {callToTask.s00003980.input.s00001052}
+# A |- aa43 = {callToTask.s00003981.output.s00001054} + {callToTask.s00003981.inputCriterion.s00001053.used}
+# A |- aa44 = {merge.s00001161.input.s00001052} + {decision.s00001126.activated}
+# A |- aa45 = {fork.s00001403.input.s00001052} + {decision.s00002055.activated}
+# A |- aa46 = {merge.s00002240.input.s00001066} + aa45
+# A |- aa47 = {merge.s00002240.input.s00001052} + {decision.s00003021.activated}
+# A |- aa48 = {join.s00002243.input.s00001066} + {fork.s00001298.activated.s00001075}
+# A |- aa49 = {join.s00001163.input.s00001066} + {fork.s00001403.activated.s00001075}
+# A |- aa50 = {callToTask.s00003981.input.s00001052} + {fork.s00001403.activated.s00001078}
+# A |- aa51 = {callToProcess.s00003957.input.s00001066} + {fork.s00002500.activated.s00001073}
+# A |- aa52 = {callToProcess.s00003876.input.s00001066} + {fork.s00002500.activated.s00001075}
+# A |- aa53 = {join.s00001163.input.s00001052} + {fork.s00002501.activated.s00001073}
+# A |- aa54 = {callToTask.s00003981.input.s00001068} + {fork.s00002501.activated.s00001075}
+# A |- aa55 = {merge.s00001162.input.s00001843} + {fork.s00002755.activated.s00001073}
+# A |- aa56 = {join.s00001164.input.s00001127} + {fork.s00002755.activated.s00001075}
+# A |- aa57 = {join.s00001164.activated.s00001062} + {join.s00001164.input.s00001052}
+# A |- aa58 = {join.s00002243.activated.s00001062} + {join.s00002243.input.s00001052}
+# A |- aa59 = {join.s00002243.activated.s00001065} + {join.s00002243.input.s00001068}
+# A |- aa60 = {process.s00000565__s00003960.output.s00001249} + {merge.s00002241.activated}
+# A |- aa61 = {callToProcess.s00001108.output.s00001077} + aa1
+# A |- aa62 = {callToProcess.s00003859.output.s00001054} + aa2
+# A |- aa63 = aa4 + aa3
+# A |- aa64 = aa34 + aa5
+# A |- aa65 = {callToProcess.s00003884.output.s00001054} + aa7
+# A |- aa66 = aa9 + aa8
+# A |- aa67 = {decision.s00002762.activated} + aa10
+# A |- aa68 = {join.s00001163.activated.s00001065} + aa11
+# A |- aa69 = aa13 + aa12
+# A |- aa70 = aa15 + aa14
+# A |- aa71 = aa18 + aa17
+# A |- aa72 = aa21 + aa20
+# A |- aa73 = {callToTask.s00003965.output.s00001054} + aa22
+# A |- aa74 = {callToTask.s00003966.output.s00001054} + aa23
+# A |- aa75 = aa44 + aa24
+# A |- aa76 = {callToTask.s00003969.output.s00001054} + aa25
+# A |- aa77 = aa27 + aa26
+# A |- aa78 = aa29 + aa28
+# A |- aa79 = aa31 + aa30
+# A |- aa80 = aa33 + aa32
+# A |- aa81 = aa36 + aa35
+# A |- aa82 = aa38 + aa37
+# A |- aa83 = aa40 + aa39
+# A |- aa84 = aa47 + aa41
+# A |- aa85 = {join.s00002243.activated.s00001064} + aa48
+# A |- aa86 = {join.s00001163.activated.s00001064} + aa49
+# A |- aa87 = {join.s00001163.activated.s00001062} + aa53
+# A |- aa88 = aa6 + {merge.s00002238.activated}
+# A |- aa89 = {fork.s00002500.input.s00001052} + aa63
+# A |- aa90 = {callToProcess.s00003957.input.s00001052} + aa89
+# A |- aa91 = {callToProcess.s00003876.input.s00001052} + aa90
+# A |- aa92 = aa46 + aa64
+# A |- aa93 = {endNode.s00001401.input.default} + aa66
+# A |- aa94 = {endNode.s00001402.input.default} + aa93
+# A |- aa95 = {merge.s00001162.input.s00001052} + aa94
+# A |- aa96 = {merge.s00001162.input.s00001129} + aa95
+# A |- aa97 = aa61 + aa67
+# A |- aa98 = {merge.s00001061.input.s00001127} + aa69
+# A |- aa99 = {fork.s00001298.input.s00001052} + aa98
+# A |- aa100 = {merge.s00002240.input.s00001068} + aa70
+# A |- aa101 = {endNode.s00002053.input.default} + aa100
+# A |- aa102 = {merge.s00001160.input.s00001052} + aa71
+# A |- aa103 = {merge.s00001161.input.s00001066} + aa102
+# A |- aa104 = {callToTask.s00003967.output.s00001054} + aa72
+# A |- aa105 = aa16 + aa73
+# A |- aa106 = aa75 + aa76
+# A |- aa107 = {merge.s00001160.input.s00001066} + aa77
+# A |- aa108 = {merge.s00001061.input.s00001052} + aa78
+# A |- aa109 = aa58 + aa108
+# A |- aa110 = {merge.s00001160.input.s00001068} + aa79
+# A |- aa111 = {merge.s00001061.input.s00001066} + aa110
+# A |- aa112 = {merge.s00001061.input.s00001068} + aa80
+# A |- aa113 = aa19 + aa81
+# A |- aa114 = aa59 + aa113
+# A |- aa115 = {merge.s00001160.input.s00001127} + aa82
+# A |- aa116 = {callToTask.s00003979.output.s00001054} + aa83
+# A |- aa117 = aa84 + {callToTask.s00003980.output.s00001077}
+# A |- aa118 = aa68 + aa43
+# A |- aa119 = aa74 + {merge.s00001061.activated}
+# A |- aa120 = aa62 + {merge.s00001162.activated}
+# R |- aa105 = aa104
+# A |- aa121 = aa104 + aa97
+# A |- aa122 = aa103 + aa106
+# A |- aa123 = aa91 + aa107
+# A |- aa124 = aa99 + aa112
+# A |- aa125 = aa111 + aa115
+# A |- aa126 = aa101 + aa117
+# A |- aa127 = aa114 + {fork.s00001071.activated.s00001073}
+# A |- aa128 = aa109 + {fork.s00001298.activated.s00001073}
+# A |- aa129 = aa116 + {fork.s00001403.activated.s00001073}
+# A |- aa130 = aa96 + {merge.s00002239.activated}
+# A |- aa131 = aa122 + {merge.s00001160.activated}
+# A |- aa132 = aa124 + {fork.s00001071.activated.s00001075}
+# A |- aa133 = {merge.s00001161.activated} + aa131
+# A |- aa134 = aa125 + {merge.s00002240.activated}
+# A |- aa135 = aa123 + aa133
+# A |- aa136 = aa135 + aa134
+# R |- aa87 = aa118 + aa54
+# R |- aa50 = aa129 + aa54
+# R |- aa57 = {join.s00001164.activated.s00001064} + {join.s00001164.input.s00001066}
+# R |- {join.s00001164.input.s00001066} = aa56 + {process.s00000565__s00003960.input.s00001052}
+# R |- {merge.s00001162.input.s00001066} = aa55 + {process.s00000565__s00003960.input.s00001052}
+# R |- {callToProcess.s00003880.output.s00001077} = {callToProcess.s00003880.output.s00001054} + {process.s00000565__s00003960.outputCriterion.s00001055_omega}
+# A |- aa137 = aa54 + aa129
+# A |- aa138 = {join.s00001164.activated.s00001064} + aa56
+# A |- aa139 = {callToProcess.s00003880.output.s00001054} + aa88
+# A |- aa140 = aa118 + aa137
+# A |- aa141 = {merge.s00002239.input.s00001052} + aa138
+# R |- aa86 = aa140
+# A |- aa142 = aa140 + aa92
+# A |- aa143 = aa65 + aa142
+
+net {IBMB2S565S3960-PT-none}
+tr {callToProcess.s00003876.inputCriterion.s00001053} aa52 aa136  -> aa143 
+tr {callToProcess.s00003957.inputCriterion.s00001053} aa51 aa136  -> aa121 
+tr {callToTask.s00003963.outputCriterion.s00001055} aa127  -> {callToTask.s00003963.output.s00001054} {callToTask.s00003963.output.s00001077} 
+tr {callToTask.s00003980.outputCriterion.s00001055} aa42  -> {callToTask.s00003980.output.s00001054} aa126 
+tr {fork.s00001071.activate.s00001072} aa120  -> aa127 aa132 
+tr {fork.s00001298.activate.s00001072} aa132  -> aa128 aa85 
+tr {fork.s00002500.activate.s00001072} aa136  -> aa51 aa52 
+tr {fork.s00002755.activate.s00001072} {process.s00000565__s00003960.input.s00001052}  -> aa55 aa141 
+tr {join.s00002243.fire.s00001069} aa127 aa128 aa85  -> aa42 
+tr {merge.s00001061.activate.s00001062} aa128  -> aa119 
+tr {merge.s00001061.activate.s00001064} aa136  -> aa119 
+tr {merge.s00001061.activate.s00001065} aa132  -> aa119 
+tr {merge.s00001162.activate.s00001062} aa130  -> aa120 
+tr {merge.s00001162.activate.s00001064} aa55  -> aa120 
+tr {merge.s00001162.activate.s00001065} {merge.s00001162.input.s00001068}  -> aa120 
+tr {merge.s00001162.activate.s00001067} {merge.s00001162.input.s00001127}  -> aa120 
+tr {merge.s00001162.activate.s00001260} {merge.s00001162.input.s00001128}  -> aa120 
+tr {merge.s00001162.activate.s00001300} {merge.s00001162.input.s00001165}  -> aa120 
+tr {merge.s00002238.activate.s00001062} {merge.s00002238.input.s00001052}  -> aa139 
+tr {merge.s00002238.activate.s00001064} {merge.s00002238.input.s00001066}  -> aa139 
+tr {merge.s00002238.activate.s00001065} aa143  -> aa139 
+tr {merge.s00002239.activate.s00001062} aa141  -> aa130 
+tr {merge.s00002239.activate.s00001064} {merge.s00002239.input.s00001066}  -> aa130 
+tr {merge.s00002240.activate.s00001062} aa126  -> aa136 
+tr {merge.s00002240.activate.s00001064} aa143  -> aa136 
+tr {merge.s00002241.activate.s00001062} {callToTask.s00003963.output.s00001054}  -> aa60 
+tr {merge.s00002241.activate.s00001064} {callToTask.s00003980.output.s00001054}  -> aa60 
+tr {process.s00000565__s00003960.inputCriterion.s00001053} alpha  -> {merge.s00001162.input.s00001068} {merge.s00001162.input.s00001127} {merge.s00001162.input.s00001128} {merge.s00001162.input.s00001165} {merge.s00002238.input.s00001052} {merge.s00002238.input.s00001066} {merge.s00002239.input.s00001066} {process.s00000565__s00003960.input.s00001052} 
+tr {process.s00000565__s00003960.outputCriterion.s00001055} aa139 aa60  -> {process.s00000565__s00003960.outputCriterion.s00001055_omega} 
+pl alpha (1)

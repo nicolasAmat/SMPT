@@ -1,0 +1,562 @@
+<?xml version="1.0"?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+	<net id="HouseConstruction-PT-00005" type="http://www.pnml.org/version-2009/grammar/ptnet">
+		<page id="page0">
+			<name>
+				<text>DefaultPage</text>
+			</name>
+			<place id="p1">
+				<name>
+					<graphics>
+						<offset x="-20" y="-4"/>
+					</graphics>
+					<text>p1</text>
+				</name>
+				<graphics>
+					<position x="256" y="17"/>
+				</graphics>
+				<initialMarking>
+					<graphics>
+						<offset x="-5" y="-3"/>
+					</graphics>
+					<text>5</text>
+				</initialMarking>
+			</place>
+			<place id="p2">
+				<name>
+					<graphics>
+						<offset x="-21" y="-5"/>
+					</graphics>
+					<text>p2</text>
+				</name>
+				<graphics>
+					<position x="256" y="76"/>
+				</graphics>
+			</place>
+			<place id="p3">
+				<name>
+					<graphics>
+						<offset x="-20" y="-3"/>
+					</graphics>
+					<text>p3</text>
+				</name>
+				<graphics>
+					<position x="256" y="135"/>
+				</graphics>
+			</place>
+			<place id="p4">
+				<name>
+					<graphics>
+						<offset x="19" y="-2"/>
+					</graphics>
+					<text>p4</text>
+				</name>
+				<graphics>
+					<position x="156" y="167"/>
+				</graphics>
+			</place>
+			<place id="p6">
+				<name>
+					<graphics>
+						<offset x="-19" y="-4"/>
+					</graphics>
+					<text>p6</text>
+				</name>
+				<graphics>
+					<position x="256" y="198"/>
+				</graphics>
+			</place>
+			<place id="p5">
+				<name>
+					<graphics>
+						<offset x="-20" y="-3"/>
+					</graphics>
+					<text>p5</text>
+				</name>
+				<graphics>
+					<position x="446" y="167"/>
+				</graphics>
+			</place>
+			<place id="p7">
+				<name>
+					<graphics>
+						<offset x="19" y="-2"/>
+					</graphics>
+					<text>p7</text>
+				</name>
+				<graphics>
+					<position x="206" y="230"/>
+				</graphics>
+			</place>
+			<place id="p15">
+				<name>
+					<graphics>
+						<offset x="-20" y="-3"/>
+					</graphics>
+					<text>p15</text>
+				</name>
+				<graphics>
+					<position x="206" y="366"/>
+				</graphics>
+			</place>
+			<place id="p11">
+				<name>
+					<graphics>
+						<offset x="25" y="-3"/>
+					</graphics>
+					<text>p11</text>
+				</name>
+				<graphics>
+					<position x="206" y="292"/>
+				</graphics>
+			</place>
+			<place id="p12">
+				<name>
+					<graphics>
+						<offset x="25" y="-4"/>
+					</graphics>
+					<text>p12</text>
+				</name>
+				<graphics>
+					<position x="256" y="292"/>
+				</graphics>
+			</place>
+			<place id="p8">
+				<name>
+					<graphics>
+						<offset x="-1" y="13"/>
+					</graphics>
+					<text>p8</text>
+				</name>
+				<graphics>
+					<position x="308" y="230"/>
+				</graphics>
+			</place>
+			<place id="p9">
+				<name>
+					<graphics>
+						<offset x="-3" y="14"/>
+					</graphics>
+					<text>p9</text>
+				</name>
+				<graphics>
+					<position x="405" y="230"/>
+				</graphics>
+			</place>
+			<place id="p10">
+				<name>
+					<graphics>
+						<offset x="-19" y="-3"/>
+					</graphics>
+					<text>p10</text>
+				</name>
+				<graphics>
+					<position x="356" y="261"/>
+				</graphics>
+			</place>
+			<place id="p13">
+				<name>
+					<graphics>
+						<offset x="-19" y="-4"/>
+					</graphics>
+					<text>p13</text>
+				</name>
+				<graphics>
+					<position x="446" y="292"/>
+				</graphics>
+			</place>
+			<place id="p17">
+				<name>
+					<graphics>
+						<offset x="-19" y="-4"/>
+					</graphics>
+					<text>p17</text>
+				</name>
+				<graphics>
+					<position x="356" y="397"/>
+				</graphics>
+			</place>
+			<place id="p14">
+				<name>
+					<graphics>
+						<offset x="-19" y="-4"/>
+					</graphics>
+					<text>p14</text>
+				</name>
+				<graphics>
+					<position x="356" y="328"/>
+				</graphics>
+			</place>
+			<place id="p19">
+				<name>
+					<graphics>
+						<offset x="-19" y="-4"/>
+					</graphics>
+					<text>p19</text>
+				</name>
+				<graphics>
+					<position x="446" y="432"/>
+				</graphics>
+			</place>
+			<place id="p20">
+				<name>
+					<graphics>
+						<offset x="24" y="-4"/>
+					</graphics>
+					<text>p20</text>
+				</name>
+				<graphics>
+					<position x="356" y="464"/>
+				</graphics>
+			</place>
+			<place id="p18">
+				<name>
+					<graphics>
+						<offset x="25" y="-4"/>
+					</graphics>
+					<text>p18</text>
+				</name>
+				<graphics>
+					<position x="256" y="432"/>
+				</graphics>
+			</place>
+			<place id="p22">
+				<name>
+					<graphics>
+						<offset x="-19" y="-4"/>
+					</graphics>
+					<text>p22</text>
+				</name>
+				<graphics>
+					<position x="446" y="497"/>
+				</graphics>
+			</place>
+			<place id="p27">
+				<name>
+					<graphics>
+						<offset x="-19" y="-4"/>
+					</graphics>
+					<text>p27</text>
+				</name>
+				<graphics>
+					<position x="446" y="575"/>
+				</graphics>
+			</place>
+			<place id="p26">
+				<name>
+					<graphics>
+						<offset x="24" y="-2"/>
+					</graphics>
+					<text>p26</text>
+				</name>
+				<graphics>
+					<position x="256" y="575"/>
+				</graphics>
+			</place>
+			<place id="p21">
+				<name>
+					<graphics>
+						<offset x="25" y="-2"/>
+					</graphics>
+					<text>p21</text>
+				</name>
+				<graphics>
+					<position x="256" y="497"/>
+				</graphics>
+			</place>
+			<place id="p23">
+				<name>
+					<graphics>
+						<offset x="1" y="13"/>
+					</graphics>
+					<text>p23</text>
+				</name>
+				<graphics>
+					<position x="356" y="532"/>
+				</graphics>
+			</place>
+			<place id="p25">
+				<name>
+					<graphics>
+						<offset x="25" y="-3"/>
+					</graphics>
+					<text>p25</text>
+				</name>
+				<graphics>
+					<position x="156" y="575"/>
+				</graphics>
+			</place>
+			<place id="p16">
+				<name>
+					<graphics>
+						<offset x="26" y="-3"/>
+					</graphics>
+					<text>p16</text>
+				</name>
+				<graphics>
+					<position x="156" y="397"/>
+				</graphics>
+			</place>
+			<transition id="t1">
+				<name>
+					<graphics>
+						<offset x="-22" y="4"/>
+					</graphics>
+					<text>t1</text>
+				</name>
+				<graphics>
+					<position x="255" y="52"/>
+				</graphics>
+			</transition>
+			<transition id="t2">
+				<name>
+					<graphics>
+						<offset x="-22" y="2"/>
+					</graphics>
+					<text>t2</text>
+				</name>
+				<graphics>
+					<position x="255" y="112"/>
+				</graphics>
+			</transition>
+			<transition id="t3">
+				<name>
+					<graphics>
+						<offset x="-21" y="10"/>
+					</graphics>
+					<text>t3</text>
+				</name>
+				<graphics>
+					<position x="255" y="173"/>
+				</graphics>
+			</transition>
+			<transition id="t4">
+				<name>
+					<graphics>
+						<offset x="-21" y="10"/>
+					</graphics>
+					<text>t4</text>
+				</name>
+				<graphics>
+					<position x="255" y="236"/>
+				</graphics>
+			</transition>
+			<transition id="t6">
+				<name>
+					<graphics>
+						<offset x="-21" y="3"/>
+					</graphics>
+					<text>t6</text>
+				</name>
+				<graphics>
+					<position x="445" y="237"/>
+				</graphics>
+			</transition>
+			<transition id="t7">
+				<name>
+					<graphics>
+						<offset x="16" y="3"/>
+					</graphics>
+					<text>t7</text>
+				</name>
+				<graphics>
+					<position x="205" y="267"/>
+				</graphics>
+			</transition>
+			<transition id="t10">
+				<name>
+					<graphics>
+						<offset x="22" y="3"/>
+					</graphics>
+					<text>t10</text>
+				</name>
+				<graphics>
+					<position x="155" y="372"/>
+				</graphics>
+			</transition>
+			<transition id="t9">
+				<name>
+					<graphics>
+						<offset x="16" y="1"/>
+					</graphics>
+					<text>t9</text>
+				</name>
+				<graphics>
+					<position x="205" y="334"/>
+				</graphics>
+			</transition>
+			<transition id="t5">
+				<name>
+					<graphics>
+						<offset x="-4" y="13"/>
+					</graphics>
+					<text>t5</text>
+				</name>
+				<graphics>
+					<position x="355" y="236"/>
+				</graphics>
+			</transition>
+			<transition id="t8">
+				<name>
+					<graphics>
+						<offset x="-15" y="13"/>
+					</graphics>
+					<text>t8</text>
+				</name>
+				<graphics>
+					<position x="355" y="298"/>
+				</graphics>
+			</transition>
+			<transition id="t11">
+				<name>
+					<graphics>
+						<offset x="-14" y="13"/>
+					</graphics>
+					<text>t11</text>
+				</name>
+				<graphics>
+					<position x="355" y="372"/>
+				</graphics>
+			</transition>
+			<transition id="t13">
+				<name>
+					<graphics>
+						<offset x="-14" y="13"/>
+					</graphics>
+					<text>t13</text>
+				</name>
+				<graphics>
+					<position x="355" y="438"/>
+				</graphics>
+			</transition>
+			<transition id="t17">
+				<name>
+					<graphics>
+						<offset x="-21" y="2"/>
+					</graphics>
+					<text>t17</text>
+				</name>
+				<graphics>
+					<position x="445" y="538"/>
+				</graphics>
+			</transition>
+			<transition id="t18">
+				<name>
+					<graphics>
+						<offset x="-15" y="13"/>
+					</graphics>
+					<text>t18</text>
+				</name>
+				<graphics>
+					<position x="255" y="611"/>
+				</graphics>
+			</transition>
+			<transition id="t15">
+				<name>
+					<graphics>
+						<offset x="-21" y="2"/>
+					</graphics>
+					<text>t15</text>
+				</name>
+				<graphics>
+					<position x="445" y="470"/>
+				</graphics>
+			</transition>
+			<transition id="t14">
+				<name>
+					<graphics>
+						<offset x="22" y="4"/>
+					</graphics>
+					<text>t14</text>
+				</name>
+				<graphics>
+					<position x="255" y="470"/>
+				</graphics>
+			</transition>
+			<transition id="t16">
+				<name>
+					<graphics>
+						<offset x="22" y="3"/>
+					</graphics>
+					<text>t16</text>
+				</name>
+				<graphics>
+					<position x="255" y="538"/>
+				</graphics>
+			</transition>
+			<transition id="t12">
+				<name>
+					<graphics>
+						<offset x="22" y="2"/>
+					</graphics>
+					<text>t12</text>
+				</name>
+				<graphics>
+					<position x="155" y="438"/>
+				</graphics>
+			</transition>
+			<arc id="cId91487430296388804528" source="p1" target="t1"/>
+			<arc id="cId91437855756938607729" source="t1" target="p2"/>
+			<arc id="cId914378557569386077210" source="p2" target="t2"/>
+			<arc id="cId914378557569386077211" source="t2" target="p3"/>
+			<arc id="cId914378557569386077212" source="p3" target="t3"/>
+			<arc id="cId914378557569386077225" source="t3" target="p6"/>
+			<arc id="cId914378557569386077227" source="p4" target="t10"/>
+			<arc id="cId914378557569386077226" source="t3" target="p4"/>
+			<arc id="cId914378557569386077229" source="t4" target="p7"/>
+			<arc id="cId914378557569386077228" source="p6" target="t4"/>
+			<arc id="cId914213309247717664431" source="t7" target="p11"/>
+			<arc id="cId914213309247717664430" source="p7" target="t7"/>
+			<arc id="cId914213309247717664434" source="p15" target="t10"/>
+			<arc id="cId914213309247717664435" source="t3" target="p5"/>
+			<arc id="cId914213309247717664432" source="p11" target="t9"/>
+			<arc id="cId914213309247717664433" source="t9" target="p15"/>
+			<arc id="cId914213309247717664436" source="t4" target="p12"/>
+			<arc id="cId914213309247717664437" source="p5" target="t6"/>
+			<arc id="cId914213309247717664446" source="p9" target="t5"/>
+			<arc id="cId914213309247717664447" source="p8" target="t5"/>
+			<arc id="cId914213309247717664444" source="t6" target="p9"/>
+			<arc id="cId914213309247717664445" source="t4" target="p8"/>
+			<arc id="cId914213309247717664451" source="p10" target="t8"/>
+			<arc id="cId914213309247717664450" source="p13" target="t8"/>
+			<arc id="cId914213309247717664449" source="t6" target="p13"/>
+			<arc id="cId914213309247717664448" source="t5" target="p10"/>
+			<arc id="cId914213309247717664452" source="p12" target="t8"/>
+			<arc id="cId914213309247717664463" source="p17" target="t13"/>
+			<arc id="cId914213309247717664462" source="t11" target="p17"/>
+			<arc id="cId914213309247717664461" source="p14" target="t11"/>
+			<arc id="cId914213309247717664460" source="t8" target="p14"/>
+			<arc id="cId914213309247717664464" source="t13" target="p18"/>
+			<arc id="cId914213309247717664465" source="t13" target="p20"/>
+			<arc id="cId914213309247717664466" source="t13" target="p19"/>
+			<arc id="cId918675016080248458176" source="p27" target="t18">
+				<graphics>
+					<position x="452" y="611"/>
+				</graphics>
+			</arc>
+			<arc id="cId918509767758580045377" source="p20" target="t15"/>
+			<arc id="cId918509767758580045372" source="p19" target="t15"/>
+			<arc id="cId918509767758580045373" source="t15" target="p22"/>
+			<arc id="cId918509767758580045374" source="p22" target="t17"/>
+			<arc id="cId918509767758580045375" source="t17" target="p27"/>
+			<arc id="cId918509767758580045385" source="t14" target="p21"/>
+			<arc id="cId918509767758580045384" source="p18" target="t14"/>
+			<arc id="cId918509767758580045387" source="t16" target="p26"/>
+			<arc id="cId918509767758580045386" source="p21" target="t16"/>
+			<arc id="cId918509767758580045393" source="t10" target="p16"/>
+			<arc id="cId918509767758580045395" source="t12" target="p25"/>
+			<arc id="cId918509767758580045394" source="p16" target="t12"/>
+			<arc id="cId919005512723585283789" source="t17" target="p23"/>
+			<arc id="cId919005512723585283788" source="p26" target="t18"/>
+			<arc id="cId919005512723585283790" source="p23" target="t16"/>
+			<arc id="cId919005512723585283796" source="p25" target="t18">
+				<graphics>
+					<position x="162" y="611"/>
+				</graphics>
+			</arc>
+		</page>
+		<name>
+			<text>HouseConstruction-PT-00005</text>
+		</name>
+	</net>
+</pnml>

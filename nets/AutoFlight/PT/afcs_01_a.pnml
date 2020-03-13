@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+<net id="AutoFlight-PT-01a" type="http://www.pnml.org/version-2009/grammar/ptnet">
+<name><text>AutoFlight-PT-01a</text></name>
+<page id="page">
+<place id="p0"><initialMarking><text>1</text></initialMarking><name><text>p0</text></name></place>
+<place id="p1"><name><text>p1</text></name></place>
+<place id="p2"><name><text>p2</text></name></place>
+<place id="p3"><name><text>p3</text></name></place>
+<place id="p4"><name><text>p4</text></name></place>
+<place id="p5"><name><text>p5</text></name></place>
+<place id="p6"><name><text>p6</text></name></place>
+<place id="p7"><name><text>p7</text></name></place>
+<place id="p8"><name><text>p8</text></name></place>
+<place id="p9"><name><text>p9</text></name></place>
+<place id="p10"><name><text>p10</text></name></place>
+<place id="p11"><name><text>p11</text></name></place>
+<place id="p12"><name><text>p12</text></name></place>
+<place id="p13"><name><text>p13</text></name></place>
+<place id="p14"><name><text>p14</text></name></place>
+<place id="p15"><name><text>p15</text></name></place>
+<place id="p16"><name><text>p16</text></name></place>
+<place id="p17"><name><text>p17</text></name></place>
+<place id="p18"><name><text>p18</text></name></place>
+<place id="p19"><name><text>p19</text></name></place>
+<place id="p20"><name><text>p20</text></name></place>
+<place id="p21"><name><text>p21</text></name></place>
+<place id="p22"><name><text>p22</text></name></place>
+<place id="p23"><name><text>p23</text></name></place>
+<place id="p24"><name><text>p24</text></name></place>
+<place id="p25"><name><text>p25</text></name></place>
+<place id="p26"><name><text>p26</text></name></place>
+<place id="p27"><name><text>p27</text></name></place>
+<place id="p28"><name><text>p28</text></name></place>
+<place id="p29"><name><text>p29</text></name></place>
+<place id="p30"><name><text>p30</text></name></place>
+<place id="p31"><name><text>p31</text></name></place>
+<transition id="t0"><name><text>t0</text></name></transition>
+<arc id="a0" source="p2" target="t0"/>
+<arc id="a1" source="t0" target="p3"/>
+<transition id="t1"><name><text>t1</text></name></transition>
+<arc id="a2" source="p5" target="t1"/>
+<arc id="a3" source="t1" target="p6"/>
+<transition id="t2"><name><text>t2</text></name></transition>
+<arc id="a4" source="p0" target="t2"/>
+<arc id="a5" source="t2" target="p30"/>
+<arc id="a6" source="t2" target="p29"/>
+<arc id="a7" source="t2" target="p23"/>
+<arc id="a8" source="t2" target="p17"/>
+<arc id="a9" source="t2" target="p10"/>
+<arc id="a10" source="t2" target="p9"/>
+<arc id="a11" source="t2" target="p7"/>
+<arc id="a12" source="t2" target="p6"/>
+<arc id="a13" source="t2" target="p3"/>
+<transition id="t3"><name><text>t3</text></name></transition>
+<arc id="a14" source="p9" target="t3"/>
+<arc id="a15" source="t3" target="p8"/>
+<transition id="t4"><name><text>t4</text></name></transition>
+<arc id="a16" source="p9" target="t4"/>
+<arc id="a17" source="t4" target="p8"/>
+<transition id="t5"><name><text>t5</text></name></transition>
+<arc id="a18" source="p5" target="t5"/>
+<arc id="a19" source="t5" target="p6"/>
+<transition id="t6"><name><text>t6</text></name></transition>
+<arc id="a20" source="p6" target="t6"/>
+<arc id="a21" source="t6" target="p4"/>
+<transition id="t7"><name><text>t7</text></name></transition>
+<arc id="a22" source="p6" target="t7"/>
+<arc id="a23" source="t7" target="p4"/>
+<transition id="t8"><name><text>t8</text></name></transition>
+<arc id="a24" source="p2" target="t8"/>
+<arc id="a25" source="t8" target="p3"/>
+<transition id="t9"><name><text>t9</text></name></transition>
+<arc id="a26" source="p3" target="t9"/>
+<arc id="a27" source="t9" target="p1"/>
+<transition id="t10"><name><text>t10</text></name></transition>
+<arc id="a28" source="p3" target="t10"/>
+<arc id="a29" source="t10" target="p1"/>
+<transition id="t11"><name><text>t11</text></name></transition>
+<arc id="a30" source="p4" target="t11"/>
+<arc id="a31" source="p22" target="t11"/>
+<arc id="a32" source="t11" target="p21"/>
+<arc id="a33" source="t11" target="p6"/>
+<transition id="t12"><name><text>t12</text></name></transition>
+<arc id="a34" source="p7" target="t12"/>
+<arc id="a35" source="p21" target="t12"/>
+<arc id="a36" source="t12" target="p20"/>
+<arc id="a37" source="t12" target="p7"/>
+<transition id="t13"><name><text>t13</text></name></transition>
+<arc id="a38" source="p7" target="t13"/>
+<arc id="a39" source="p19" target="t13"/>
+<arc id="a40" source="t13" target="p18"/>
+<arc id="a41" source="t13" target="p7"/>
+<transition id="t14"><name><text>t14</text></name></transition>
+<arc id="a42" source="p1" target="t14"/>
+<arc id="a43" source="p16" target="t14"/>
+<arc id="a44" source="t14" target="p15"/>
+<arc id="a45" source="t14" target="p3"/>
+<transition id="t15"><name><text>t15</text></name></transition>
+<arc id="a46" source="p7" target="t15"/>
+<arc id="a47" source="p15" target="t15"/>
+<arc id="a48" source="t15" target="p14"/>
+<arc id="a49" source="t15" target="p7"/>
+<transition id="t16"><name><text>t16</text></name></transition>
+<arc id="a50" source="p7" target="t16"/>
+<arc id="a51" source="p12" target="t16"/>
+<arc id="a52" source="t16" target="p11"/>
+<arc id="a53" source="t16" target="p7"/>
+<transition id="t17"><name><text>t17</text></name></transition>
+<arc id="a54" source="p3" target="t17"/>
+<arc id="a55" source="p25" target="t17"/>
+<arc id="a56" source="t17" target="p2"/>
+<arc id="a57" source="t17" target="p24"/>
+<transition id="t18"><name><text>t18</text></name></transition>
+<arc id="a58" source="p6" target="t18"/>
+<arc id="a59" source="p26" target="t18"/>
+<arc id="a60" source="t18" target="p5"/>
+<arc id="a61" source="t18" target="p25"/>
+<transition id="t19"><name><text>t19</text></name></transition>
+<arc id="a62" source="p8" target="t19"/>
+<arc id="a63" source="p27" target="t19"/>
+<arc id="a64" source="t19" target="p26"/>
+<arc id="a65" source="t19" target="p9"/>
+<transition id="t20"><name><text>t20</text></name></transition>
+<arc id="a66" source="p10" target="t20"/>
+<arc id="a67" source="p28" target="t20"/>
+<arc id="a68" source="t20" target="p27"/>
+<arc id="a69" source="t20" target="p10"/>
+<transition id="t21"><name><text>t21</text></name></transition>
+<arc id="a70" source="p20" target="t21"/>
+<arc id="a71" source="t21" target="p19"/>
+<transition id="t22"><name><text>t22</text></name></transition>
+<arc id="a72" source="p14" target="t22"/>
+<arc id="a73" source="t22" target="p13"/>
+<transition id="t23"><name><text>t23</text></name></transition>
+<arc id="a74" source="p13" target="t23"/>
+<arc id="a75" source="t23" target="p12"/>
+<transition id="t24"><name><text>t24</text></name></transition>
+<arc id="a76" source="p24" target="t24"/>
+<arc id="a77" source="p31" target="t24"/>
+<arc id="a78" source="t24" target="p30"/>
+<arc id="a79" source="t24" target="p29"/>
+<transition id="t25"><name><text>t25</text></name></transition>
+<arc id="a80" source="p11" target="t25"/>
+<arc id="a81" source="p31" target="t25"/>
+<arc id="a82" source="t25" target="p30"/>
+<arc id="a83" source="t25" target="p17"/>
+<transition id="t26"><name><text>t26</text></name></transition>
+<arc id="a84" source="p18" target="t26"/>
+<arc id="a85" source="p31" target="t26"/>
+<arc id="a86" source="t26" target="p30"/>
+<arc id="a87" source="t26" target="p23"/>
+<transition id="t27"><name><text>t27</text></name></transition>
+<arc id="a88" source="p29" target="t27"/>
+<arc id="a89" source="p30" target="t27"/>
+<arc id="a90" source="t27" target="p28"/>
+<arc id="a91" source="t27" target="p31"/>
+<transition id="t28"><name><text>t28</text></name></transition>
+<arc id="a92" source="p17" target="t28"/>
+<arc id="a93" source="p30" target="t28"/>
+<arc id="a94" source="t28" target="p16"/>
+<arc id="a95" source="t28" target="p31"/>
+<transition id="t29"><name><text>t29</text></name></transition>
+<arc id="a96" source="p23" target="t29"/>
+<arc id="a97" source="p30" target="t29"/>
+<arc id="a98" source="t29" target="p22"/>
+<arc id="a99" source="t29" target="p31"/>
+<toolspecific tool="nupn" version="1.1">
+<size places="32" transitions="30" arcs="100"/>
+<structure units="10" root="u0" safe="true">
+<unit id="u0">
+<places>p0</places>
+<subunits>u1 u2 u3 u4 u5 u6 u7 u8 u9</subunits>
+</unit>
+<unit id="u1">
+<places>p1 p2 p3</places>
+<subunits/>
+</unit>
+<unit id="u2">
+<places>p4 p5 p6</places>
+<subunits/>
+</unit>
+<unit id="u3">
+<places>p7</places>
+<subunits/>
+</unit>
+<unit id="u4">
+<places>p8 p9</places>
+<subunits/>
+</unit>
+<unit id="u5">
+<places>p10</places>
+<subunits/>
+</unit>
+<unit id="u6">
+<places>p11 p12 p13 p14 p15 p16 p17</places>
+<subunits/>
+</unit>
+<unit id="u7">
+<places>p18 p19 p20 p21 p22 p23</places>
+<subunits/>
+</unit>
+<unit id="u8">
+<places>p24 p25 p26 p27 p28 p29</places>
+<subunits/>
+</unit>
+<unit id="u9">
+<places>p30 p31</places>
+<subunits/>
+</unit>
+</structure>
+</toolspecific>
+</page>
+</net>
+</pnml>

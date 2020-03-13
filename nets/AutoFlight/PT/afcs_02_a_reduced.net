@@ -1,0 +1,62 @@
+# from 57 place(s), 55 transition(s), 180 arc(s)
+# R2  |- removed 10 identity or duplicated transition(s)
+# R4  |- agglomerated 9 place(s)
+# .   |- removed 9 identity transition(s)
+# R4  |- agglomerated 2 place(s)
+# .   |- removed 2 identity transition(s)
+# R4  |- agglomerated 1 place(s)
+# .   |- removed 1 identity transition(s)
+# left 45 place(s), 33 transition(s), 136 arc(s)
+# 0.000s
+
+# prefix = a
+
+# generated equations
+# A |- a1 = p8 + p10
+# A |- a2 = p11 + p13
+# A |- a3 = p15 + p16
+# A |- a4 = p18 + p19
+# A |- a5 = p23 + p24
+# A |- a6 = p25 + p26
+# A |- a7 = p1 + p3
+# A |- a8 = p35 + p36
+# A |- a9 = p4 + p6
+# A |- a10 = a5 + a6
+# A |- a11 = a8 + p37
+# A |- a12 = a10 + p27
+
+net {AutoFlight-PT-02a}
+tr t0 p2  -> a7 
+tr t1 p5  -> a9 
+tr t12 p9  -> a1 
+tr t21 p17 p47  -> p17 p46 
+tr t22 a3 p46  -> a3 p45 
+tr t23 p45 a9  -> p44 p5 
+tr t24 a7 p44  -> p2 p43 
+tr t25 p22 p7  -> p21 p7 
+tr t26 p14 a12  -> p14 p22 
+tr t27 p28 p7  -> a12 p7 
+tr t28 p14 p29  -> p14 p28 
+tr t29 a7 p30  -> p29 a7 
+tr t3 p12  -> a2 
+tr t30 a1 p31  -> a1 p30 
+tr t31 p34 p7  -> p33 p7 
+tr t32 p14 a11  -> p14 p34 
+tr t33 p38 p7  -> a11 p7 
+tr t34 p14 p39  -> p14 p38 
+tr t35 p40 a9  -> p39 a9 
+tr t36 a2 p41  -> a2 p40 
+tr t37 a1 p50  -> p49 p9 
+tr t38 a2 p51  -> p12 p50 
+tr t39 a4 p52  -> a4 p51 
+tr t4 p0  -> a1 a2 p14 a3 p17 a4 p20 a7 p32 p42 p48 p54 p55 a9 p7 
+tr t40 p20 p53  -> p20 p52 
+tr t47 p49 p56  -> p54 p55 
+tr t48 p33 p56  -> p42 p55 
+tr t49 p21 p56  -> p32 p55 
+tr t50 p43 p56  -> p48 p55 
+tr t51 p54 p55  -> p53 p56 
+tr t52 p42 p55  -> p41 p56 
+tr t53 p32 p55  -> p31 p56 
+tr t54 p48 p55  -> p47 p56 
+pl p0 (1)

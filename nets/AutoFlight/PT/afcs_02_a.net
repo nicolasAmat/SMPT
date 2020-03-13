@@ -1,0 +1,57 @@
+net {AutoFlight-PT-02a}
+tr t0 p2 -> p3 
+tr t1 p5 -> p6 
+tr t10 p13 -> p11 
+tr t11 p13 -> p11 
+tr t12 p9 -> p10 
+tr t13 p10 -> p8 
+tr t14 p10 -> p8 
+tr t15 p5 -> p6 
+tr t16 p6 -> p4 
+tr t17 p6 -> p4 
+tr t18 p2 -> p3 
+tr t19 p3 -> p1 
+tr t2 p9 -> p10 
+tr t20 p3 -> p1 
+tr t21 p17 p47 -> p17 p46 
+tr t22 p15 p46 -> p16 p45 
+tr t23 p45 p6 -> p44 p5 
+tr t24 p3 p44 -> p2 p43 
+tr t25 p22 p7 -> p21 p7 
+tr t26 p14 p23 -> p14 p22 
+tr t27 p28 p7 -> p27 p7 
+tr t28 p14 p29 -> p14 p28 
+tr t29 p1 p30 -> p29 p3 
+tr t3 p12 -> p13 
+tr t30 p31 p8 -> p10 p30 
+tr t31 p34 p7 -> p33 p7 
+tr t32 p14 p35 -> p14 p34 
+tr t33 p38 p7 -> p37 p7 
+tr t34 p14 p39 -> p14 p38 
+tr t35 p4 p40 -> p39 p6 
+tr t36 p11 p41 -> p13 p40 
+tr t37 p10 p50 -> p49 p9 
+tr t38 p13 p51 -> p12 p50 
+tr t39 p18 p52 -> p19 p51 
+tr t4 p0 -> p10 p13 p14 p16 p17 p19 p20 p3 p32 p42 p48 p54 p55 p6 p7 
+tr t40 p20 p53 -> p20 p52 
+tr t41 p24 -> p23 
+tr t42 p25 -> p24 
+tr t43 p26 -> p25 
+tr t44 p27 -> p26 
+tr t45 p36 -> p35 
+tr t46 p37 -> p36 
+tr t47 p49 p56 -> p54 p55 
+tr t48 p33 p56 -> p42 p55 
+tr t49 p21 p56 -> p32 p55 
+tr t5 p19 -> p18 
+tr t50 p43 p56 -> p48 p55 
+tr t51 p54 p55 -> p53 p56 
+tr t52 p42 p55 -> p41 p56 
+tr t53 p32 p55 -> p31 p56 
+tr t54 p48 p55 -> p47 p56 
+tr t6 p19 -> p18 
+tr t7 p16 -> p15 
+tr t8 p16 -> p15 
+tr t9 p12 -> p13 
+pl p0 (1)
