@@ -12,7 +12,8 @@ from pn import PetriNet
 import re
 import sys
 
-class Marking:
+
+class EnumerativeMarking:
     """
     Marking defined by:
     - a Petri Net
@@ -21,7 +22,7 @@ class Marking:
     def __init__(self, filename, pn):
         self.pn = pn
         self.markings = []
-        self.parseMarkings(filename)
+        self.parse_markings(filename)
 
     def __str__(self):
         text = ""
@@ -46,13 +47,13 @@ class Marking:
         text += "))\n"
         return text
 
-    def parseMarkings(self, filename):
+    def parse_markings(self, filename):
         try:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
                     content = line.strip().replace('(', '').replace(')', '').split(',')
                     if content[0] == content[-1]:
-                        places = re.split('\s+', content[1].replace('"', ''))
+                        places = re.split(r'\s+', content[1].replace('"', ''))
                         consistent = True
                         marking = dict()
                         for place in places:
@@ -67,18 +68,18 @@ class Marking:
             exit(e)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
-    if (len(sys.argv) != 3):
-        exit("File missing: ./marking <path_to_aut_file> <path_to_net_file>")
+    if len(sys.argv) != 3:
+        exit("File missing: ./enumerativemarking <path_to_net_file> <path_to_aut_file>")
 
-    net = PetriNet(sys.argv[2])
-    marks = Marking(sys.argv[1], net)
+    net = PetriNet(sys.argv[1])
+    markings = EnumerativeMarking(sys.argv[2], net)
 
     print("Markings Enumeration")
     print("--------------------")
-    print(marks)
+    print(markings)
 
     print("\nSMTlib2 Format")
     print("--------------")
-    print(marks.smtlib())
+    print(markings.smtlib())

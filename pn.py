@@ -10,6 +10,7 @@ Documentation: http://projects.laas.fr/tina//manuals/formats.html
 import sys
 import re
 
+
 class PetriNet:
     """
     Petri Net defined by:
@@ -21,7 +22,7 @@ class PetriNet:
         self.id = ""
         self.places = {}
         self.transitions = {}
-        self.parseNet(filename)
+        self.parse_net(filename)
 
     def __str__(self):
         text = "net {}\n".format(self.id)
@@ -31,48 +32,48 @@ class PetriNet:
             text += str(tr)
         return text
 
-    def smtlibDeclarePlaces(self):
+    def smtlib_declare_places(self):
         text = ""
         for place in self.places.values():
-            text += place.smtlibDeclare()
+            text += place.smtlib_declare()
         return text
 
-    def smtlibDeclarePlacesOrdered(self, k):
+    def smtlib_declare_places_ordered(self, k):
         text = ""
         for place in self.places.values():
-            text += place.smtlibDeclareOrdered(k)
+            text += place.smtlib_declare_ordered(k)
         return text
 
-    def smtlibSetMarkingOrdered(self, k):
+    def smtlib_set_marking_ordered(self, k):
         text = ""
         for pl in self.places.values():
-            text += pl.smtlibSetMarkingOrdered(k)
+            text += pl.smtlib_set_marking_ordered(k)
         return text
 
-    def smtlibTransitionsOrdered(self, k):
+    def smtlib_transitions_ordered(self, k):
         text = "(assert (or \n"
         for tr in self.transitions.values():
-            text += tr.smtlibOrdered(k)
+            text += tr.smtlib_ordered(k)
         text += "))\n"
         return text
 
-    def parseNet(self, filename):
-            try:
-                with open(filename, 'r') as fp:
-                    for line in fp.readlines():
-                        content = re.split(r'\s+', line.strip().replace('#', ''))
-                        element = content.pop(0)
-                        if element == "net":
-                            self.id = content[0]
-                        if element == "tr":
-                            self.parseTransition(content)
-                        if element == "pl":
-                            self.parsePlace(content)
-                fp.close()
-            except FileNotFoundError as e:
-                exit(e)
+    def parse_net(self, filename):
+        try:
+            with open(filename, 'r') as fp:
+                for line in fp.readlines():
+                    content = re.split(r'\s+', line.strip().replace('#', ''))
+                    element = content.pop(0)
+                    if element == "net":
+                        self.id = content[0]
+                    if element == "tr":
+                        self.parse_transition(content)
+                    if element == "pl":
+                        self.parse_place(content)
+            fp.close()
+        except FileNotFoundError as e:
+            exit(e)
 
-    def parseTransition(self, content):
+    def parse_transition(self, content):
         tr_id = content.pop(0)
         
         if tr_id in self.transitions:
@@ -81,19 +82,19 @@ class PetriNet:
             tr = Transition(tr_id, self)
             self.transitions[tr.id] = tr
 
-        content = self.parseLabel(content)
+        content = self.parse_label(content)
 
         arrow = content.index("->")
         src = content[0:arrow]
         dst = content[arrow + 1:]
 
         for arc in src:
-            tr.pl_linked.append(self.parseArc(arc, tr.src, tr.dest))
+            tr.pl_linked.append(self.parse_arc(arc, tr.src, tr.dest))
 
         for arc in dst:
-            tr.pl_linked.append(self.parseArc(arc, tr.dest))
+            tr.pl_linked.append(self.parse_arc(arc, tr.dest))
 
-    def parseArc(self, arc, arcs, opposite_arcs = []):
+    def parse_arc(self, arc, arcs, opposite_arcs = []):
         arc = arc.replace('{', '').replace('}', '')
 
         test_arc, inhibitor_arc = False, False 
@@ -128,10 +129,10 @@ class PetriNet:
         
         return pl
 
-    def parsePlace(self, content):
+    def parse_place(self, content):
         place_id = content.pop(0).replace('{', '').replace('}', '')
         
-        content = self.parseLabel(content)
+        content = self.parse_label(content)
 
         if len(content) == 1:
             marking = content[0].replace('(', '').replace(')', '')
@@ -143,7 +144,7 @@ class PetriNet:
         else:
             self.places.get(place_id).marking = marking
 
-    def parseLabel(self, content):
+    def parse_label(self, content):
         index_pl = 0
         if content[index_pl] == ':':
             label_skipped = content[index_pl + 1][0] != '{'
@@ -152,6 +153,7 @@ class PetriNet:
                 label_skipped = content[index_pl][-1] == '}'             
                 index_pl += 1
         return content[index_pl:]
+
 
 class Place:
     """
@@ -169,14 +171,15 @@ class Place:
             text = "pl {} ({})\n".format(self.id, self.marking)
         return text
 
-    def smtlibDeclare(self):
+    def smtlib_declare(self):
         return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
 
-    def smtlibDeclareOrdered(self, k):
+    def smtlib_declare_ordered(self, k):
         return "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(self.id, k, self.id, k)
 
-    def smtlibSetMarkingOrdered(self, k):
+    def smtlib_set_marking_ordered(self, k):
         return "(assert (= {}@{} {}))\n".format(self.id, k, self.marking)
+
 
 class Transition:
     """
@@ -195,14 +198,14 @@ class Transition:
     def __str__(self):
         text = "tr {}  ".format(self.id)
         for src, weight in self.src.items():
-            text += self.strArc(src, weight)
+            text += self.str_arc(src, weight)
         text += '-> '
         for dest, weight in self.dest.items():
-            text += self.strArc(dest, weight)
+            text += self.str_arc(dest, weight)
         text += '\n'
         return text
 
-    def strArc(self, pl, weight):
+    def str_arc(self, pl, weight):
         text = ""
         text += pl.id
         if weight > 1:
@@ -212,7 +215,7 @@ class Transition:
         text += ' '
         return text
 
-    def smtlibOrdered(self, k):
+    def smtlib_ordered(self, k):
         text = "\t(and\n\t\t(=>\n\t\t\t(and "
         for pl, weight in self.src.items():
             if weight > 0:
@@ -247,7 +250,7 @@ class Transition:
 
 if __name__ == "__main__":
     
-    if (len(sys.argv) == 1):
+    if len(sys.argv) == 1:
         exit("File missing: ./pn <path_to_file>")
     
     net = PetriNet(sys.argv[1])
@@ -258,4 +261,4 @@ if __name__ == "__main__":
     
     print("SMTlib")
     print("------")
-    print(net.smtlibDeclarePlaces())
+    print(net.smtlib_declare_places())

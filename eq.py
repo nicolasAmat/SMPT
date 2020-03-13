@@ -9,6 +9,7 @@ Input file format: .net
 import sys
 import re
 
+
 class System:
     """
     Equation system defined by:
@@ -38,7 +39,7 @@ class System:
             text += eq.smtlib() + '\n'
         return text
 
-    def smtlibOnlyNonReducedPlaces(self):
+    def smtlib_only_non_reduced_places(self):
         text = ""
         for var in self.additionalVars:
             if var not in self.places_reduced:
@@ -48,11 +49,11 @@ class System:
                 text += eq.smtlib() + '\n'
         return text
         
-    def smtlibOrdered(self, k):
+    def smtlib_ordered(self, k):
         text = ""
         for eq in self.system:
             if eq.contain_reduced:
-                text += eq.smtlibOrdered(k, self.places_reduced) + '\n'
+                text += eq.smtlib_ordered(k, self.places_reduced) + '\n'
         for pl in self.places_reduced:
             if pl in self.places:
                 text += "(assert (= {}@{} {}))\n".format(pl, k, pl)
@@ -64,12 +65,13 @@ class System:
                 content = re.search(r'# generated equations\n(.*)?\n\n', fp.read(), re.DOTALL) 
                 if content:
                     lines = re.split('\n+', content.group())[1:-1]
-                    equations = [re.split('\s+', line.partition(' |- ')[2]) for line in lines]
+                    equations = [re.split(r'\s+', line.partition(' |- ')[2]) for line in lines]
                     for eq in equations:
                         self.system.append(Equation(eq, self))
             fp.close()
         except FileNotFoundError as e:
             exit(e)
+
 
 class Equation:
     """
@@ -83,12 +85,12 @@ class Equation:
         self.right = []
         self.operator = ""
         self.contain_reduced = False
-        self.parseEquation(eq, system)
+        self.parse_equation(eq, system)
 
     def __str__(self):
-        return self.memberStr(self.left) + '= ' + self.memberStr(self.right)
+        return self.member_str(self.left) + '= ' + self.member_str(self.right)
 
-    def memberStr(self, member):
+    def member_str(self, member):
         text = ""
         for index, elem in enumerate(member):
             text += elem + " "
@@ -97,9 +99,12 @@ class Equation:
         return text
 
     def smtlib(self):
-        return "(assert ({}".format(self.operator) + self.memberSmtlib(self.left) + self.memberSmtlib(self.right) + "))"
+        return "(assert ({}".format(self.operator) \
+               + self.member_smtlib(self.left)     \
+               + self.member_smtlib(self.right)    \
+               + "))"
 
-    def memberSmtlib(self, member):
+    def member_smtlib(self, member):
         text = "" 
         if len(member) > 1:
             text += " (+"
@@ -109,11 +114,14 @@ class Equation:
             text += ")"
         return text
 
-    def smtlibOrdered(self, k, places_reduced):
-        return "(assert ({}".format(self.operator) + self.memberSmtlibOrdered(self.left, k, places_reduced) + self.memberSmtlibOrdered(self.right, k, places_reduced) + "))"
+    def smtlib_ordered(self, k, places_reduced):
+        return "(assert ({}".format(self.operator)                         \
+               + self.member_smtlib_ordered(self.left, k, places_reduced)  \
+               + self.member_smtlib_ordered(self.right, k, places_reduced) \
+               + "))"
 
-    def memberSmtlibOrdered(self, member, k, places_reduced = []):
-        text = "" 
+    def member_smtlib_ordered(self, member, k, places_reduced=[]):
+        text = ""
         if len(member) > 1:
             text += " (+"
         for elem in member:
@@ -125,7 +133,7 @@ class Equation:
             text += ")"
         return text
 
-    def parseEquation(self, eq, system):
+    def parse_equation(self, eq, system):
         left = True
         for element in eq:
             if element != '+':
@@ -147,7 +155,7 @@ class Equation:
 
 if __name__ == "__main__":
     
-    if (len(sys.argv) == 1):
+    if len(sys.argv) == 1:
         exit("File missing: ./eq <path_to_file>")
     
     system = System(sys.argv[1])

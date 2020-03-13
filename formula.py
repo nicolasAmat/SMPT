@@ -21,7 +21,7 @@ class Formula:
         self.clauses = []
         self.prop = prop
         if prop == "deadlock":
-            self.generateDeadlock()
+            self.generate_deadlock()
 
     def __str__(self):
         text = ""
@@ -37,7 +37,7 @@ class Formula:
             text += clause.smtlib() + '\n'
         return text
 
-    def generateDeadlock(self):
+    def generate_deadlock(self):
         for tr in self.pn.transitions.values():
             inequalities = []
             for pl, weight in tr.src.items():
@@ -48,14 +48,14 @@ class Formula:
                 inequalities.append(ineq)
             self.clauses.append(Clause(inequalities))
 
-    def checkSat(self, solver):
+    def check_sat(self, solver):
         solver.stdin.write(bytes("(check-sat)\n", 'utf-8'))
         solver.stdin.flush()
-        if (solver.stdout.readline().decode('utf-8').strip() == 'sat'):
+        if solver.stdout.readline().decode('utf-8').strip() == 'sat':
             return 1
         return 0
 
-    def getModel(self, solver):
+    def get_model(self, solver):
         solver.stdin.write(bytes("(get-model)\n", 'utf-8'))
         solver.stdin.flush()
         
@@ -64,7 +64,7 @@ class Formula:
         # Read the model
         solver.stdout.readline()
         # Parse the model
-        while(True):
+        while True:
             place_content = solver.stdout.readline().decode('utf-8').strip().split(' ')
             if len(place_content) < 2 or solver.poll() is not None:
                 break
@@ -81,7 +81,7 @@ class Formula:
         return 1
     
     def result(self, solver):
-        if (solver.stdout.readline().decode('utf-8').strip() == 'unsat'):
+        if solver.stdout.readline().decode('utf-8').strip() == 'unsat':
             print("The input Petri Net is deadlock free.")
         else:
             model = ""
@@ -90,7 +90,7 @@ class Formula:
             solver.stdout.readline()
 
             # Parse the model
-            while(True):
+            while True:
                 place_content = solver.stdout.readline().decode('utf-8').strip().split(' ')
                 place_marking =  solver.stdout.readline().decode('utf-8').strip().replace(' ', '').replace(')', '')
                 if len(place_content) < 2 and solver.poll() is not None:
@@ -103,6 +103,7 @@ class Formula:
             if model == "":
                 model = " empty marking"
             print("Model:{}".format(model))
+
 
 class Clause:
     """
@@ -127,6 +128,7 @@ class Clause:
         text += "))"
         return text
 
+
 class Inequality:
     """
     Inequality defined by:
@@ -134,9 +136,9 @@ class Inequality:
     - a right member
     - an operator (=, <=, >=, <, >)
     """
-    def __init__(self, leftMember, rightMember, operator):
-        self.left = leftMember
-        self.right = rightMember
+    def __init__(self, left_member, right_member, operator):
+        self.left = left_member
+        self.right = right_member
         self.operator = operator
 
     def __str__(self):
@@ -145,9 +147,10 @@ class Inequality:
     def smtlib(self):
         return "({} {} {})".format(self.operator, self.left.id, self.right)
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     
-    if (len(sys.argv) == 1):
+    if len(sys.argv) == 1:
         exit("File missing: ./formula <path_to_file>")
     
     net = PetriNet(sys.argv[1])

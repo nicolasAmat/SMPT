@@ -7,11 +7,12 @@ Satisfiability Modulo Petri Net
 from pn import PetriNet
 from formula import Formula
 from eq import System
-from marking import Marking
+from enumerativemarking import EnumerativeMarking
 
 import sys
 import os
 import subprocess
+
 
 def main(argv):
 
@@ -24,13 +25,13 @@ def main(argv):
     phi = Formula(net)
 
     if len(argv) > 3:
-        marks = Marking(argv[3], reduced_net)
+        marks = EnumerativeMarking(argv[3], reduced_net)
 
     smtlib = "; Variable Definitions\n" \
-        + net.smtlibDeclarePlaces() \
-        + "; Reduction Equations\n" \
-        + eq.smtlib() \
-        + "; Property Formula\n" \
+        + net.smtlib_declare_places()   \
+        + "; Reduction Equations\n"     \
+        + eq.smtlib()                   \
+        + "; Property Formula\n"        \
         + phi.smtlib()
     
     if len(argv) > 3:    
@@ -49,7 +50,6 @@ def main(argv):
     smt_file.close()
     proc = subprocess.Popen(['z3', '-smt2', smt_filename], stdout=subprocess.PIPE)
 
-
     print("Result computed using z3")
     print("------------------------")
     phi.result(proc)
@@ -58,6 +58,5 @@ def main(argv):
     os.remove(smt_filename)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main(sys.argv)
-    
