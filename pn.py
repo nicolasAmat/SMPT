@@ -50,11 +50,21 @@ class PetriNet:
             text += pl.smtlib_set_marking_ordered(k)
         return text
 
+    # def smtlib_transitions_ordered(self, k):
+    #     text = "(assert (or \n"
+    #     for tr in self.transitions.values():
+    #         text += tr.smtlib_ordered(k)
+    #     text += "))\n"
+    #     return text
+
     def smtlib_transitions_ordered(self, k):
         text = "(assert (or \n"
         for tr in self.transitions.values():
             text += tr.smtlib_ordered(k)
-        text += "))\n"
+        text += "\t(and\n\t\t"
+        for pl in self.places.values():
+            text += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
+        text += "\n\t)\n))\n"
         return text
 
     def parse_net(self, filename):
@@ -215,14 +225,46 @@ class Transition:
         text += ' '
         return text
 
+    # def smtlib_ordered(self, k):
+    #     text = "\t(and\n\t\t(=>\n\t\t\t(and "
+    #     for pl, weight in self.src.items():
+    #         if weight > 0:
+    #             text += "(>= {}@{} {})".format(pl.id, k, weight)
+    #         else:
+    #             text += "(< {}@{} {})".format(pl.id, k, - weight)
+    #     text += ")\n\t\t\t(and "
+    #     for pl, weight in self.src.items():
+    #         if weight > 0:
+    #             if pl in self.dest:
+    #                 text += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.dest[pl], weight)
+    #             else:
+    #                 text += "(= {}@{} (- {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
+    #     for pl, weight in self.dest.items():
+    #         if pl not in self.src or self.src[pl] < 0:
+    #             text += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
+    #     for pl in self.pn.places.values():
+    #         if pl not in self.pl_linked:
+    #             text += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
+    #     text += ")\n\t\t)\n\t\t(=>\n\t\t\t(or "
+    #     for pl, weight in self.src.items():
+    #         if weight > 0:
+    #             text += "(< {}@{} {})".format(pl.id, k, weight)
+    #         else:
+    #             text += "(>= {}@{} {})".format(pl.id, k, - weight)
+    #     text += ")\n\t\t\t(and "
+    #     for pl in self.pn.places.values():
+    #         text += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
+    #     text += ")\n\t\t)\n\t)\n"
+    #     return text
+
     def smtlib_ordered(self, k):
-        text = "\t(and\n\t\t(=>\n\t\t\t(and "
+        text = "\t(and\n\t\t"
         for pl, weight in self.src.items():
             if weight > 0:
                 text += "(>= {}@{} {})".format(pl.id, k, weight)
             else:
                 text += "(< {}@{} {})".format(pl.id, k, - weight)
-        text += ")\n\t\t\t(and "
+        text += "\n\t\t"
         for pl, weight in self.src.items():
             if weight > 0:
                 if pl in self.dest:
@@ -232,19 +274,11 @@ class Transition:
         for pl, weight in self.dest.items():
             if pl not in self.src or self.src[pl] < 0:
                 text += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
+        text += "\n\t\t"
         for pl in self.pn.places.values():
             if pl not in self.pl_linked:
                 text += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
-        text += ")\n\t\t)\n\t\t(=>\n\t\t\t(or "
-        for pl, weight in self.src.items():
-            if weight > 0:
-                text += "(< {}@{} {})".format(pl.id, k, weight)
-            else:
-                text += "(>= {}@{} {})".format(pl.id, k, - weight)
-        text += ")\n\t\t\t(and "
-        for pl in self.pn.places.values():
-            text += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
-        text += ")\n\t\t)\n\t)\n"
+        text += "\n\t)\n"
         return text
 
 
