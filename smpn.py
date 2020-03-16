@@ -8,37 +8,31 @@ from pn import PetriNet
 from formula import Formula
 from eq import System
 from enumerativemarking import EnumerativeMarking
+from kinduction import KInduction
 
-import sys
+import argparse
 import os
 import subprocess
+from threading import Thread, Event
+
+stop_it = Event()
 
 
-def main(argv):
-
-    if len(argv) < 3:
-        exit("File missing: ./smpn <path_to_initial_petri_net> <path_to_reduce_net> <path_to_aut_file>")
-
-    net = PetriNet(argv[1])
-    reduced_net = PetriNet(argv[2])
-    eq = System(argv[2], net.places.keys())
-    phi = Formula(net)
-
-    if len(argv) > 3:
-        marks = EnumerativeMarking(argv[3], reduced_net)
+def enumerative(pn, pn_reduced, eq, formula, path_markings):
+    """
+    Enumerative method caller
+    """
+    markings = EnumerativeMarking(path_markings, pn_reduced)
 
     smtlib = "; Variable Definitions\n" \
-        + net.smtlib_declare_places()   \
+        + pn.smtlib_declare_places()    \
         + "; Reduction Equations\n"     \
         + eq.smtlib()                   \
         + "; Property Formula\n"        \
-        + phi.smtlib()
-    
-    if len(argv) > 3:    
-        smtlib += "; Reduced Net Markings\n" \
-            + marks.smtlib() 
-    
-    smtlib += "(check-sat)\n(get-model)\n"
+        + formula.smtlib()              \
+        + "; Reduced Net Markings\n"    \
+        + markings.smtlib()                \
+        + "(check-sat)\n(get-model)\n"
 
     print("Input into the SMT Solver")
     print("-------------------------")
@@ -52,11 +46,76 @@ def main(argv):
 
     print("Result computed using z3")
     print("------------------------")
-    phi.result(proc)
+    formula.result(proc)
 
     proc.poll()
     os.remove(smt_filename)
 
 
+def kinduction(pn, pn_reduced, eq, formula):
+    """
+    K-induction method caller
+    """
+    k_induction = KInduction(pn, pn_reduced, eq, formula)
+
+    print("Input into the SMT Solver")
+    print("-------------------------")
+    print(k_induction.smtlib_ordered(1))
+
+    print("Result computed using z3")
+    print("------------------------")
+    proc = Thread(target= k_induction.solve)
+    proc.start()
+    proc.join(timeout = 600)
+    stop_it.set()
+
+
+def main():
+    """
+    Main Function
+    """
+    parser = argparse.ArgumentParser(description='Satisfiability Modulo Petri Net')
+    
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s 1.0')
+    
+    parser.add_argument('path_pn',
+                        metavar='pn',
+                        type=str,
+                        help='path to Petri Net (.net format)')
+
+    parser.add_argument('--reduced',
+                        action='store',
+                        dest='path_pn_reduced',
+                        type=str,
+                        help='Path to reduced Petri Net (.net format)')
+
+    parser.add_argument('--enumerative',
+                        action='store',
+                        dest='path_markings',
+                        type=str,
+                        help='Path to markings  (.aut format)')
+
+    results = parser.parse_args()
+
+    pn = PetriNet(results.path_pn)
+    
+    if results.path_pn_reduced is not None:
+        pn_reduced = PetriNet(results.path_pn_reduced)
+        eq = System(results.path_pn_reduced, pn.places.keys(), pn_reduced.places.keys())
+    else:
+        pn_reduced = PetriNet(results.path_pn)
+        eq = System(results.path_pn, pn.places.keys(), pn_reduced.places.keys())
+
+    formula = Formula(pn)
+
+    if results.path_markings is not None:
+        enumerative(pn, pn_reduced, eq, formula, results.path_markings)
+    else:
+        kinduction(pn, pn_reduced, eq, formula)
+
+    exit(0)
+
+
 if __name__ == '__main__':
-    main(sys.argv)
+    main()
