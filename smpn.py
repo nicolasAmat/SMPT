@@ -18,7 +18,7 @@ from threading import Thread, Event
 stop_it = Event()
 
 
-def enumerative(pn, pn_reduced, eq, formula, path_markings):
+def enumerative_marking(pn, pn_reduced, eq, formula, path_markings):
     """
     Enumerative method caller
     """
@@ -52,7 +52,7 @@ def enumerative(pn, pn_reduced, eq, formula, path_markings):
     os.remove(smt_filename)
 
 
-def kinduction(pn, pn_reduced, eq, formula):
+def k_induction(pn, pn_reduced, eq, formula):
     """
     K-induction method caller
     """
@@ -110,9 +110,9 @@ def main():
     formula = Formula(pn)
 
     if results.path_markings is not None:
-        enumerative(pn, pn_reduced, eq, formula, results.path_markings)
+        enumerative_marking(pn, pn_reduced, eq, formula, results.path_markings)
     else:
-        kinduction(pn, pn_reduced, eq, formula)
+        k_induction(pn, pn_reduced, eq, formula)
 
     exit(0)
 
