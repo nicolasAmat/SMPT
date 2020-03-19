@@ -69,7 +69,7 @@ class KInduction:
         self.solver.stdin.write(bytes("(push)\n", 'utf-8'))
         self.solver.stdin.write(bytes(self.eq.smtlib_ordered(k), 'utf-8'))
         
-        while not self.formula.check_sat(self.solver) and not stop_it.is_set():
+        while k < 100 and not self.formula.check_sat(self.solver) and not stop_it.is_set():
             print("k =", k)
             self.solver.stdin.write(bytes("(pop)\n", 'utf-8'))
             self.solver.stdin.write(bytes(self.pn_reduced.smtlib_declare_places_ordered(k + 1), 'utf-8'))
@@ -78,10 +78,10 @@ class KInduction:
             self.solver.stdin.write(bytes(self.eq.smtlib_ordered(k + 1), 'utf-8'))
             k += 1
         
-        if not stop_it.is_set():
+        if k < 100 and not stop_it.is_set():
             self.formula.get_model(self.solver)
         else:
-            print("Timeouts!")
+            print("Method stopped!")
 
 
 if __name__ == '__main__':

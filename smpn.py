@@ -5,7 +5,7 @@ Satisfiability Modulo Petri Net
 """
 
 from pn import PetriNet
-from formula import Formula
+from formula import Properties
 from eq import System
 from enumerativemarking import EnumerativeMarking
 from kinduction import KInduction
@@ -58,17 +58,11 @@ def k_induction(pn, pn_reduced, eq, formula):
     """
     k_induction = KInduction(pn, pn_reduced, eq, formula)
 
-    print("Input into the SMT Solver")
-    print("-------------------------")
-    print(k_induction.smtlib_ordered(1))
-
-    print("Result computed using z3")
-    print("------------------------")
+    # Run solver with timeout
     proc = Thread(target= k_induction.solve)
     proc.start()
-    proc.join(timeout = 600)
+    proc.join(timeout = 5)
     stop_it.set()
-
 
 def main():
     """
@@ -83,6 +77,11 @@ def main():
                         metavar='pn',
                         type=str,
                         help='path to Petri Net (.net format)')
+
+    parser.add_argument('path_props',
+                        metavar='properties',
+                        type=str,
+                        help='path to Properties (.xml format)')
 
     parser.add_argument('--reduced',
                         action='store',
@@ -107,13 +106,14 @@ def main():
         pn_reduced = PetriNet(results.path_pn)
         eq = System(results.path_pn, pn.places.keys(), pn_reduced.places.keys())
 
-    formula = Formula(pn)
+    props = Properties(pn, results.path_props)
 
-    if results.path_markings is not None:
-        enumerative_marking(pn, pn_reduced, eq, formula, results.path_markings)
-    else:
-        k_induction(pn, pn_reduced, eq, formula)
-
+    for formula_id, formula in props.formulas.items():
+        print("---{}---".format(formula_id))
+        if results.path_markings is not None:
+            enumerative_marking(pn, pn_reduced, eq, formula, results.path_markings)
+        else:
+            k_induction(pn, pn_reduced, eq, formula)
     exit(0)
 
 
