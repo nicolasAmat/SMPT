@@ -59,7 +59,7 @@ class KInduction:
         return text
 
     def solve(self):
-        print("K-Induction running:")
+        print("---K-Induction running---")
         k = 0 
         self.solver.stdin.write(bytes(self.pn.smtlib_declare_places(), 'utf-8'))
         self.solver.stdin.write(bytes(self.formula.smtlib(), 'utf-8'))
@@ -87,7 +87,7 @@ class KInduction:
 if __name__ == '__main__':
     
     if len(sys.argv) < 2:
-        exit("File missing: ./k_induction.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
+        exit("File missing: ./kinduction.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
 
     pn = PetriNet(sys.argv[1])
     
