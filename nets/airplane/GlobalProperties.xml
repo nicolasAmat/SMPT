@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<property-set xmlns="http://mcc.lip6.fr/">
+  <property>
+    <id>Airplane-GlobalProperties-0</id>
+    <description>Automatically generated</description>
+    <formula>
+      <exists-path>
+        <finally>
+          <deadlock/>
+        </finally>
+      </exists-path>
+    </formula>
+  </property>
+</property-set>
