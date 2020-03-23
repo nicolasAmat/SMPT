@@ -44,6 +44,12 @@ class PetriNet:
             text += place.smtlib_declare_ordered(k)
         return text
 
+    def smtlib_set_marking(self):
+        text = ""
+        for pl in self.places.values():
+            text += pl.smtlib_set_marking()
+        return text
+
     def smtlib_set_marking_ordered(self, k):
         text = ""
         for pl in self.places.values():
@@ -186,6 +192,9 @@ class Place:
 
     def smtlib_declare_ordered(self, k):
         return "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(self.id, k, self.id, k)
+
+    def smtlib_set_marking(self):
+        return "(assert (= {} {}))\n".format(self.id, self.marking)
 
     def smtlib_set_marking_ordered(self, k):
         return "(assert (= {}@{} {}))\n".format(self.id, k, self.marking)

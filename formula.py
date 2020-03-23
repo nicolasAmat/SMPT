@@ -74,15 +74,22 @@ class Formula:
     - a set of clauses
     - a property (deadlock)
     """
-    def __init__(self, pn, prop = "deadlock", transitions = []):
+    def __init__(self, pn, prop = 'deadlock', transitions = []):
         self.pn = pn
         self.clauses = []
         self.operator = ""
         self.prop = prop
-        if prop == "deadlock":
+        if prop == 'deadlock':
             self.generate_deadlock()
         if prop == 'fireability':
             self.generate_fireability(transitions)
+        if prop == 'reachability':
+            # Start Debug
+            marking = {}
+            marking[self.pn.places["Pout3"]] = 1
+            print(marking)
+            # End Debug
+            self.generate_reachability(marking)
 
     def __str__(self):
         text = ""
@@ -136,6 +143,10 @@ class Formula:
                 inequalities.append(ineq)
             self.clauses.append(Clause(inequalities, "and"))
         self.operator = "or"
+
+    def generate_reachability(self, marking):
+        for pl, counter in marking.items():
+            self.clauses.append(Inequality(pl, counter, '='))
 
     def check_sat(self, solver):
         solver.stdin.write(bytes("(check-sat)\n", 'utf-8'))
