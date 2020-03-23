@@ -87,7 +87,6 @@ class Formula:
             # Start Debug
             marking = {}
             marking[self.pn.places["Pout3"]] = 1
-            print(marking)
             # End Debug
             self.generate_reachability(marking)
 
@@ -100,22 +99,22 @@ class Formula:
         text += "\n"
         return text
 
-    def smtlib(self):
+    def smtlib(self, k = None):
         if self.operator == "or":
-            return self.disjunctive_smtlib()
+            return self.disjunctive_smtlib(k)
         else:
-            return self.conjunctive_smtlib()
+            return self.conjunctive_smtlib(k)
 
-    def conjunctive_smtlib(self):
+    def conjunctive_smtlib(self, k = None):
         text = ""
         for clause in self.clauses:
-            text += "(assert {})\n".format(clause.smtlib())
+            text += "(assert {})\n".format(clause.smtlib(k))
         return text
 
-    def disjunctive_smtlib(self):
+    def disjunctive_smtlib(self, k = None):
         text = "(assert (or "
         for clause in self.clauses:
-            text += clause.smtlib()
+            text += clause.smtlib(k)
         text += "))\n"
         return text
 
@@ -182,30 +181,6 @@ class Formula:
         print("Model:{}".format(model))
 
         return 1
-    
-    def result(self, solver):
-        if solver.stdout.readline().decode('utf-8').strip() == 'unsat':
-            print("The property {} is verified".format(self.prop))
-        else:
-            model = ""
-
-            # Read the model
-            solver.stdout.readline()
-
-            # Parse the model
-            while True:
-                place_content = solver.stdout.readline().decode('utf-8').strip().split(' ')
-                place_marking =  solver.stdout.readline().decode('utf-8').strip().replace(' ', '').replace(')', '')
-                if len(place_content) < 2 and solver.poll() is not None:
-                    break
-                if (place_marking and int(place_marking) > 0) and place_content[1] in self.pn.places:
-                    model += ' ' + place_content[1]
- 
-            print("Property verified!")
-            
-            if model == "":
-                model = " empty marking"
-            print("Model:{}".format(model))
 
 
 class Clause:
@@ -226,10 +201,10 @@ class Clause:
                 text += " " + self.operator + " "
         return text
 
-    def smtlib(self):
+    def smtlib(self, k = None):
         text = "(" + self.operator + " "
         for ineq in self.inequalities:
-            text += ineq.smtlib()
+            text += ineq.smtlib(k)
         text += ")"
         return text
 
@@ -249,8 +224,11 @@ class Inequality:
     def __str__(self):
         return "{} {} {}".format(self.left.id, self.operator, self.right)
 
-    def smtlib(self):
-        return "({} {} {})".format(self.operator, self.left.id, self.right)
+    def smtlib(self, k = None):
+        if k is not None:
+            return "({} {}@{} {})".format(self.operator, self.left.id, k, self.right)
+        else:
+            return "({} {} {})".format(self.operator, self.left.id, self.right)
 
 
 if __name__ == '__main__':

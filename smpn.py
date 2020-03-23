@@ -22,34 +22,10 @@ def enumerative_marking(pn, pn_reduced, eq, formula, path_markings):
     """
     Enumerative method caller
     """
-    markings = EnumerativeMarking(path_markings, pn_reduced)
+    markings = EnumerativeMarking(path_markings, pn, pn_reduced, eq, formula)
+    markings.solve()
 
-    smtlib = "; Variable Definitions\n" \
-        + pn.smtlib_declare_places()    \
-        + "; Reduction Equations\n"     \
-        + eq.smtlib()                   \
-        + "; Property Formula\n"        \
-        + formula.smtlib()              \
-        + "; Reduced Net Markings\n"    \
-        + markings.smtlib()                \
-        + "(check-sat)\n(get-model)\n"
 
-    print("Input into the SMT Solver")
-    print("-------------------------")
-    print(smtlib)
-
-    smt_filename = "a.smt"
-    smt_file = open(smt_filename, 'w')
-    smt_file.write(smtlib)
-    smt_file.close()
-    proc = subprocess.Popen(['z3', '-smt2', smt_filename], stdout=subprocess.PIPE)
-
-    print("Result computed using z3")
-    print("------------------------")
-    formula.result(proc)
-
-    proc.poll()
-    os.remove(smt_filename)
 
 
 def k_induction(pn, pn_reduced, eq, formula):

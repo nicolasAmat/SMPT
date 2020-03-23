@@ -8,9 +8,13 @@ Documentation: http://projects.laas.fr/tina//manuals/formats.html
 """
 
 from pn import PetriNet
+from formula import Properties
+from eq import System
 
 import re
 import sys
+from subprocess import PIPE, Popen
+from threading import Thread, Event
 
 
 class EnumerativeMarking:
@@ -19,10 +23,15 @@ class EnumerativeMarking:
     - a Petri Net
     - a set of reachable markings
     """
-    def __init__(self, filename, pn):
+    def __init__(self, filename, pn, pn_reduced, eq, formula):
         self.pn = pn
+        self.pn_reduced = pn_reduced
+        self.eq = eq
+        self.formula = formula
         self.markings = []
         self.parse_markings(filename)
+        self.solver = Popen(["z3", "-in"], stdin = PIPE, stdout=PIPE)
+        
 
     def __str__(self):
         text = ""
@@ -40,7 +49,7 @@ class EnumerativeMarking:
             text += "(and "
             for place, counter in marking.items():
                 text += "(= {} {})". format(place, counter)
-            for place in self.pn.places:
+            for place in self.pn_reduced.places:
                 if place not in marking:
                     text += "(= {} 0)". format(place)
             text += ")"
@@ -67,6 +76,25 @@ class EnumerativeMarking:
         except FileNotFoundError as e:
             exit(e)
 
+    def solve(self):
+        smt_input = "; Variable Definitions\n" \
+            + self.pn.smtlib_declare_places()  \
+            + "; Reduction Equations\n"        \
+            + self.eq.smtlib()                 \
+            + "; Property Formula\n"           \
+            + self.formula.smtlib()            \
+            + "; Reduced Net Markings\n"       \
+            + self.smtlib()
+        
+        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
+        self.solver.stdin.flush()
+        
+        if self.formula.check_sat(self.solver):
+            self.formula.get_model(self.solver)
+        else:
+            print("Property not verified!")
+
+
 
 if __name__ == '__main__':
 
@@ -74,7 +102,7 @@ if __name__ == '__main__':
         exit("File missing: ./enumerativemarking <path_to_net_file> <path_to_aut_file>")
 
     net = PetriNet(sys.argv[1])
-    markings = EnumerativeMarking(sys.argv[2], net)
+    markings = EnumerativeMarking(sys.argv[2], None, net, None, None)
 
     print("Markings Enumeration")
     print("--------------------")
