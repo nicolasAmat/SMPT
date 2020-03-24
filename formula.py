@@ -201,12 +201,14 @@ class Clause:
                 text += " " + self.operator + " "
         return text
 
-    def smtlib(self, k = None):
-        text = "(" + self.operator + " "
+    def smtlib(self, k = None, write_assert = False):
+        text = ""
         for ineq in self.inequalities:
             text += ineq.smtlib(k)
-        text += ")"
-        return text
+        if write_assert:
+            return "(assert ({} {}))\n".format(self.operator, text)
+        else:
+            return "({} {})".format(self.operator, text)
 
 
 class Inequality:
@@ -214,21 +216,21 @@ class Inequality:
     Inequality defined by:
     - a left member
     - a right member
-    - an operator (=, <=, >=, <, >)
+    - an operator (=, <=, >=, <, >, distinct)
     """
     def __init__(self, left_member, right_member, operator):
-        self.left = left_member
-        self.right = right_member
+        self.left_member = left_member
+        self.right_member = right_member
         self.operator = operator
 
     def __str__(self):
-        return "{} {} {}".format(self.left.id, self.operator, self.right)
+        return "{} {} {}".format(self.left_member.id, self.operator, self.right_member)
 
     def smtlib(self, k = None):
         if k is not None:
-            return "({} {}@{} {})".format(self.operator, self.left.id, k, self.right)
+            return "({} {}@{} {})".format(self.operator, self.left_member.id, k, self.right_member)
         else:
-            return "({} {} {})".format(self.operator, self.left.id, self.right)
+            return "({} {} {})".format(self.operator, self.left_member.id, self.right_member)
 
 
 if __name__ == '__main__':
