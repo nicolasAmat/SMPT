@@ -154,33 +154,48 @@ class Formula:
             return 1
         return 0
 
-    def get_model(self, solver):
+    def get_model(self, solver, order = None):
         solver.stdin.write(bytes("(get-model)\n", 'utf-8'))
         solver.stdin.flush()
         
-        model = ""
+        model = []
+        model_text = ""
 
         # Read the model
         solver.stdout.readline()
+
         # Parse the model
         while True:
             place_content = solver.stdout.readline().decode('utf-8').strip().split(' ')
+           
             if len(place_content) < 2 or solver.poll() is not None:
                 break
+
             place_marking =  solver.stdout.readline().decode('utf-8').strip().replace(' ', '').replace(')', '')
-            if (place_marking and int(place_marking) > 0) and place_content[1] in self.pn.places:
-                model += ' ' + place_content[1]
+            
+            place = ""
+            if order is None:
+                place = place_content[1]
+            else:
+                place_content = place_content[1].split('@')
+                if int(place_content[1]) == order:
+                    place = place_content[0]
+
+            if (place_marking and int(place_marking) > 0) and place in self.pn.places:
+                model.append((self.pn.places[place], place_marking))
+                model_text += ' ' + place
 
         if self.prop == "deadlock":
             print("The input Petri Net can deadlock!")
-        else:
+        if self.prop == "fireability":
             print("Property verified!")
 
-        if model == "":
-            model = " empty marking"
-        print("Model:{}".format(model))
+        if len(model) == 0:
+            model_text = " empty marking"
 
-        return 1
+        print("Model:{}".format(model_text))
+
+        return model
 
 
 class Clause:
