@@ -27,7 +27,7 @@ class IC3:
         self.oars = []
         self.solver = Popen(["z3", "-in"], stdin = PIPE, stdout = PIPE)
 
-    def initialize(self):
+    def oars_initialization(self):
         inequalities = []
         for pl, counter in self.pn.places.items():
             inequalities.append(Inequality(pl, counter, '='))
@@ -62,36 +62,44 @@ class IC3:
                   + self.oars[1].smtlib(k = 0, write_assert = True) \
                   + self.pn.smtlib_transitions_ordered(0)           \
                   + self.formula.smtlib(1)
-        print(smt_input)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
 
+
+    # METHODE EN DEBUG
     def solve(self):
         print("---IC3 running---\n")
-        self.initialize()
+        
+        # F0 and F1 generation
+        self.oars_initialization()
 
+        # Check that INIT => P
         print("> INIT => P")
         self.init_marking_check()
         if self.formula.check_sat(self.solver):
-            print("sat")
-        else:
-            print("unsat")
+          return False
         self.solver.stdin.write(bytes("(reset)", 'utf-8'))
         
+        # Check that INIT and T => P, i.e., the property after a one-step transition
         print("> INIT and T => P")
         self.init_tr_check()
         if self.formula.check_sat(self.solver):
-            print("sat")
-        else:
-            print("unsat")
+           return False
         self.solver.stdin.write(bytes("(reset)", 'utf-8'))
 
+        # Check that P is an inductive invariant
         print("> P and T => P'")
         self.inductive_invariant_check()
         if self.formula.check_sat(self.solver):
-            print("sat")
-        else:
-            print("unsat")
+            print("P is an inductive invariant! We won the war...")
+        
+        while self.formula.check_sat(self.solver):
+            model = self.formula.get_model(self.solver, 0)
+            print(model)
+        
         self.solver.stdin.write(bytes("(reset)", 'utf-8'))
+
+
+
 
 if __name__ == '__main__':
     
