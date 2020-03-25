@@ -181,9 +181,10 @@ class Formula:
                 if int(place_content[1]) == order:
                     place = place_content[0]
 
-            if (place_marking and int(place_marking) > 0) and place in self.pn.places:
-                model.append((self.pn.places[place], place_marking))
-                model_text += ' ' + place
+            if place_marking and place in self.pn.places:
+                model.append(Inequality(self.pn.places[place], place_marking, '='))
+                if int(place_marking) > 0:
+                    model_text += ' ' + place
 
         if self.prop == "deadlock":
             print("The input Petri Net can deadlock!")
@@ -195,7 +196,7 @@ class Formula:
 
         print("Model:{}".format(model_text))
 
-        return model
+        return Clause(model, 'and')
 
 
 class Clause:
