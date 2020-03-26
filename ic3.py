@@ -36,6 +36,7 @@ class IC3:
             return self.pn.smtlib_declare_places()
     
     def oars_initialization(self):
+        print("> F0 = I and Fi = P")
         inequalities = []
         for pl in self.pn.places.values():
             inequalities.append(Inequality(pl, pl.marking, '='))
@@ -45,18 +46,19 @@ class IC3:
             inequalities.append(Inequality(ineq.left_member, ineq.right_member, 'distinct'))
         self.oars.append([Clause(inequalities, 'or')])
 
-    def init_marking_check(self):
+    def init_marking_sat(self):
+        print("> INIT => P")
         self.solver.stdin.write(bytes("(reset)\n", 'utf-8'))
         self.solver.stdin.flush()
         smt_input = self.declare_places(False)   \
                   + self.pn.smtlib_set_marking() \
                   + self.formula.smtlib()
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        if self.formula.check_sat(self.solver):
-            self.formula.get_model(self.solver)
-            exit(0)
+        return self.formula.check_sat(self.solver)
+            
 
-    def init_tr_check(self):
+    def init_tr_sat(self):
+        print("> INIT and T => P")
         self.solver.stdin.write(bytes("(reset)\n", 'utf-8'))
         self.solver.stdin.flush()
         smt_input = self.declare_places()                 \
@@ -64,9 +66,8 @@ class IC3:
                   + self.pn.smtlib_transitions_ordered(0) \
                   + self.formula.smtlib(1)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        if self.formula.check_sat(self.solver):
-            self.formula.get_model(self.solver, k=1)
-            exit(0)
+        return self.formula.check_sat(self.solver)
+           
         
     def inductive_invariant_check(self):
         self.solver.stdin.write(bytes("(reset)\n", 'utf-8'))
@@ -113,31 +114,29 @@ class IC3:
                 cube.remove(eq)
 
     # METHODE EN DEBUG
-    def solve(self):
+    def prove(self):
         print("---IC3 running---\n")
+
+        if self.init_marking_sat() or self.init_tr_sat():
+            return False 
+
         self.oars_initialization()
-
-        print("> INIT => P")
-        self.init_marking_check()
-
-        print("> INIT and T => P")
-        self.init_tr_check()
-
-        # Check that P is an inductive invariant
-        print("> P and T => P'")
-        if self.inductive_invariant_check():
-            print("P is an inductive invariant! We won the war...")
-            exit(0)
         
-        # while self.formula.check_sat(self.solver):
-        cube = self.formula.get_model(self.solver, 0)
-        if self.state_reachable(cube):
-            print("CEX")
-            exit(0)
-        else:
-            self.sub_cube_finder(cube)
+        # # Check that P is an inductive invariant
+        # print("> P and T => P'")
+        # if self.inductive_invariant_check():
+        #     print("P is an inductive invariant! We won the war...")
+        #     exit(0)
+        
+        # # while self.formula.check_sat(self.solver):
+        # cube = self.formula.get_model(self.solver, 0)
+        # if self.state_reachable(cube):
+        #     print("CEX")
+        #     exit(0)
+        # else:
+        #     self.sub_cube_finder(cube)
 
-        self.solver.stdin.write(bytes("(reset)", 'utf-8'))
+        # self.solver.stdin.write(bytes("(reset)", 'utf-8'))
 
 
 
@@ -151,4 +150,4 @@ if __name__ == '__main__':
     formula = Formula(pn, 'reachability')
     
     ic3 = IC3(pn ,formula)
-    ic3.solve()
+    ic3.prove()
