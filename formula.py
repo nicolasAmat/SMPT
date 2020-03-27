@@ -217,14 +217,16 @@ class Clause:
                 text += " " + self.operator + " "
         return text
 
-    def smtlib(self, k = None, write_assert = False):
+    def smtlib(self, k = None, write_assert = False, neg = False):
         text = ""
         for ineq in self.inequalities:
             text += ineq.smtlib(k)
+        text = "({} {})".format(self.operator, text)
+        if neg:
+            text = "(not {})".format(text)
         if write_assert:
-            return "(assert ({} {}))\n".format(self.operator, text)
-        else:
-            return "({} {})".format(self.operator, text)
+            text = "(assert {})\n".format(text)
+        return text
 
 
 class Inequality:
