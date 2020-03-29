@@ -103,28 +103,33 @@ class IC3:
         smt_input += self.pn.smtlib_transitions_ordered(0) \
                    + s.smtlib(k=1, write_assert=True)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        # print(smt_input)
         return self.formula.check_sat(self.solver)
 
     def sub_clause_finder(self, i, cube):
-        smt_input = "(reset)\n(set-option :produce-unsat-cores true)\n" \
-                + self.declare_places()                                 \
-                + cube.smtlib(k=0, write_assert=True, neg=True)    \
-                + self.pn.smtlib_transitions_ordered(0)
+        smt_input = "(reset)\n(set-option :produce-unsat-cores true)\n"
+        
+        smt_input += self.declare_places()
+        
         for clause in self.oars[i-1]:
             smt_input += clause.smtlib(k=0, write_assert=True)
+        
+        smt_input += self.pn.smtlib_transitions_ordered(0)
+        
+        smt_input += cube.smtlib(k=0, write_assert=True, neg=True)
+        
         for eq in cube.inequalities:
             smt_input += "(assert (! {} :named {}))\n".format(eq.smtlib(k=1), eq.left_member.id)
         smt_input += "(check-sat)\n(get-unsat-core)\n"
+        
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
         self.solver.stdin.flush()
 
         # Read "unsat"
-        print("tutu: ", self.solver.stdout.readline().decode('utf-8').strip())
+        print("Sat?: ", self.solver.stdout.readline().decode('utf-8').strip())
         # Read Unsatisfiable Core
-        test = self.solver.stdout.readline().decode('utf-8').strip()
-        print("tata: ", test)
-        sub_cube = test.replace('(', '').replace(')', '').split(' ') 
+        core = self.solver.stdout.readline().decode('utf-8').strip()
+        print("Unsat Core: ", core)
+        sub_cube = core.replace('(', '').replace(')', '').split(' ') 
 
         inequalities = []
         for eq in cube.inequalities:
