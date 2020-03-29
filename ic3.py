@@ -33,7 +33,6 @@ class IC3:
         self.P = None
         self.oars = [] # list of CNF
         self.solver = Popen(["z3", "-in"], stdin = PIPE, stdout = PIPE)
-        self.f = open("debug2.smt2", "w")
 
     def declare_places(self, primes = True):
         if primes:
@@ -54,38 +53,36 @@ class IC3:
         self.P = Clause(inequalities, 'or')
         self.oars.append([self.P])
 
-    def init_marking_sat(self):
+    def init_marking_reach_bad_state(self):
         print("> INIT => P")
         smt_input = "(reset)\n"                  \
                   + self.declare_places(False)   \
                   + self.pn.smtlib_set_marking() \
                   + self.formula.smtlib()
-        #self.f.write(smt_input)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
         return self.formula.check_sat(self.solver)
 
-    def init_tr_sat(self):
+    def init_tr_reach_bad_state(self):
         print("> INIT and T => P")
         smt_input = "(reset)\n"                           \
                   + self.declare_places()                 \
                   + self.pn.smtlib_set_marking_ordered(0) \
                   + self.pn.smtlib_transitions_ordered(0) \
                   + self.formula.smtlib(1)
-        #self.f.write(smt_input)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
         return self.formula.check_sat(self.solver)
 
-    def inductive_invariant_sat(self, k):
+    def formula_reach_bad_state(self, k):
         smt_input = "(reset)\n"           \
                   + self.declare_places()
         for clause in self.oars[k]:
             smt_input += clause.smtlib(k=0, write_assert=True)
         smt_input += self.pn.smtlib_transitions_ordered(0) \
                    + self.formula.smtlib(1)
-        # self.f.write(smt_input)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
         return self.formula.check_sat(self.solver)
 
+    # TODO: rename method
     def formula_reach_clause_sat(self, index_formula, c):
         smt_input = "(reset)\n"           \
                   + self.declare_places()
@@ -93,20 +90,10 @@ class IC3:
             smt_input += clause.smtlib(k=0, write_assert=True)
         smt_input += self.pn.smtlib_transitions_ordered(0) \
                    + c.smtlib(k=1, write_assert=True, neg=True)
-        #self.f.write(smt_input)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
         return self.formula.check_sat(self.solver)
 
-    def strengthen(self, k):
-        try:
-            while self.inductive_invariant_sat(k):
-                s = self.formula.get_model(self.solver, 0)
-                n = self.inductively_generalize(s, k - 2, k)
-                self.push_generalization([(n + 1, s)], k)
-            return True
-        except Counterexample: #Counterexample
-            return False
-
+    # TODO: rename method
     def state_reachable(self, index_formula, s):
         smt_input = "(reset)\n"                                \
                   + self.declare_places()                      \
@@ -115,59 +102,44 @@ class IC3:
             smt_input += clause.smtlib(k=0, write_assert=True)
         smt_input += self.pn.smtlib_transitions_ordered(0) \
                    + s.smtlib(k=1, write_assert=True)
-        #self.f.write(smt_input)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
+        # print(smt_input)
         return self.formula.check_sat(self.solver)
 
-    def inductively_generalize(self, s, minimum, k):
-        if minimum < 0 and self.state_reachable(0, s):
-            raise Counterexample
-
-        for i in range(max(1, minimum + 1), k):
-            if self.state_reachable(i, s):
-                self.generate_clause(s, i - 1, k)
-                return i - 1
-        print(k)
-        self.generate_clause(s, k, k)
-        return k
-        
-    def propagate_clauses(self, k):
-        for i in range(k):
-            for c in self.oars[i][1:]: # we do not look at the first clause that corresponds to I or P
-                if not self.formula_reach_clause_sat(i, c):
-                    self.oars[i + 1].append(c)
-
-    def generate_clause(self, s, i, k):
-        c = self.sub_cube_finder_from_clause(i, s)
-        for j in range(1, i+1):
-            self.oars[j].append(c)
-
-    def sub_cube_finder_from_clause(self, i, cube):
+    def sub_clause_finder(self, i, cube):
         smt_input = "(reset)\n(set-option :produce-unsat-cores true)\n" \
-                  + self.declare_places()                               \
-                  + self.pn.smtlib_transitions_ordered(0)
-        for clause in self.oars[i]:
+                + self.declare_places()                                 \
+                + cube.smtlib(k=0, write_assert=True, neg=True)    \
+                + self.pn.smtlib_transitions_ordered(0)
+        for clause in self.oars[i-1]:
             smt_input += clause.smtlib(k=0, write_assert=True)
         for eq in cube.inequalities:
             smt_input += "(assert (! {} :named {}))\n".format(eq.smtlib(k=1), eq.left_member.id)
         smt_input += "(check-sat)\n(get-unsat-core)\n"
-        #self.f.write(smt_input)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
         self.solver.stdin.flush()
 
         # Read "unsat"
-        self.solver.stdout.readline().decode('utf-8').strip()
+        print("tutu: ", self.solver.stdout.readline().decode('utf-8').strip())
         # Read Unsatisfiable Core
-        sub_cube = self.solver.stdout.readline().decode('utf-8').strip().replace('(', '').replace(')', '').split(' ') 
-        
-        # Generate the clause corresponding to $\neg c$
+        test = self.solver.stdout.readline().decode('utf-8').strip()
+        print("tata: ", test)
+        sub_cube = test.replace('(', '').replace(')', '').split(' ') 
+
         inequalities = []
         for eq in cube.inequalities:
             if eq.left_member.id in sub_cube:
                 inequalities.append(Inequality(eq.left_member, eq.right_member, "distinct"))
         return Clause(inequalities, "or")
 
-    def formula_reach_sat(self, index_formula, s):
+        # # Generate the clause corresponding to $\neg c$
+        # inequalities = []
+        # for eq in cube.inequalities:
+        #     # if eq.left_member.id in sub_cube:
+        #     inequalities.append(Inequality(eq.left_member, eq.right_member, "distinct"))
+        # return Clause(inequalities, "or")
+
+    def formula_reach_state(self, index_formula, s):
         smt_input = "(reset)\n"           \
                   + self.declare_places()
         for clause in self.oars[index_formula]:
@@ -176,6 +148,57 @@ class IC3:
                    + s.smtlib(k=1, write_assert=True)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
         return self.formula.check_sat(self.solver)
+    
+    def prove(self):
+        print("---IC3 running---\n")
+
+        if self.init_marking_reach_bad_state() or self.init_tr_reach_bad_state():
+            return False 
+
+        self.oars_initialization()
+
+        k = 1
+        while True:
+            self.oars.append([self.P])
+            if not self.strengthen(k):
+                return False
+            self.propagate_clauses(k)
+            for i in range(1, k + 1):
+                if set(self.oars[i]) == set(self.oars[i + 1]):
+                    return True
+            k += 1
+
+    def strengthen(self, k):
+        try:
+            while self.formula_reach_bad_state(k):
+                s = self.formula.get_model(self.solver, 0)
+                n = self.inductively_generalize(s, k - 2, k)
+                self.push_generalization([(n + 1, s)], k)
+            return True
+        except Counterexample: #Counterexample
+            return False
+
+    def propagate_clauses(self, k):
+        for i in range(1, k + 1):
+            for c in self.oars[i][1:]: # we do not look at the first clause that corresponds to I or P
+                if not self.formula_reach_clause_sat(i, c):
+                    self.oars[i + 1].append(c)
+
+    def inductively_generalize(self, s, minimum, k):
+            if minimum < 0 and self.state_reachable(0, s):
+                raise Counterexample
+
+            for i in range(max(1, minimum + 1), k + 1):
+                if self.state_reachable(i, s):
+                    self.generate_clause(s, i - 1, k)
+                    return i - 1
+            self.generate_clause(s, k, k)
+            return k
+
+    def generate_clause(self, s, i, k):
+        c = self.sub_clause_finder(i, s)
+        for j in range(1, i+2):
+            self.oars[j].append(c)
 
     def push_generalization(self, states, k):
         while True:
@@ -185,41 +208,14 @@ class IC3:
             if n > k:
                 return
 
-            if self.formula_reach_sat(n, s):
+            if self.formula_reach_state(n, s):
                 p = self.formula.get_model(self.solver, order=0)
                 m = self.inductively_generalize(p, n - 2, k)
                 states.append((m + 1, p))
             else:
                 m = self.inductively_generalize(s, n, k)
-                states.remove((n, s)).append((m + 1, s))
-
-
-    def prove(self):
-        print("---IC3 running---\n")
-
-        if self.init_marking_sat() or self.init_tr_sat():
-            return False 
-
-        self.oars_initialization()
-        
-        k = 1
-
-        while True:
-            self.oars.append([self.P])
-
-            if not self.strengthen(k):
-                print("Not proved")
-                return False
-            
-            self.propagate_clauses(k)
-
-            for i in range(1, k):
-                if set(self.oars[i]) == set(self.oars[i + 1]):
-                    print("Proved")
-                    return True
-
-            k += 1
-
+                states.remove((n, s))
+                states.append((m + 1, s))
 
 
 if __name__ == '__main__':
@@ -231,4 +227,7 @@ if __name__ == '__main__':
     formula = Formula(pn, 'reachability')
     
     ic3 = IC3(pn ,formula)
-    ic3.prove()
+    if ic3.prove():
+        print("Proved")
+    else:
+        print("Counterexample")
