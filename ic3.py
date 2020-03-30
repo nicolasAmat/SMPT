@@ -135,7 +135,9 @@ class IC3:
                     inequalities.append(Inequality(eq.left_member, eq.right_member, ">"))
                 else:
                     inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
-        return Clause(inequalities, "or")
+        cl = Clause(inequalities, "or")
+        log.info("\t\t\t>> Clause learned: {}".format(cl))
+        return cl
 
     def formula_reach_state(self, index_formula, s):
         smt_input = "(reset)\n"           \
@@ -213,7 +215,6 @@ class IC3:
         log.info("\t\t\t> Generate Clause (i = {}, k = {})".format(i, k))
         
         c = self.sub_clause_finder(i, s)
-        print("\t\t>> sub clause: {}".format(c))
         for j in range(1, i + 2):
             self.oars[j].append(c)
 
