@@ -105,14 +105,14 @@ class IC3:
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
         return self.formula.check_sat(self.solver)
 
-    def sub_clause_finder(self, i, cube):
+    def sub_clause_finder(self, i, s):
         smt_input = "(reset)\n(set-option :produce-unsat-cores true)\n"
         smt_input += self.declare_places()
         for clause in self.oars[i]:
             smt_input += clause.smtlib(k=0, write_assert=True)
         smt_input += self.pn.smtlib_transitions_ordered(0)
-        smt_input += cube.smtlib(k=0, write_assert=True, neg=True)
-        for eq in cube.inequalities:
+        smt_input += s.smtlib(k=0, write_assert=True, neg=True)
+        for eq in s.inequalities:
             smt_input += "(assert (! {} :named {}))\n".format(eq.smtlib(k=1), eq.left_member.id)
         smt_input += "(check-sat)\n(get-unsat-core)\n"
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
@@ -122,21 +122,14 @@ class IC3:
         assert(self.solver.stdout.readline().decode('utf-8').strip() == 'unsat')
         # Read Unsatisfiable Core
         core = self.solver.stdout.readline().decode('utf-8').strip()
-        print("Unsat Core: ", core)
+        # print("Unsat Core: ", core)
         sub_cube = core.replace('(', '').replace(')', '').split(' ') 
 
         inequalities = []
-        for eq in cube.inequalities:
+        for eq in s.inequalities:
             if eq.left_member.id in sub_cube:
-                inequalities.append(Inequality(eq.left_member, eq.right_member, "distinct"))
+                inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
         return Clause(inequalities, "or")
-
-        # # Generate the clause corresponding to $\neg c$
-        # inequalities = []
-        # for eq in cube.inequalities:
-        #     # if eq.left_member.id in sub_cube:
-        #     inequalities.append(Inequality(eq.left_member, eq.right_member, "distinct"))
-        # return Clause(inequalities, "or")
 
     def formula_reach_state(self, index_formula, s):
         smt_input = "(reset)\n"           \
@@ -180,7 +173,7 @@ class IC3:
     def propagate_clauses(self, k):
         for i in range(1, k + 1):
             for c in self.oars[i][1:]: # we do not look at the first clause that corresponds to I or P
-                if not self.formula_reach_clause_sat(i, c):
+                if not self.formula_reach_clause_sat(i, c) and c not in self.oars[i + 1]:
                     self.oars[i + 1].append(c)
 
     def inductively_generalize(self, s, minimum, k):
@@ -196,7 +189,7 @@ class IC3:
 
     def generate_clause(self, s, i, k):
         c = self.sub_clause_finder(i, s)
-        for j in range(1, i+2):
+        for j in range(1, i + 2):
             self.oars[j].append(c)
 
     def push_generalization(self, states, k):
