@@ -107,25 +107,19 @@ class IC3:
 
     def sub_clause_finder(self, i, cube):
         smt_input = "(reset)\n(set-option :produce-unsat-cores true)\n"
-        
         smt_input += self.declare_places()
-        
-        for clause in self.oars[i-1]:
+        for clause in self.oars[i]:
             smt_input += clause.smtlib(k=0, write_assert=True)
-        
         smt_input += self.pn.smtlib_transitions_ordered(0)
-        
         smt_input += cube.smtlib(k=0, write_assert=True, neg=True)
-        
         for eq in cube.inequalities:
             smt_input += "(assert (! {} :named {}))\n".format(eq.smtlib(k=1), eq.left_member.id)
         smt_input += "(check-sat)\n(get-unsat-core)\n"
-        
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
         self.solver.stdin.flush()
 
         # Read "unsat"
-        print("Sat?: ", self.solver.stdout.readline().decode('utf-8').strip())
+        assert(self.solver.stdout.readline().decode('utf-8').strip() == 'unsat')
         # Read Unsatisfiable Core
         core = self.solver.stdout.readline().decode('utf-8').strip()
         print("Unsat Core: ", core)
