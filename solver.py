@@ -27,7 +27,14 @@ class Solver:
     def write(self, text):
         """Write instructions into the standard input of z3."""
         self.solver.stdin.write(bytes(text, 'utf-8'))
+
+    def flush(self):
+        """Flush the standard input."""
         self.solver.stdin.flush()
+
+    def readline(self):
+        """Read a line from the standard output of z3."""
+        return self.solver.stdout.readline().decode('utf-8').strip()
 
     def reset(self):
         """Reset z3."""
@@ -54,11 +61,13 @@ class Solver:
     def check_sat(self):
         """Check the satisfiability of the current stack of z3."""
         self.write("(check-sat)\n")
+        self.flush()
         return self.solver.stdout.readline().decode('utf-8').strip() == 'sat'
 
     def get_model(self, pn, order = None):
         """Get a model from the current SAT stack and return it as conjunctive clause."""
         self.write("(get-model)\n")
+        self.flush()
         model = []
         # Read the model
         self.solver.stdout.readline()
