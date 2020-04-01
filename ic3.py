@@ -12,12 +12,12 @@ Aaron Bradley, VMCAI 2011
 from pn import PetriNet
 from eq import System
 from formula import Formula, Clause, Inequality
+from solver import Solver
 
 import sys
 import copy
-from subprocess import PIPE, Popen
-from threading import Thread, Event
 import logging as log
+from subprocess import PIPE, Popen
 
 
 class Counterexample(Exception):
@@ -32,13 +32,18 @@ class IC3:
     IC3 Method
     """
     def __init__(self, pn, formula):
+        """IC3 initializer."""
         self.pn = pn
         self.formula = formula 
         self.P = None
         self.oars = [] # list of CNF
-        self.solver = Popen(["z3", "-in"], stdin = PIPE, stdout = PIPE)
+        self.solver = Solver()
 
     def declare_places(self, primes = True):
+        """Declare places.
+
+        If primes is False: declare places without any order,
+        If primes is True: declare places at order 0 and 1."""
         if primes:
             return self.pn.smtlib_declare_places_ordered(0) \
                  + self.pn.smtlib_declare_places_ordered(1)
@@ -46,6 +51,8 @@ class IC3:
             return self.pn.smtlib_declare_places()
     
     def oars_initialization(self):
+        """Initialization of the OARS.
+        F0 = I and F1 = P."""
         log.info("> F0 = I and F1 = P")
         inequalities = []
         for pl in self.pn.places.values():
@@ -58,58 +65,63 @@ class IC3:
         self.oars.append([self.P])
 
     def init_marking_reach_bad_state(self):
+        """sat (I and -P)"""
         log.info("> INIT => P")
-        smt_input = "(reset)\n"                  \
-                  + self.declare_places(False)   \
+        self.solver.reset()
+        smt_input = self.declare_places(False)   \
                   + self.pn.smtlib_set_marking() \
                   + self.formula.smtlib()
-        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        return self.formula.check_sat(self.solver)
+        self.solver.write(smt_input)
+        return self.solver.check_sat()
 
     def init_tr_reach_bad_state(self):
+        """sat (I and T and -P)"""
         log.info("> INIT and T => P")
-        smt_input = "(reset)\n"                           \
-                  + self.declare_places()                 \
+        self.solver.reset()
+        smt_input = self.declare_places()                 \
                   + self.pn.smtlib_set_marking_ordered(0) \
                   + self.pn.smtlib_transitions_ordered(0) \
                   + self.formula.smtlib(1)
-        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        return self.formula.check_sat(self.solver)
+        self.solver.write(smt_input)
+        return self.solver.check_sat()
 
     def formula_reach_bad_state(self, k):
-        smt_input = "(reset)\n"           \
-                  + self.declare_places()
+        """sat (Fk and T and -P)"""
+        self.solver.reset()
+        smt_input = self.declare_places()
         for clause in self.oars[k]:
             smt_input += clause.smtlib(k=0, write_assert=True)
         smt_input += self.pn.smtlib_transitions_ordered(0) \
                    + self.formula.smtlib(1)
-        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        return self.formula.check_sat(self.solver)
+        self.solver.write(smt_input)
+        return self.solver.check_sat()
 
     # TODO: rename method
     def formula_reach_clause_sat(self, index_formula, c):
-        smt_input = "(reset)\n"           \
-                  + self.declare_places()
+        """sat (Fi and T and -c)"""
+        self.solver.reset()
+        smt_input = self.declare_places()
         for clause in self.oars[index_formula]:
             smt_input += clause.smtlib(k=0, write_assert=True)
         smt_input += self.pn.smtlib_transitions_ordered(0) \
                    + c.smtlib(k=1, write_assert=True, neg=True)
-        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        return self.formula.check_sat(self.solver)
+        self.solver.write(smt_input)
+        return self.solver.check_sat()
 
     # TODO: rename method
     def state_reachable(self, index_formula, s):
-        smt_input = "(reset)\n"                                \
-                  + self.declare_places()                      \
+        """sat (-s and Fi and T and s')"""
+        self.solver.reset()
+        smt_input = self.declare_places()                      \
                   + s.smtlib(k=0, write_assert=True, neg=True)
         for clause in self.oars[index_formula]:
             smt_input += clause.smtlib(k=0, write_assert=True)
         smt_input += self.pn.smtlib_transitions_ordered(0) \
                    + s.smtlib(k=1, write_assert=True)
-        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        return self.formula.check_sat(self.solver)
+        self.solver.write(smt_input)
+        return self.solver.check_sat()
 
-    def sub_clause_finder(self, i, s):
+    def sub_clause_finder_unsat_core(self, i, s):
         smt_input = "(reset)\n(set-option :produce-unsat-cores true)\n"
         smt_input += self.declare_places()
         for clause in self.oars[i]:
@@ -119,13 +131,13 @@ class IC3:
         for eq in s.inequalities:
             smt_input += "(assert (! {} :named {}))\n".format(eq.smtlib(k=1), eq.left_member.id)
         smt_input += "(check-sat)\n(get-unsat-core)\n"
-        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        self.solver.stdin.flush()
+        self.solver.write(smt_input)
+        self.solver.flush()
 
         # Read "unsat"
-        assert(self.solver.stdout.readline().decode('utf-8').strip() == 'unsat')
+        assert(self.solver.readline() == 'unsat')
         # Read Unsatisfiable Core
-        core = self.solver.stdout.readline().decode('utf-8').strip()
+        core = self.solver.readline()
         print("\t\t\tDEBUG: Unsat Core - ", core)
         sub_cube = core.replace('(', '').replace(')', '').split(' ')
         inequalities = []
@@ -139,15 +151,51 @@ class IC3:
         log.info("\t\t\t>> Clause learned: {}".format(cl))
         return cl
 
+    def sub_clause_finder_down(self, i, s):
+        c = copy.copy(s)
+        while len(c.inequalities) > 1:
+            lit = c.inequalities.pop()
+            self.solver.reset()
+            smt_input = self.declare_places()
+            for clause in self.oars[i]:
+                smt_input += clause.smtlib(k=0, write_assert=True)
+            smt_input += self.pn.smtlib_transitions_ordered(0)
+            smt_input += c.smtlib(k=0, write_assert=True, neg=True)
+            smt_input += c.smtlib(k=1, write_assert=True)
+            self.solver.write(smt_input)
+
+            if self.solver.check_sat():
+                c.inequalities.append(lit)
+                inequalities = []
+                for eq in c.inequalities:
+                    if int(eq.right_member) == 0:
+                        inequalities.append(Inequality(eq.left_member, eq.right_member, "distinct"))
+                    else:
+                        inequalities.append(Inequality(eq.left_member, eq.right_member, "distinct"))
+                cl = Clause(inequalities, "or")
+                log.info("\t\t\t>> Clause learned: {}".format(cl))
+                return cl
+
+        inequalities = []
+        for eq in s.inequalities:
+            if int(eq.right_member) == 0:
+                inequalities.append(Inequality(eq.left_member, eq.right_member, "distinct"))
+            else:
+                inequalities.append(Inequality(eq.left_member, eq.right_member, "distincts"))
+        cl = Clause(inequalities, "or")
+        log.info("\t\t\t>> Clause learned: {}".format(cl))
+        return cl
+        
+
     def formula_reach_state(self, index_formula, s):
-        smt_input = "(reset)\n"           \
-                  + self.declare_places()
+        self.solver.reset()
+        smt_input = self.declare_places()
         for clause in self.oars[index_formula]:
             smt_input += clause.smtlib(k=0, write_assert=True)
         smt_input += self.pn.smtlib_transitions_ordered(0) \
                    + s.smtlib(k=1, write_assert=True)
-        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        return self.formula.check_sat(self.solver)
+        self.solver.write(smt_input)
+        return self.solver.check_sat()
     
     def prove(self):
         log.info("---IC3 RUNNING---\n")
@@ -177,7 +225,7 @@ class IC3:
         
         try:
             while self.formula_reach_bad_state(k):
-                s = self.formula.get_model(self.solver, 0)
+                s = self.solver.get_model(self.pn, 0) # place non nulles
                 n = self.inductively_generalize(s, k - 2, k)
                 log.info("\t\t>> s: {}".format(s))
                 log.info("\t\t>> n: {}".format(n))
@@ -214,7 +262,7 @@ class IC3:
     def generate_clause(self, s, i, k):
         log.info("\t\t\t> Generate Clause (i = {}, k = {})".format(i, k))
         
-        c = self.sub_clause_finder(i, s)
+        c = self.sub_clause_finder_down(i, s)
         for j in range(1, i + 2):
             self.oars[j].append(c)
 
@@ -229,7 +277,7 @@ class IC3:
                 return
 
             if self.formula_reach_state(n, s):
-                p = self.formula.get_model(self.solver, order=0)
+                p = self.solver.get_model(self.pn, order=0)
                 m = self.inductively_generalize(p, n - 2, k)
                 states.append((m + 1, p))
             else:

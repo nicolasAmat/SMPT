@@ -157,59 +157,6 @@ class Formula:
             else:
                 print("Not fireable.")
 
-    # TODO: to be removed
-    def check_sat(self, solver):
-        solver.stdin.write(bytes("(check-sat)\n", 'utf-8'))
-        solver.stdin.flush()
-        if solver.stdout.readline().decode('utf-8').strip() == 'sat':
-            return 1
-        return 0
-
-    # TODO: to be removed
-    def get_model(self, solver, order = None):
-        solver.stdin.write(bytes("(get-model)\n", 'utf-8'))
-        solver.stdin.flush()
-        
-        model = []
-        model_text = ""
-
-        # Read the model
-        solver.stdout.readline()
-
-        # Parse the model
-        while True:
-            place_content = solver.stdout.readline().decode('utf-8').strip().split(' ')
-           
-            if len(place_content) < 2 or solver.poll() is not None:
-                break
-
-            place_marking =  solver.stdout.readline().decode('utf-8').strip().replace(' ', '').replace(')', '')
-            
-            place = ""
-            if order is None:
-                place = place_content[1]
-            else:
-                place_content = place_content[1].split('@')
-                if int(place_content[1]) == order:
-                    place = place_content[0]
-
-            if place_marking and place in self.pn.places:
-                model.append(Inequality(self.pn.places[place], place_marking, '='))
-                if int(place_marking) > 0:
-                    model_text += ' ' + place
-
-        if self.prop == "deadlock":
-            print("The input Petri Net can deadlock!")
-        if self.prop == "fireability":
-            print("Property verified!")
-
-        if len(model) == 0:
-            model_text = " empty marking"
-
-        # print("Model:{}".format(model_text))
-
-        return Clause(model, 'and')
-
 
 class Clause:
     """
