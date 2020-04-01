@@ -7,10 +7,11 @@ k-induction
 from pn import PetriNet
 from eq import System
 from formula import Formula
+from solver import Solver
 
 import sys
-from subprocess import PIPE, Popen
 from threading import Thread, Event
+import logging as log
 
 stop_it = Event()
 
@@ -20,13 +21,15 @@ class KInduction:
     K-induction method
     """
     def __init__(self, pn, pn_reduced, eq, formula):
+        """K-induction initializer."""
         self.pn = pn
         self.pn_reduced = pn_reduced
         self.eq = eq
         self.formula = formula
-        self.solver = Popen(["z3", "-in"], stdin = PIPE, stdout=PIPE)
+        self.solver = Solver()
 
     def smtlib_ordered(self, k):
+        """Return SMT-LIB format for understanding."""
         text = ""
 
         text += "; Declaration of the places from the original Petri Net\n"
@@ -58,30 +61,49 @@ class KInduction:
 
         return text
 
-    def solve(self):
-        print("---K-Induction running---")
-        k = 0 
-        self.solver.stdin.write(bytes(self.pn.smtlib_declare_places(), 'utf-8'))
-        self.solver.stdin.write(bytes(self.formula.smtlib(), 'utf-8'))
-        self.solver.stdin.write(bytes(self.eq.smtlib_only_non_reduced_places(), 'utf-8'))
-        self.solver.stdin.write(bytes(self.pn_reduced.smtlib_declare_places_ordered(0), 'utf-8'))
-        self.solver.stdin.write(bytes(self.pn_reduced.smtlib_set_marking_ordered(0), 'utf-8'))
-        self.solver.stdin.write(bytes("(push)\n", 'utf-8'))
-        self.solver.stdin.write(bytes(self.eq.smtlib_ordered(k), 'utf-8'))
+    def prove(self):
+        """Prover."""
+        print("---K-INDUCTION RUNNING---")
+
+        log.info("> Initialization")
+        log.info("\t>> Declaration of the places from the original Petri Net")
+        self.solver.write(self.pn.smtlib_declare_places())
+        log.info("\t>> Formula to check the satisfiability")
+        self.solver.write(self.formula.smtlib())
+        log.info("\t>> Reduction Equations (not involving places from the reduced Petri Net)")
+        self.solver.write(self.eq.smtlib_only_non_reduced_places())
+        log.info("\t>> Declaration of the places from the reduced Petri Net (order : 0)")
+        self.solver.write(self.pn_reduced.smtlib_declare_places_ordered(0))
+        log.info("\t>> Inital Marking of the reduced Petri Net")
+        self.solver.write(self.pn_reduced.smtlib_set_marking_ordered(0))
+        log.info("\t>> Push")
+        self.solver.push()
+        log.info("\t>> Reduction Equations")
+        self.solver.write(self.eq.smtlib_ordered(0))
         
-        while k < 100 and not self.formula.check_sat(self.solver) and not stop_it.is_set():
-            print("k =", k)
-            self.solver.stdin.write(bytes("(pop)\n", 'utf-8'))
-            self.solver.stdin.write(bytes(self.pn_reduced.smtlib_declare_places_ordered(k + 1), 'utf-8'))
-            self.solver.stdin.write(bytes(self.pn_reduced.smtlib_transitions_ordered(k), 'utf-8'))
-            self.solver.stdin.write(bytes("(push)\n", 'utf-8'))
-            self.solver.stdin.write(bytes(self.eq.smtlib_ordered(k + 1), 'utf-8'))
+        k = 0
+        while k < 100 and not self.solver.check_sat() and not stop_it.is_set():
+            log.info("> k = {}".format(k))
+            log.info("\t>> Pop")
+            self.solver.pop()
+            log.info("\t>> Declaration of the places from the reduced Petri Net (order: {})".format(k + 1))
+            self.solver.write(self.pn_reduced.smtlib_declare_places_ordered(k + 1))
+            log.info("\t>> Transition Relation: {} -> {}".format(k, k + 1))
+            self.solver.write(self.pn_reduced.smtlib_transitions_ordered(k))
+            log.info("\t>> Pop")
+            self.solver.push()
+            self.solver.write(self.eq.smtlib_ordered(k + 1))
             k += 1
         
+        print()
         if k < 100 and not stop_it.is_set():
-            self.formula.get_model(self.solver)
+            self.formula.result(True)
+            self.solver.display_model(self.pn)
         else:
-            print("Method stopped!")
+            print("Method stopped.")
+            self.formula.result(False)
+
+        self.solver.exit()
 
 
 if __name__ == '__main__':
@@ -108,7 +130,7 @@ if __name__ == '__main__':
 
     print("Result computed using z3")
     print("------------------------")
-    proc = Thread(target= k_induction.solve)
+    proc = Thread(target= k_induction.prove)
     proc.start()
     proc.join(timeout = 600)
     stop_it.set()

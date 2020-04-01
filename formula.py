@@ -145,8 +145,19 @@ class Formula:
 
     def generate_reachability(self, marking):
         for pl, counter in marking.items():
-            self.clauses.append(Inequality(pl, counter, '='))
+    def result(self, sat):
+        if self.prop == "deadlock":
+            if sat:
+                print("Deadlock.")
+            else:
+                print("Deadlockless")
+        if self.prop == "fireability":
+            if sat:
+                print("Fireable.")
+            else:
+                print("Not fireable.")
 
+    # TODO: to be removed
     def check_sat(self, solver):
         solver.stdin.write(bytes("(check-sat)\n", 'utf-8'))
         solver.stdin.flush()
@@ -154,6 +165,7 @@ class Formula:
             return 1
         return 0
 
+    # TODO: to be removed
     def get_model(self, solver, order = None):
         solver.stdin.write(bytes("(get-model)\n", 'utf-8'))
         solver.stdin.flush()
@@ -194,7 +206,7 @@ class Formula:
         if len(model) == 0:
             model_text = " empty marking"
 
-        print("Model:{}".format(model_text))
+        # print("Model:{}".format(model_text))
 
         return Clause(model, 'and')
 

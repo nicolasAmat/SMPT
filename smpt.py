@@ -43,7 +43,6 @@ def about():
          + "         \::::/    /               /:::/    /                                                       \n" \
          + "          \::/    /                \::/    /                                                        \n" \
          + "           \/____/                  \/____/                                                         \n"
-    print(logo)
     print("Satisfiability Modulo PeTri Net")
     print("LAAS-CNRS")
     exit(0)
@@ -53,7 +52,7 @@ def enumerative_marking(pn, pn_reduced, eq, formula, path_markings):
     Enumerative method caller
     """
     markings = EnumerativeMarking(path_markings, pn, pn_reduced, eq, formula)
-    markings.solve()
+    markings.prove()
 
 def k_induction(pn, pn_reduced, eq, formula):
     """
@@ -62,7 +61,7 @@ def k_induction(pn, pn_reduced, eq, formula):
     k_induction = KInduction(pn, pn_reduced, eq, formula)
 
     # Run solver with timeout
-    proc = Thread(target= k_induction.solve)
+    proc = Thread(target= k_induction.prove)
     proc.start()
     proc.join(timeout = 5)
     stop_it.set()
@@ -75,7 +74,7 @@ def main():
     
     parser.add_argument('--about',
                         action='store_true',
-                        help="")
+                        help="dev information")
 
     parser.add_argument('--version',
                         action='version',

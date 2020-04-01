@@ -10,11 +10,11 @@ Documentation: http://projects.laas.fr/tina//manuals/formats.html
 from pn import PetriNet
 from formula import Properties
 from eq import System
+from solver import Solver
 
 import re
 import sys
-from subprocess import PIPE, Popen
-from threading import Thread, Event
+import logging as log
 
 
 class EnumerativeMarking:
@@ -30,10 +30,10 @@ class EnumerativeMarking:
         self.formula = formula
         self.markings = []
         self.parse_markings(filename)
-        self.solver = Popen(["z3", "-in"], stdin = PIPE, stdout=PIPE)
-        
+        self.solver = Solver()
 
     def __str__(self):
+        """Str method for markings."""
         text = ""
         for marking in self.markings:
             text += "-> "
@@ -43,6 +43,7 @@ class EnumerativeMarking:
         return text
 
     def smtlib(self):
+        """Return SMT-LIB assertions for markings (DNF)."""
         text = ""
         text += "(assert (or "
         for marking in self.markings:
@@ -57,6 +58,7 @@ class EnumerativeMarking:
         return text
 
     def parse_markings(self, filename):
+        """Parse markings (.aut file format)."""
         try:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
@@ -76,24 +78,25 @@ class EnumerativeMarking:
         except FileNotFoundError as e:
             exit(e)
 
-    def solve(self):
-        smt_input = "; Variable Definitions\n" \
-            + self.pn.smtlib_declare_places()  \
-            + "; Reduction Equations\n"        \
-            + self.eq.smtlib()                 \
-            + "; Property Formula\n"           \
-            + self.formula.smtlib()            \
-            + "; Reduced Net Markings\n"       \
-            + self.smtlib()
+    def prove(self):
+        """Prover."""
+        print("---ENUMERATIVE MARKING RUNNING---")
+        log.info("> Variable Definitions")
+        self.solver.write(self.pn.smtlib_declare_places())
+        log.info("> Reduction Equations")
+        self.solver.write(self.eq.smtlib())
+        log.info("> Property Formula")
+        self.solver.write(self.formula.smtlib())
+        log.info("> Reduced Net Markings")
+        self.solver.write(self.smtlib())
         
-        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
-        self.solver.stdin.flush()
-        
-        if self.formula.check_sat(self.solver):
-            self.formula.get_model(self.solver)
+        if self.solver.check_sat():
+            self.formula.result(True)
+            self.solver.display_model(self.pn)
         else:
-            print("Property not verified!")
+            self.formula.result(False)
 
+        self.solver.exit()
 
 
 if __name__ == '__main__':
