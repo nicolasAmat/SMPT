@@ -45,7 +45,6 @@ def about():
          + "           \/____/                  \/____/                                                         \n"
     print("Satisfiability Modulo PeTri Net")
     print("LAAS-CNRS")
-    exit(0)
 
 def enumerative_marking(pn, pn_reduced, eq, formula, path_markings):
     """

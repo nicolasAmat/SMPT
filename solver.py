@@ -81,12 +81,14 @@ class Solver:
         return Clause(model, 'and')
 
     def display_model(self, pn):
-        print("Model: ", end='')
-        model = self.get_model(pn)
-        for eq in model.inequalities:
+        """Display the obtained model."""
+        model = ''
+        for eq in self.get_model(pn).inequalities:
             if int(eq.right_member) > 0:
-                print(eq.left_member.id, end=' ')
-        print()
+                model += ' ' + eq.left_member.id
+        if model == '':
+            model = " empty marking"
+        print("Model:", model, sep='')
 
 
 if __name__ == '__main__':
