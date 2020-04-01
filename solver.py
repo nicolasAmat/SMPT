@@ -11,7 +11,6 @@ Dependency: https://github.com/Z3Prover/z3
 This module can easily be hacked to replace Z3
 by an other SMT solver supporting the SMT-LIB format.
 """
-
 from formula import Clause, Inequality
 
 from subprocess import PIPE, Popen
@@ -90,6 +89,3 @@ class Solver:
             model = " empty marking"
         print("Model:", model, sep='')
 
-
-if __name__ == '__main__':
-    pass
