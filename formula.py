@@ -121,7 +121,7 @@ class Formula:
     def generate_deadlock(self):
         for tr in self.pn.transitions.values():
             inequalities = []
-            for pl, weight in tr.src.items():
+            for pl, weight in tr.input.items():
                 if weight > 0:
                     ineq = Inequality(pl, weight, '<')
                 else:
@@ -134,7 +134,7 @@ class Formula:
         for tr_id in transitions:
             inequalities = []
             tr = self.pn.transitions[tr_id]
-            for pl, weight in tr.src.items():
+            for pl, weight in tr.input.items():
                 if weight > 0:
                     ineq = Inequality(pl, weight, '>=')
                 else:
