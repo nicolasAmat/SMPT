@@ -20,13 +20,16 @@ class Solver:
     Solver defined by:
     - a Z3 process
     """
-    def __init__(self):
+    def __init__(self, debug = False):
         """Execute z3 in a new process."""
         self.solver = Popen(["z3", "-in"], stdin = PIPE, stdout = PIPE)
+        self.debug = debug
 
-    def write(self, text):
+    def write(self, smt_input):
         """Write instructions into the standard input of z3."""
-        self.solver.stdin.write(bytes(text, 'utf-8'))
+        if self.debug:
+            print(smt_input)
+        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
 
     def flush(self):
         """Flush the standard input."""
@@ -34,7 +37,10 @@ class Solver:
 
     def readline(self):
         """Read a line from the standard output of z3."""
-        return self.solver.stdout.readline().decode('utf-8').strip()
+        smt_output = self.solver.stdout.readline().decode('utf-8').strip()
+        if self.debug:
+            print(smt_output)
+        return smt_output
 
     def reset(self):
         """Reset z3."""
@@ -62,7 +68,7 @@ class Solver:
         """Check the satisfiability of the current stack of z3."""
         self.write("(check-sat)\n")
         self.flush()
-        return self.solver.stdout.readline().decode('utf-8').strip() == 'sat'
+        return self.readline() == 'sat'
 
     def get_model(self, pn, order = None):
         """Get a model from the current SAT stack and return it as conjunctive clause."""
@@ -70,13 +76,13 @@ class Solver:
         self.flush()
         model = []
         # Read the model
-        self.solver.stdout.readline()
+        self.readline()
         # Parse the model
         while True:
-            place_content = self.solver.stdout.readline().decode('utf-8').strip().split(' ')
+            place_content = self.readline().split(' ')
             if len(place_content) < 2 or self.solver.poll() is not None:
                 break
-            place_marking =  self.solver.stdout.readline().decode('utf-8').strip().replace(' ', '').replace(')', '')
+            place_marking =  self.readline().replace(' ', '').replace(')', '')
             place = ""
             if order is None:
                 place = place_content[1]
@@ -85,7 +91,7 @@ class Solver:
                 if int(place_content[1]) == order:
                     place = place_content[0]
             if place_marking and place in pn.places:
-                model.append(Inequality(pn.places[place], place_marking, '='))
+                model.append(Inequality(pn.places[place], int(place_marking), '='))
         return Clause(model, 'and')
 
     def display_model(self, pn):
