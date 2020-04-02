@@ -165,6 +165,9 @@ class Clause:
     - a boolean operator
     """
     def __init__(self, inequalities, operator):
+        if operator not in ["and", "or"]:
+            raise ValueError("Invalid operator for a clause")
+        
         self.inequalities = inequalities
         self.operator = operator
 
@@ -196,6 +199,9 @@ class Inequality:
     - an operator (=, <=, >=, <, >, distinct)
     """
     def __init__(self, left_member, right_member, operator):
+        if operator not in ["=", "<=", ">=", "<", ">", "distinct"]:
+            raise ValueError("Invalid operator for an inequality")
+
         self.left_member = left_member
         self.right_member = right_member
         self.operator = operator
