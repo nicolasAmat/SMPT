@@ -86,7 +86,7 @@ class Formula:
         if prop == 'reachability':
             # Start Debug
             marking = {}
-            marking[self.pn.places["Pout3"]] = 1
+            marking[self.pn.places["Pout2"]] = 1
             # End Debug
             self.generate_reachability(marking)
 
@@ -145,6 +145,9 @@ class Formula:
 
     def generate_reachability(self, marking):
         for pl, counter in marking.items():
+            self.clauses.append(Inequality(pl, counter, '='))
+        print(self.clauses[0])
+
     def result(self, sat):
         if self.prop == "deadlock":
             if sat:
