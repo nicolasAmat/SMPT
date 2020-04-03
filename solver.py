@@ -20,58 +20,66 @@ class Solver:
     Solver defined by:
     - a Z3 process
     """
-    def __init__(self, debug = False):
-        """Execute z3 in a new process."""
+    def __init__(self, debug=False):
+        """ Execute z3 in a new process.
+        """
         self.solver = Popen(["z3", "-in"], stdin = PIPE, stdout = PIPE)
         self.debug = debug
 
     def write(self, smt_input):
-        """Write instructions into the standard input of z3."""
+        """ Write instructions into the standard input of z3.
+        """
         if self.debug:
             print(smt_input)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
 
     def flush(self):
-        """Flush the standard input."""
+        """ Flush the standard input.
+        """
         self.solver.stdin.flush()
 
     def readline(self):
-        """Read a line from the standard output of z3."""
+        """ Read a line from the standard output of z3.
+        """
         smt_output = self.solver.stdout.readline().decode('utf-8').strip()
         if self.debug:
             print(smt_output)
         return smt_output
 
     def reset(self):
-        """Reset z3."""
+        """ Reset z3.
+        """
         self.write("(reset)\n")
 
     def exit(self):
-        """"Exit z3."""
+        """" Exit z3.
+        """
         self.write("(exit)\n")
 
     def push(self):
-        """
-        Push.
-        Creates a new scope by saving the current stack size
+        """ Push.
+            Creates a new scope by saving the current stack size
         """
         self.write("(push)\n")
 
     def pop(self):
-        """
-        Pop.
-        Removes any assertion or declaration performed between it and the matching push.
+        """ Pop.
+            Removes any assertion or declaration performed between it and the matching push.
         """
         self.write("(pop)\n")
 
     def check_sat(self):
-        """Check the satisfiability of the current stack of z3."""
+        """ Check the satisfiability of the current stack of z3.
+        """
         self.write("(check-sat)\n")
         self.flush()
         return self.readline() == 'sat'
 
     def get_model(self, pn, order = None):
-        """Get a model from the current SAT stack and return it as conjunctive clause."""
+        """ Get a model.
+            From the current SAT stack.
+            Return a cube.
+        """
         self.write("(get-model)\n")
         self.flush()
         model = []
@@ -94,8 +102,24 @@ class Solver:
                 model.append(Inequality(pn.places[place], int(place_marking), '='))
         return Clause(model, 'and')
 
+    def produce_unsat_core(self):
+        """ Enable generation of unsat cores.
+        """
+        self.write("(set-option :produce-unsat-cores true)\n")
+
+    def get_unsat_core(self):
+        """ Get an unsat core.
+            From the current UNSAT stack.
+            Return a clause (disjunctive).
+        """
+        assert(not self.check_sat())
+        self.write("(get-unsat-core)\n")
+        self.flush()
+        return self.readline().replace('(', '').replace(')', '').split(' ')
+
     def display_model(self, pn):
-        """Display the obtained model."""
+        """ Display the obtained model.
+        """
         model = ''
         for eq in self.get_model(pn).inequalities:
             if int(eq.right_member) > 0:
@@ -103,4 +127,3 @@ class Solver:
         if model == '':
             model = " empty marking"
         print("Model:", model, sep='')
-
