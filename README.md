@@ -58,3 +58,14 @@ It is also possible to give a reduced version of the net, with option
 ```bash
 $ python smpt.py --reduced nets/airplane nets/airplane/airplane.net nets/airplane/GlobalProperties.xml
 ```
+
+## GitHub
+
+To solve a problem when pushing on Github I needed to change my user.email
+property just for the repo. My Github 'noreply' email address is
+2209941+dalzilio@users.noreply.github.com.
+
+```bash
+$ git config  user.email "2209941+dalzilio@users.noreply.github.com"
+```
+
