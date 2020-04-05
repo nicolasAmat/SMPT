@@ -117,11 +117,11 @@ class Solver:
         self.flush()
         return self.readline().replace('(', '').replace(')', '').split(' ')
 
-    def display_model(self, pn):
+    def display_model(self, pn, order=None):
         """ Display the obtained model.
         """
         model = ''
-        for eq in self.get_model(pn).inequalities:
+        for eq in self.get_model(pn, order).inequalities:
             if int(eq.right_member) > 0:
                 model += ' ' + eq.left_member.id
         if model == '':

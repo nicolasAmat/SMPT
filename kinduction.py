@@ -10,8 +10,8 @@ from formula import Formula
 from solver import Solver
 
 import sys
-from threading import Thread, Event
 import logging as log
+from threading import Thread, Event
 
 stop_it = Event()
 
@@ -20,16 +20,51 @@ class KInduction:
     """
     K-induction method
     """
-    def __init__(self, pn, pn_reduced, eq, formula):
-        """K-induction initializer."""
+    def __init__(self, pn, formula, pn_reduced, eq, debug = False):
+        """ K-induction initializer.
+        """
         self.pn = pn
+        self.formula = formula
         self.pn_reduced = pn_reduced
         self.eq = eq
-        self.formula = formula
-        self.solver = Solver()
+        self.solver = Solver(debug)
 
-    def smtlib_ordered(self, k):
-        """Return SMT-LIB format for understanding."""
+    def smtlib(self, k):
+        """ Return SMT-LIB format for understanding.
+        """
+        if self.pn_reduced is None:
+            text = self.smtlib_non_reduced
+        else:
+            text = self.smtlib_reduced
+        text += "(check-sat)\n(get-model)\n"
+        return text
+
+    def smtlib_non_reduced(self, k):
+        """ Return SMT-LIB format for understanding.
+        """
+        text = ""
+
+        text += "; Declaration of the places from the Petri Net(order: {})\n".format(0)
+        text += self.pn.smtlib_declare_places_ordered(0)
+
+        text += "; Inital Marking of the Petri Net\n"
+        text += self.pn_reduced.smtlib_set_marking_ordered(0)
+
+        for i in range(k):
+            text += "; Declaration of the places from the Petri Net (order: {})\n".format(1)
+            text += self.pn.smtlib_declare_places_ordered(i + 1)
+
+            text += "; Transition Relation: {} -> {}\n".format(i, i + 1)
+            text += self.pn.smtlib_transitions_ordered(i)
+
+        text += "; Formula to check the satisfiability\n"
+        text += self.eq.smtlib_ordered(k)
+
+        return text
+
+    def smtlib_reduced(self, k):
+        """ Return SMT-LIB format for understanding.
+        """
         text = ""
 
         text += "; Declaration of the places from the original Petri Net\n"
@@ -57,14 +92,63 @@ class KInduction:
         text += "; Reduction Equations\n"
         text += self.eq.smtlib_ordered(k)
 
-        text += "(check-sat)\n(get-model)\n"
-
         return text
 
     def prove(self):
-        """Prover."""
+        """ Prover.
+        """
         print("---K-INDUCTION RUNNING---")
+        
+        if self.pn_reduced is None:
+            k = self.prove_non_reduced()
+            order = k
+        else:
+            k = self.prove_reduced()
+            order = None
 
+        print()
+        if k < 100 and not stop_it.is_set():
+            self.formula.result(True)
+            self.solver.display_model(self.pn, order)
+        else:
+            print("Method stopped.")
+            self.formula.result(False)
+
+        self.solver.exit()
+
+    def prove_non_reduced(self):
+        """ Prover using the original Petri Net.
+        """
+        log.info("> Initialization")
+        log.info("\t>> Declaration of the places from the Petri Net (order: 0)")
+        self.solver.write(self.pn.smtlib_declare_places_ordered(0))
+        log.info("\t>> Inital Marking of the Petri Net")
+        self.solver.write(self.pn.smtlib_set_marking_ordered(0))
+        log.info("\t>> Push")
+        self.solver.push()
+        log.info("\t>> Formula to check the satisfiability (order: 0)")
+        self.solver.write(self.formula.smtlib(0))
+        
+        k = 0
+        while k < 100 and not self.solver.check_sat() and not stop_it.is_set():
+            log.info("> k = {}".format(k))
+            log.info("\t>> Pop")
+            self.solver.pop()
+            log.info("\t>> Declaration of the places from the Petri Net (order: {})".format(k + 1))
+            self.solver.write(self.pn.smtlib_declare_places_ordered(k + 1))
+            log.info("\t>> Transition Relation: {} -> {}".format(k, k + 1))
+            self.solver.write(self.pn.smtlib_transitions_ordered(k))
+            log.info("\t>> Pop")
+            self.solver.push()
+            log.info("\t>> Formula to check the satisfiability (order: {})".format(k + 1))
+            self.solver.write(self.formula.smtlib(k + 1))
+            k += 1
+   
+        return k
+
+    def prove_reduced(self):
+        """ Prover using the reduced Petri Net.
+        """
         log.info("> Initialization")
         log.info("\t>> Declaration of the places from the original Petri Net")
         self.solver.write(self.pn.smtlib_declare_places())
@@ -72,7 +156,7 @@ class KInduction:
         self.solver.write(self.formula.smtlib())
         log.info("\t>> Reduction Equations (not involving places from the reduced Petri Net)")
         self.solver.write(self.eq.smtlib_only_non_reduced_places())
-        log.info("\t>> Declaration of the places from the reduced Petri Net (order : 0)")
+        log.info("\t>> Declaration of the places from the reduced Petri Net (order: 0)")
         self.solver.write(self.pn_reduced.smtlib_declare_places_ordered(0))
         log.info("\t>> Inital Marking of the reduced Petri Net")
         self.solver.write(self.pn_reduced.smtlib_set_marking_ordered(0))
@@ -94,16 +178,8 @@ class KInduction:
             self.solver.push()
             self.solver.write(self.eq.smtlib_ordered(k + 1))
             k += 1
-        
-        print()
-        if k < 100 and not stop_it.is_set():
-            self.formula.result(True)
-            self.solver.display_model(self.pn)
-        else:
-            print("Method stopped.")
-            self.formula.result(False)
 
-        self.solver.exit()
+        return k
 
 
 if __name__ == '__main__':
@@ -112,21 +188,20 @@ if __name__ == '__main__':
         exit("File missing: ./kinduction.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
 
     pn = PetriNet(sys.argv[1])
+    formula = Formula(pn)
     
     if len(sys.argv) == 3:
         pn_reduced = PetriNet(sys.argv[2])
         system = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
     else:
-        pn_reduced = PetriNet(sys.argv[1])
-        system = System(sys.argv[1], pn.places.keys(), pn_reduced.places.keys())
+        pn_reduced = None
+        system = None
     
-    formula = Formula(pn)
-    
-    k_induction = KInduction(pn, pn_reduced, system, formula)
+    k_induction = KInduction(pn, formula, pn_reduced, system)
 
     print("Input into the SMT Solver")
     print("-------------------------")
-    print(k_induction.smtlib_ordered(1))
+    print(k_induction.smtlib(1))
 
     print("Result computed using z3")
     print("------------------------")

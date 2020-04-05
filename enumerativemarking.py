@@ -23,17 +23,18 @@ class EnumerativeMarking:
     - a Petri Net
     - a set of reachable markings
     """
-    def __init__(self, filename, pn, pn_reduced, eq, formula):
+    def __init__(self, filename, pn, formula, pn_reduced, eq):
         self.pn = pn
+        self.formula = formula
         self.pn_reduced = pn_reduced
         self.eq = eq
-        self.formula = formula
         self.markings = []
         self.parse_markings(filename)
         self.solver = Solver()
 
     def __str__(self):
-        """Str method for markings."""
+        """ Str method for markings.
+        """
         text = ""
         for marking in self.markings:
             text += "-> "
@@ -43,7 +44,8 @@ class EnumerativeMarking:
         return text
 
     def smtlib(self):
-        """Return SMT-LIB assertions for markings (DNF)."""
+        """ Return SMT-LIB assertions for markings (DNF).
+        """
         text = ""
         text += "(assert (or "
         for marking in self.markings:
@@ -58,7 +60,8 @@ class EnumerativeMarking:
         return text
 
     def parse_markings(self, filename):
-        """Parse markings (.aut file format)."""
+        """ Parse markings (.aut file format).
+        """
         try:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
@@ -79,17 +82,15 @@ class EnumerativeMarking:
             exit(e)
 
     def prove(self):
-        """Prover."""
+        """ Prover.
+        """
         print("---ENUMERATIVE MARKING RUNNING---")
-        log.info("> Variable Definitions")
-        self.solver.write(self.pn.smtlib_declare_places())
-        log.info("> Reduction Equations")
-        self.solver.write(self.eq.smtlib())
-        log.info("> Property Formula")
-        self.solver.write(self.formula.smtlib())
-        log.info("> Reduced Net Markings")
-        self.solver.write(self.smtlib())
-        
+
+        if self.pn_reduced is None:
+            self.prove_non_reduced()
+        else:
+            self.prove_reduced()
+
         if self.solver.check_sat():
             self.formula.result(True)
             self.solver.display_model(self.pn)
@@ -98,6 +99,28 @@ class EnumerativeMarking:
 
         self.solver.exit()
 
+    def prove_non_reduced(self):
+        """ Prover the original Petri Net.
+        """
+        log.info("> Variable Definitions")
+        self.solver.write(self.pn.smtlib_declare_places())
+        log.info("> Property Formula")
+        self.solver.write(self.formula.smtlib())
+        log.info("> Reduced Net Markings")
+        self.solver.write(self.smtlib())
+
+    def prove_reduced(self):
+        """ Prover the reduced Petri Net.
+        """
+        log.info("> Variable Definitions")
+        self.solver.write(self.pn.smtlib_declare_places())
+        log.info("> Reduction Equations")
+        self.solver.write(self.eq.smtlib())
+        log.info("> Property Formula")
+        self.solver.write(self.formula.smtlib())
+        log.info("> Reduced Net Markings")
+        self.solver.write(self.smtlib())
+
 
 if __name__ == '__main__':
 
@@ -105,7 +128,7 @@ if __name__ == '__main__':
         exit("File missing: ./enumerativemarking <path_to_net_file> <path_to_aut_file>")
 
     net = PetriNet(sys.argv[1])
-    markings = EnumerativeMarking(sys.argv[2], None, net, None, None)
+    markings = EnumerativeMarking(sys.argv[2], net, None, None, None)
 
     print("Markings Enumeration")
     print("--------------------")
