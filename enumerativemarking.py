@@ -23,14 +23,14 @@ class EnumerativeMarking:
     - a Petri Net
     - a set of reachable markings
     """
-    def __init__(self, filename, pn, formula, pn_reduced, eq):
+    def __init__(self, filename, pn, formula, pn_reduced, eq, debug=False):
         self.pn = pn
         self.formula = formula
         self.pn_reduced = pn_reduced
         self.eq = eq
         self.markings = []
         self.parse_markings(filename)
-        self.solver = Solver()
+        self.solver = Solver(debug)
 
     def __str__(self):
         """ Str method for markings.
@@ -47,12 +47,16 @@ class EnumerativeMarking:
         """ Return SMT-LIB assertions for markings (DNF).
         """
         text = ""
+        if self.pn_reduced is None:
+            places = self.pn.places
+        else:
+            places = self.pn_reduced.places
         text += "(assert (or "
         for marking in self.markings:
             text += "(and "
             for place, counter in marking.items():
                 text += "(= {} {})". format(place, counter)
-            for place in self.pn_reduced.places:
+            for place in places:
                 if place not in marking:
                     text += "(= {} 0)". format(place)
             text += ")"

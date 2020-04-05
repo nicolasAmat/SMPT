@@ -1,9 +1,9 @@
-# SMPT
+# SMPT (Satisfiability Modulo PeTri Net)
 
 ## Install a Compatible Python Environment
 
 The project requires python3. On Windows, you can use ```conda``` to simplify
-setting up a new python environment. The project was developped uner a Linux
+setting up a new python environment. The project was developped under a Linux
 environment but also works with Windows System on Linux (WSL).
 
 ```bash
@@ -25,7 +25,11 @@ variable.
 
 ```bash
 $ python smpt.py -h
-usage: smpt.py [-h] [--about] [--version] [-v] [--reduced PATH_PN_REDUCED] [--enumerative PATH_MARKINGS] pn properties
+usage: smpt.py [-h] [--version] [-v] [--debug]
+               [--auto-reduce | --reduced PATH_PN_REDUCED]
+               [--auto-enumerative | --enumerative PATH_MARKINGS]
+               [--timeout TIMEOUT]
+               pn properties
 
 Satisfiability Modulo Petri Net
 
@@ -35,13 +39,16 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --about               dev information
   --version             show program's version number and exit
   -v, --verbose         increase output verbosity
+  --debug               display the SMT-LIB input/ouput
+  --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PN_REDUCED
-                        Path to reduced Petri Net (.net format)
+                        path to reduced Petri Net (.net format)
+  --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         Path to markings (.aut format)
+  --timeout TIMEOUT     configure the timeout
 ```
 
 By default it uses a Bounded-Model Checking approach and try to check a
@@ -53,10 +60,14 @@ $ python smpt.py nets/airplane/airplane.net nets/airplane/GlobalProperties.xml
 ```
 
 It is also possible to give a reduced version of the net, with option
-```--reduced```, obtained with the reduce tool.
+```--reduced```, obtained with the reduce tool or use ```--auto-reduce``` to automatically generate the reduced net (**requirement**: ```reduce``` on the PATH environment).
 
 ```bash
 $ python smpt.py --reduced nets/airplane nets/airplane/airplane.net nets/airplane/GlobalProperties.xml
+```
+
+```bash
+$ python smpt.py --auto-reduce nets/airplane/airplane.net nets/airplane/GlobalProperties.xml
 ```
 
 ## GitHub

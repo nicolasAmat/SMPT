@@ -23,7 +23,7 @@ class Solver:
     def __init__(self, debug=False):
         """ Execute z3 in a new process.
         """
-        self.solver = Popen(["z3", "-in"], stdin = PIPE, stdout = PIPE)
+        self.solver = Popen(["z3", "-in"], stdin=PIPE, stdout=PIPE)
         self.debug = debug
 
     def write(self, smt_input):
