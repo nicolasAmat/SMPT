@@ -19,7 +19,7 @@ $ conda activate smpn
 
 We work with Z3 and use the supported release for the last Ubuntu LTS version,
 namely Z3 4.4.1. The executable ```z3.exe``` should be on the PATH environment
-variable.
+variable. The tool is also compatible with the latest stable version 4.8.7 of Z3.
 
 ## Basic Usage for the Tool
 
