@@ -34,63 +34,45 @@ class PetriNet:
             text += str(tr)
         return text
 
-    def smtlib_declare_places(self):
+    def smtlib_declare_places(self, k=None):
         """ Declare places.
             SMT-LIB format
         """
         smt_input = ""
         for place in self.places.values():
-            smt_input += place.smtlib_declare()
+            smt_input += place.smtlib_declare(k)
         return smt_input
 
-    def smtlib_declare_places_ordered(self, k):
-        """ Declare places with an order (id@k).
-            SMT-LIB format
-        """
-        smt_input = ""
-        for place in self.places.values():
-            smt_input += place.smtlib_declare_ordered(k)
-        return smt_input
-
-    def smtlib_set_marking(self):
+    def smtlib_set_marking(self, k=None):
         """ Assertions to set the initial marking on places.
             SMT-LIB format
         """
         smt_input = ""
         for pl in self.places.values():
-            smt_input += pl.smtlib_set_marking()
+            smt_input += pl.smtlib_set_marking(k)
         return smt_input
 
-    def smtlib_set_marking_ordered(self, k):
-        """ Assertions to set the initial marking on places ordered.
-            SMT-LIB format
-        """
-        smt_input = ""
-        for pl in self.places.values():
-            smt_input += pl.smtlib_set_marking_ordered(k)
-        return smt_input
-
-    def smtlib_transitions_ordered(self, k):
+    def smtlib_transitions(self, k):
         """ Transition relations from places at order k to order k + 1.
             SMT-LIB format
         """
         smt_input = "(assert (or \n"
         for tr in self.transitions.values():
-            smt_input += tr.smtlib_ordered(k)
+            smt_input += tr.smtlib(k)
         smt_input += "\t(and\n\t\t"
         for pl in self.places.values():
             smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += "\n\t)\n))\n"
         return smt_input
 
-    def smtlib_transitions_ordered_textbook(self, k):
+    def smtlib_transitions_textbook(self, k):
         """ Transition relations from places at order k to order k + 1.
             Textbook version not used.
             SMT-LIB format
         """
         smt_input = "(assert (or \n"
         for tr in self.transitions.values():
-            smt_input += tr.smtlib_ordered_textbook(k)
+            smt_input += tr.smtlib_textbook(k)
         smt_input += "))\n"
         return smt_input
 
@@ -231,29 +213,23 @@ class Place:
             text = "pl {} ({})\n".format(self.id, self.marking)
         return text
 
-    def smtlib_declare(self):
+    def smtlib_declare(self, k=None):
         """ Declare a place.
             SMT-LIB format
         """
-        return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
+        if k is not None:
+            return "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(self.id, k, self.id, k)
+        else:
+            return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
 
-    def smtlib_declare_ordered(self, k):
-        """ Declare a place with an order (id@k).
-            SMT-LIB format
-        """
-        return "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(self.id, k, self.id, k)
-
-    def smtlib_set_marking(self):
+    def smtlib_set_marking(self, k=None):
         """ Assertions to set the initial marking.
             SMT-LIB format
         """
-        return "(assert (= {} {}))\n".format(self.id, self.marking)
-
-    def smtlib_set_marking_ordered(self, k):
-        """ Assertions to set the initial marking with an order.
-            SMT-LIB format
-        """
-        return "(assert (= {}@{} {}))\n".format(self.id, k, self.marking)
+        if k is not None:
+            return "(assert (= {}@{} {}))\n".format(self.id, k, self.marking)
+        else:
+            return "(assert (= {} {}))\n".format(self.id, self.marking)
 
 
 class Transition:
@@ -298,7 +274,7 @@ class Transition:
         text += ' '
         return text
 
-    def smtlib_ordered(self, k):
+    def smtlib(self, k):
         """ Transition relation from places at order k to order k + 1.
             Textbook version not used.
             SMT-LIB format
@@ -326,7 +302,7 @@ class Transition:
         smt_input += "\n\t)\n"
         return smt_input
 
-    def smtlib_ordered_textbook(self, k):
+    def smtlib_textbook(self, k):
         """ Transition relation from places at order k to order k + 1.
             Textbook version not used.
             SMT-LIB format

@@ -27,8 +27,7 @@ stop_it = Event()
 
 
 def about():
-    """
-    About printer
+    """ About printer.
     """
     logo = "            _____                    _____                    _____                _____            \n" \
          + "           /\    \                  /\    \                  /\    \              /\    \           \n" \
@@ -59,15 +58,13 @@ def about():
     exit(0)
 
 def enumerative_marking(path_markings, pn, formula, pn_reduced, eq, debug):
-    """
-    Enumerative method caller
+    """ Enumerative method caller
     """
     markings = EnumerativeMarking(path_markings, pn, formula, pn_reduced, eq, debug)
     markings.prove()
 
 def k_induction(pn, formula, pn_reduced, eq, debug, timeout):
-    """
-    K-induction method caller
+    """ K-induction method caller
     """
     k_induction = KInduction(pn, formula, pn_reduced, eq, debug)
 
@@ -78,14 +75,12 @@ def k_induction(pn, formula, pn_reduced, eq, debug, timeout):
     stop_it.set()
 
 def ic3(pn):
-    """
-    IC3 method caller
+    """ IC3 method caller
     """
     pass
 
 def main():
-    """
-    Main Function
+    """ Main Function
     """
     if len(sys.argv) == 2 and sys.argv[1] == '--about':
         about()
@@ -169,7 +164,11 @@ def main():
     
     if results.auto_enumerative:
         fp_markings = tempfile.NamedTemporaryFile(suffix='.aut')
-        subprocess.run(["tina", "-aut", "-sp", "1", results.path_pn, fp_markings.name])
+        if results.path_pn_reduced is not None:
+            path_pn = results.path_pn_reduced
+        else:
+            path_pn = results.path_pn
+        subprocess.run(["tina", "-aut", "-sp", "1", path_pn, fp_markings.name])
         results.path_markings = fp_markings.name
 
     for formula_id, formula in props.formulas.items():

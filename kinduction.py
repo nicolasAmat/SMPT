@@ -45,17 +45,17 @@ class KInduction:
         text = ""
 
         text += "; Declaration of the places from the Petri Net(order: {})\n".format(0)
-        text += self.pn.smtlib_declare_places_ordered(0)
+        text += self.pn.smtlib_declare_places(0)
 
         text += "; Inital Marking of the Petri Net\n"
-        text += self.pn_reduced.smtlib_set_marking_ordered(0)
+        text += self.pn_reduced.smtlib_set_marking(0)
 
         for i in range(k):
             text += "; Declaration of the places from the Petri Net (order: {})\n".format(1)
-            text += self.pn.smtlib_declare_places_ordered(i + 1)
+            text += self.pn.smtlib_declare_places(i + 1)
 
             text += "; Transition Relation: {} -> {}\n".format(i, i + 1)
-            text += self.pn.smtlib_transitions_ordered(i)
+            text += self.pn.smtlib_transitions(i)
 
         text += "; Formula to check the satisfiability\n"
         text += self.eq.smtlib_ordered(k)
@@ -77,17 +77,17 @@ class KInduction:
         text += self.eq.smtlib_only_non_reduced_places()
 
         text += "; Declaration of the places from the reduced Petri Net (order: {})\n".format(0)
-        text += self.pn_reduced.smtlib_declare_places_ordered(0)
+        text += self.pn_reduced.smtlib_declare_places(0)
 
         text += "; Inital Marking of the reduced Petri Net\n"
-        text += self.pn_reduced.smtlib_set_marking_ordered(0)
+        text += self.pn_reduced.smtlib_set_marking(0)
 
         for i in range(k):
             text += "; Declaration of the places from the reduced Petri Net (order: {})\n".format(1)
-            text += self.pn_reduced.smtlib_declare_places_ordered(i + 1)
+            text += self.pn_reduced.smtlib_declare_places(i + 1)
 
             text += "; Transition Relation: {} -> {}\n".format(i, i + 1)
-            text += self.pn_reduced.smtlib_transitions_ordered(i)
+            text += self.pn_reduced.smtlib_transitions(i)
 
         text += "; Reduction Equations\n"
         text += self.eq.smtlib_ordered(k)
@@ -121,9 +121,9 @@ class KInduction:
         """
         log.info("> Initialization")
         log.info("\t>> Declaration of the places from the Petri Net (order: 0)")
-        self.solver.write(self.pn.smtlib_declare_places_ordered(0))
+        self.solver.write(self.pn.smtlib_declare_places(0))
         log.info("\t>> Inital Marking of the Petri Net")
-        self.solver.write(self.pn.smtlib_set_marking_ordered(0))
+        self.solver.write(self.pn.smtlib_set_marking(0))
         log.info("\t>> Push")
         self.solver.push()
         log.info("\t>> Formula to check the satisfiability (order: 0)")
@@ -135,9 +135,9 @@ class KInduction:
             log.info("\t>> Pop")
             self.solver.pop()
             log.info("\t>> Declaration of the places from the Petri Net (order: {})".format(k + 1))
-            self.solver.write(self.pn.smtlib_declare_places_ordered(k + 1))
+            self.solver.write(self.pn.smtlib_declare_places(k + 1))
             log.info("\t>> Transition Relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.pn.smtlib_transitions_ordered(k))
+            self.solver.write(self.pn.smtlib_transitions(k))
             log.info("\t>> Pop")
             self.solver.push()
             log.info("\t>> Formula to check the satisfiability (order: {})".format(k + 1))
@@ -157,9 +157,9 @@ class KInduction:
         log.info("\t>> Reduction Equations (not involving places from the reduced Petri Net)")
         self.solver.write(self.eq.smtlib_only_non_reduced_places())
         log.info("\t>> Declaration of the places from the reduced Petri Net (order: 0)")
-        self.solver.write(self.pn_reduced.smtlib_declare_places_ordered(0))
+        self.solver.write(self.pn_reduced.smtlib_declare_places(0))
         log.info("\t>> Inital Marking of the reduced Petri Net")
-        self.solver.write(self.pn_reduced.smtlib_set_marking_ordered(0))
+        self.solver.write(self.pn_reduced.smtlib_set_marking(0))
         log.info("\t>> Push")
         self.solver.push()
         log.info("\t>> Reduction Equations")
@@ -171,9 +171,9 @@ class KInduction:
             log.info("\t>> Pop")
             self.solver.pop()
             log.info("\t>> Declaration of the places from the reduced Petri Net (order: {})".format(k + 1))
-            self.solver.write(self.pn_reduced.smtlib_declare_places_ordered(k + 1))
+            self.solver.write(self.pn_reduced.smtlib_declare_places(k + 1))
             log.info("\t>> Transition Relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.pn_reduced.smtlib_transitions_ordered(k))
+            self.solver.write(self.pn_reduced.smtlib_transitions(k))
             log.info("\t>> Pop")
             self.solver.push()
             self.solver.write(self.eq.smtlib_ordered(k + 1))

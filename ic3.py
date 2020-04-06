@@ -40,15 +40,15 @@ class IC3:
         self.oars = [] # list of CNF
         self.solver = Solver(debug)
 
-    def declare_places(self, primes = True):
+    def declare_places(self, primes=True):
         """ Declare places.
 
             If primes is False: declare places without any order,
             If primes is True: declare places at order 0 and 1.
         """
         if primes:
-            return self.pn.smtlib_declare_places_ordered(0) \
-                 + self.pn.smtlib_declare_places_ordered(1)
+            return self.pn.smtlib_declare_places(0) \
+                 + self.pn.smtlib_declare_places(1)
         else:
             return self.pn.smtlib_declare_places()
     
@@ -84,8 +84,8 @@ class IC3:
         log.info("> INIT and T => P")
         self.solver.reset()
         smt_input = self.declare_places()                 \
-                  + self.pn.smtlib_set_marking_ordered(0) \
-                  + self.pn.smtlib_transitions_ordered(0) \
+                  + self.pn.smtlib_set_marking(0) \
+                  + self.pn.smtlib_transitions(0) \
                   + self.formula.smtlib(1)
         self.solver.write(smt_input)
         return self.solver.check_sat()
@@ -97,7 +97,7 @@ class IC3:
         smt_input = self.declare_places()
         for clause in self.oars[k]:
             smt_input += clause.smtlib(k=0, write_assert=True)
-        smt_input += self.pn.smtlib_transitions_ordered(0) \
+        smt_input += self.pn.smtlib_transitions(0) \
                    + self.formula.smtlib(1)
         self.solver.write(smt_input)
         return self.solver.check_sat()
@@ -110,7 +110,7 @@ class IC3:
         smt_input = self.declare_places()
         for clause in self.oars[index_formula]:
             smt_input += clause.smtlib(k=0, write_assert=True)
-        smt_input += self.pn.smtlib_transitions_ordered(0) \
+        smt_input += self.pn.smtlib_transitions(0) \
                    + c.smtlib(k=1, write_assert=True, neg=True)
         self.solver.write(smt_input)
         return self.solver.check_sat()
@@ -124,7 +124,7 @@ class IC3:
                   + s.smtlib(k=0, write_assert=True, neg=True)
         for clause in self.oars[index_formula]:
             smt_input += clause.smtlib(k=0, write_assert=True)
-        smt_input += self.pn.smtlib_transitions_ordered(0) \
+        smt_input += self.pn.smtlib_transitions(0) \
                    + s.smtlib(k=1, write_assert=True)
         self.solver.write(smt_input)
         return self.solver.check_sat()
@@ -136,7 +136,7 @@ class IC3:
         smt_input = self.declare_places()
         for clause in self.oars[i]:
             smt_input += clause.smtlib(k=0, write_assert=True)
-        smt_input += self.pn.smtlib_transitions_ordered(0)
+        smt_input += self.pn.smtlib_transitions(0)
         smt_input += s.smtlib(k=0, write_assert=True, neg=True)
         for eq in s.inequalities:
             smt_input += "(assert (! {} :named {}))\n".format(eq.smtlib(k=1), eq.left_member.id)
@@ -164,7 +164,7 @@ class IC3:
             smt_input = self.declare_places()
             for clause in self.oars[i]:
                 smt_input += clause.smtlib(k=0, write_assert=True)
-            smt_input += self.pn.smtlib_transitions_ordered(0)
+            smt_input += self.pn.smtlib_transitions(0)
             smt_input += c.smtlib(k=0, write_assert=True, neg=True)
             smt_input += c.smtlib(k=1, write_assert=True)
             self.solver.write(smt_input)
@@ -192,7 +192,7 @@ class IC3:
         smt_input = self.declare_places()
         for clause in self.oars[index_formula]:
             smt_input += clause.smtlib(k=0, write_assert=True)
-        smt_input += self.pn.smtlib_transitions_ordered(0) \
+        smt_input += self.pn.smtlib_transitions(0) \
                    + s.smtlib(k=1, write_assert=True)
         self.solver.write(smt_input)
         return self.solver.check_sat()
