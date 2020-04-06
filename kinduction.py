@@ -33,9 +33,9 @@ class KInduction:
         """ Return SMT-LIB format for understanding.
         """
         if self.pn_reduced is None:
-            text = self.smtlib_non_reduced
+            text = self.smtlib_non_reduced(k)
         else:
-            text = self.smtlib_reduced
+            text = self.smtlib_reduced(k)
         text += "(check-sat)\n(get-model)\n"
         return text
 

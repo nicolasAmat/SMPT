@@ -24,7 +24,6 @@ class Counterexample(Exception):
     """
     Exception raised in case of a counter-example
     """
-    pass
 
 
 class IC3:
