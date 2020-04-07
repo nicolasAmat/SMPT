@@ -31,7 +31,8 @@ class Solver:
         """
         if self.debug or debug:
             print(smt_input)
-        self.solver.stdin.write(bytes(smt_input, 'utf-8'))
+        if smt_input != "":
+            self.solver.stdin.write(bytes(smt_input, 'utf-8'))
 
     def flush(self):
         """ Flush the standard input.
@@ -75,7 +76,7 @@ class Solver:
         self.flush()
         return self.readline() == 'sat'
 
-    def get_model(self, pn, order = None):
+    def get_model(self, pn, order=None):
         """ Get a model.
             From the current SAT stack.
             Return a cube.

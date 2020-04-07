@@ -73,7 +73,7 @@ class KInduction:
         text += "; Formula to check the satisfiability\n"
         text += self.formula.smtlib()
 
-        text += "; Reduction Equations"
+        text += "; Reduction Equations (not involving places from the reduced Petri Net)"
         text += self.eq.smtlib_only_non_reduced_places()
 
         text += "; Declaration of the places from the reduced Petri Net (order: {})\n".format(0)
