@@ -26,10 +26,10 @@ class Solver:
         self.solver = Popen(["z3", "-in"], stdin=PIPE, stdout=PIPE)
         self.debug = debug
 
-    def write(self, smt_input):
+    def write(self, smt_input, debug=False):
         """ Write instructions into the standard input of z3.
         """
-        if self.debug:
+        if self.debug or debug:
             print(smt_input)
         self.solver.stdin.write(bytes(smt_input, 'utf-8'))
 
@@ -38,11 +38,11 @@ class Solver:
         """
         self.solver.stdin.flush()
 
-    def readline(self):
+    def readline(self, debug=False):
         """ Read a line from the standard output of z3.
         """
         smt_output = self.solver.stdout.readline().decode('utf-8').strip()
-        if self.debug:
+        if self.debug or debug:
             print(smt_output)
         return smt_output
 
