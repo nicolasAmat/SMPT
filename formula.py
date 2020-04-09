@@ -86,7 +86,7 @@ class Formula:
         if prop == 'reachability':
             # Start Debug
             marking = {}
-            marking[self.pn.places["Pout2"]] = 1
+            marking[self.pn.places["callToTask.s00001406.input.s00001066"]] = 1
             # End Debug
             self.generate_reachability(marking)
 
