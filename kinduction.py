@@ -138,7 +138,7 @@ class KInduction:
             self.solver.write(self.pn.smtlib_declare_places(k + 1))
             log.info("\t>> Transition Relation: {} -> {}".format(k, k + 1))
             self.solver.write(self.pn.smtlib_transitions(k))
-            log.info("\t>> Pop")
+            log.info("\t>> Push")
             self.solver.push()
             log.info("\t>> Formula to check the satisfiability (order: {})".format(k + 1))
             self.solver.write(self.formula.smtlib(k + 1))

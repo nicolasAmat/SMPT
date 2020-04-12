@@ -376,12 +376,12 @@ if __name__ == '__main__':
     pn = PetriNet(sys.argv[1])
     formula = Formula(pn, 'reachability')
     
-    # if len(sys.argv) == 2:
-    pn_reduced = None
-    eq = None
-    # else:
-    #     pn_reduced = PetriNet(sys.argv[2])
-    #     eq = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
+    if len(sys.argv) == 2:
+        pn_reduced = None
+        eq = None
+    else:
+        pn_reduced = PetriNet(sys.argv[2])
+        eq = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
 
     ic3 = IC3(pn, formula, pn_reduced, eq)
     
