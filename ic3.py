@@ -39,7 +39,7 @@ class IC3:
     """
     IC3 Method
     """
-    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False):
+    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False, unsat_core=True):
         """ IC3 initializer.
         """
         self.pn = pn
@@ -53,6 +53,11 @@ class IC3:
         self.P = None
         self.oars = [] # list of CNF
         self.solver = Solver(debug)
+
+        if unsat_core:
+            self.sub_clause_finder = self.sub_clause_finder_unsat_core
+        else:
+            self.sub_clause_finder = self.sub_clause_finder_mic
 
     def declare_places(self, init=False):
         """ Declare places.
@@ -233,8 +238,10 @@ class IC3:
         log.info("\t\t\t>> Clause learned: {}".format(cl))
         return cl
 
-    def sub_clause_finder_down(self, i, s):
-        c = copy.copy(s)
+    def sub_clause_finder_mic(self, i, s):
+        """ Miniman inductive clause (MIC)
+        """
+        c = copy.deepcopy(s)
         
         while len(c.inequalities) > 1:
             
@@ -342,7 +349,7 @@ class IC3:
     def generate_clause(self, s, i, k):
         log.info("\t\t\t> Generate Clause (i = {}, k = {})".format(i, k))
         
-        c = self.sub_clause_finder_unsat_core(i, s)
+        c = self.sub_clause_finder(i, s)
         for j in range(1, i + 2):
             self.oars[j].append(c)
 
