@@ -11,8 +11,8 @@ Author: Nicolas AMAT
 from pn import PetriNet
 from formula import Properties
 from eq import System
-from enumerativemarking import EnumerativeMarking
-from kinduction import KInduction
+from enumerative_marking import EnumerativeMarking
+from k_induction import KInduction
 from ic3 import IC3
 
 import argparse
