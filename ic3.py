@@ -41,6 +41,9 @@ class IC3:
     """
     def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False, unsat_core=True):
         """ IC3 initializer.
+
+            By default the IC3 method uses the unsat core of the solver.
+            Option to use the MIC algorithm: unsat_core=False
         """
         self.pn = pn
         self.formula = formula
@@ -283,6 +286,8 @@ class IC3:
         return Clause(non_zero, "and")
 
     def prove(self):
+        """ Prover.
+        """
         log.info("---IC3 RUNNING---\n")
 
         if self.init_marking_reach_bad_state() or self.init_tr_reach_bad_state():
@@ -307,6 +312,9 @@ class IC3:
             k += 1
 
     def strengthen(self, k):
+        """ Iterate until Fk excludes all states
+            that lead to a dangerous state in one step.
+        """
         log.info("> Strengthen (k = {})".format(k))
         
         try:
@@ -324,6 +332,12 @@ class IC3:
             return False
 
     def propagate_clauses(self, k):
+        """ For 1 <= i <= k.
+            Look at a clause c in CL(Fi) and not in CL(Fi+1),
+            s.t. unsat (Fi and T and -c').
+            When this is the case, propagate the clause foraward,
+            i.e. add c to CL(Fi+1)
+        """
         log.info("> Propagate Clauses (k = {})".format(k))
         
         for i in range(1, k + 1):
@@ -332,21 +346,27 @@ class IC3:
                     self.oars[i + 1].append(c)
 
     def inductively_generalize(self, s, minimum, k):
-            log.info("\t> Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
-     
-            if minimum < 0 and self.state_reachable(0, s):
-                raise Counterexample
+        """ Strengthen the invariants in F,
+            by adding cubes generated during the `push_generalization`.
+        """
+        log.info("\t> Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
+    
+        if minimum < 0 and self.state_reachable(0, s):
+            raise Counterexample
 
-            for i in range(max(1, minimum + 1), k + 1):
-                
-                if self.state_reachable(i, s):
-                    self.generate_clause(s, i - 1, k)
-                    return i - 1
+        for i in range(max(1, minimum + 1), k + 1):
             
-            self.generate_clause(s, k, k)
-            return k
+            if self.state_reachable(i, s):
+                self.generate_clause(s, i - 1, k)
+                return i - 1
+        
+        self.generate_clause(s, k, k)
+        return k
 
     def generate_clause(self, s, i, k):
+        """ Find a minimal inductive cube `c` that is inductive relative to Fi.
+            Add c to CL(Fi) for all 1 <= j <= i.
+        """
         log.info("\t\t\t> Generate Clause (i = {}, k = {})".format(i, k))
         
         c = self.sub_clause_finder(i, s)
@@ -354,6 +374,9 @@ class IC3:
             self.oars[j].append(c)
 
     def push_generalization(self, states, k):
+        """ Apply inductive generalization of a dangerous state s 
+            to its Fi state predecessors.
+        """
         log.info("\t> Push generalization (k = {})".format(k))
         
         while True:

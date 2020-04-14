@@ -20,7 +20,7 @@ class KInduction:
     """
     K-induction method
     """
-    def __init__(self, pn, formula, pn_reduced, eq, debug = False):
+    def __init__(self, pn, formula, pn_reduced, eq, debug=False):
         """ K-induction initializer.
         """
         self.pn = pn
