@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 
 """
-Formula Generator and Solver Module
+Formula Generator Module
 """
 
 from pn import PetriNet
 
-import sys
 import re
+import sys
 import xml.etree.ElementTree as ET
 
 
 class Properties:
     """
     Properties parsed from .xml file defined by:
+    - an associated Petri Net
     - a set of Formulas
     """
     def __init__(self, pn, xml_filename):
@@ -22,6 +23,8 @@ class Properties:
         self.parseXML(xml_filename)
 
     def __str__(self):
+        """ Properties to logic format.
+        """
         text = ""
         for formula_id, formula in self.formulas.items():
             text += "--- Property {} ---\n".format(formula_id)
@@ -29,6 +32,9 @@ class Properties:
         return text
     
     def smtlib(self):
+        """ Assertions corresponding to the properties.
+            SMT-LIB format
+        """
         text = ""
         for formula_id, formula in self.formulas.items():
             text += "; {}\n".format(formula_id)
@@ -36,6 +42,9 @@ class Properties:
         return text
 
     def parseXML(self, filename):
+        """ Properties parser.
+            Input format: .xml
+        """
         tree = ET.parse(filename)
         prop_set = tree.getroot()
         
@@ -70,11 +79,12 @@ class Properties:
 class Formula:
     """
     Formula defined by:
-    - a Petri Net
+    - an associated Petri Net
     - a set of clauses
-    - a property (deadlock)
+    - an operator ('or', 'and') applied between the clauses
+    - a property ('deadlock', 'fireability', 'reachability')
     """
-    def __init__(self, pn, prop = 'deadlock', transitions = []):
+    def __init__(self, pn, prop='deadlock', transitions=[]):
         self.pn = pn
         self.clauses = []
         self.operator = ""
@@ -86,11 +96,13 @@ class Formula:
         if prop == 'reachability':
             # Start Debug
             marking = {}
-            marking[self.pn.places["callToTask.s00001406.input.s00001066"]] = 1
+            marking[self.pn.places["p_100"]] = 1
             # End Debug
             self.generate_reachability(marking)
 
     def __str__(self):
+        """ Formula to logic format.
+        """
         text = ""
         for index, clause in enumerate(self.clauses):
             text += "(" + str(clause) + ")"
@@ -99,19 +111,28 @@ class Formula:
         text += "\n"
         return text
 
-    def smtlib(self, k = None):
+    def smtlib(self, k=None):
+        """ Assertions corresponding to the formula.
+            SMT-LIB format
+        """
         if self.operator == "or":
             return self.disjunctive_smtlib(k)
         else:
             return self.conjunctive_smtlib(k)
 
-    def conjunctive_smtlib(self, k = None):
+    def conjunctive_smtlib(self, k=None):
+        """ Assertion for a CNF (Conjunctive Normal Form).
+            SMT-LIB format
+        """
         text = ""
         for clause in self.clauses:
             text += "(assert {})\n".format(clause.smtlib(k))
         return text
 
-    def disjunctive_smtlib(self, k = None):
+    def disjunctive_smtlib(self, k=None):
+        """ Assertions for a DNF (Disjunctive Normal Form).
+            SMT-LIB format
+        """
         text = "(assert (or "
         for clause in self.clauses:
             text += clause.smtlib(k)
@@ -119,6 +140,8 @@ class Formula:
         return text
 
     def generate_deadlock(self):
+        """ Generator of a `deadlock` formula.
+        """
         for tr in self.pn.transitions.values():
             inequalities = []
             for pl, weight in tr.input.items():
@@ -131,6 +154,8 @@ class Formula:
         self.operator = "and"
 
     def generate_fireability(self, transitions):
+        """ Generator of a `fireability` formula.
+        """
         for tr_id in transitions:
             inequalities = []
             tr = self.pn.transitions[tr_id]
@@ -144,11 +169,14 @@ class Formula:
         self.operator = "or"
 
     def generate_reachability(self, marking):
+        """ Generator of a `reachability` formula.
+        """
         for pl, counter in marking.items():
             self.clauses.append(Inequality(pl, counter, '='))
-        print(self.clauses[0])
 
     def result(self, sat):
+        """ Display the result.
+        """
         if self.prop == "deadlock":
             if sat:
                 print("Deadlock.")
@@ -175,6 +203,8 @@ class Clause:
         self.operator = operator
 
     def __str__(self):
+        """ Clause to logic format.
+        """
         text = ""
         for index, ineq in enumerate(self.inequalities):
             text += str(ineq)
@@ -182,7 +212,10 @@ class Clause:
                 text += " " + self.operator + " "
         return text
 
-    def smtlib(self, k = None, write_assert = False, neg = False):
+    def smtlib(self, k=None, write_assert=False, neg=False):
+        """ Clause.
+            SMT-LIB format
+        """
         text = ""
         for ineq in self.inequalities:
             text += ineq.smtlib(k)
@@ -210,9 +243,14 @@ class Inequality:
         self.operator = operator
 
     def __str__(self):
+        """ Inequality to logic format.
+        """
         return "{} {} {}".format(self.left_member.id, self.operator, self.right_member)
 
-    def smtlib(self, k = None):
+    def smtlib(self, k=None):
+        """ Inequality.
+            SMT-LIB format
+        """
         if k is not None:
             return "({} {}@{} {})".format(self.operator, self.left_member.id, k, self.right_member)
         else:

@@ -355,7 +355,6 @@ class IC3:
             raise Counterexample
 
         for i in range(max(1, minimum + 1), k + 1):
-            
             if self.state_reachable(i, s):
                 self.generate_clause(s, i - 1, k)
                 return i - 1
