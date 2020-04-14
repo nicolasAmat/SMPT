@@ -129,7 +129,7 @@ class EnumerativeMarking:
 if __name__ == '__main__':
 
     if len(sys.argv) != 3:
-        exit("File missing: ./enumerativemarking <path_to_net_file> <path_to_aut_file>")
+        exit("File missing: ./enumerative_marking <path_to_net_file> <path_to_aut_file>")
 
     net = PetriNet(sys.argv[1])
     markings = EnumerativeMarking(sys.argv[2], net, None, None, None)

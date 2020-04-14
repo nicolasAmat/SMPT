@@ -20,7 +20,7 @@ class KInduction:
     """
     K-induction method
     """
-    def __init__(self, pn, formula, pn_reduced, eq, debug=False):
+    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False):
         """ K-induction initializer.
         """
         self.pn = pn
@@ -48,7 +48,7 @@ class KInduction:
         text += self.pn.smtlib_declare_places(0)
 
         text += "; Inital Marking of the Petri Net\n"
-        text += self.pn_reduced.smtlib_set_marking(0)
+        text += self.pn.smtlib_set_marking(0)
 
         for i in range(k):
             text += "; Declaration of the places from the Petri Net (order: {})\n".format(1)
@@ -58,7 +58,7 @@ class KInduction:
             text += self.pn.smtlib_transitions(i)
 
         text += "; Formula to check the satisfiability\n"
-        text += self.eq.smtlib_ordered(k)
+        text += self.formula.smtlib(k + 1)
 
         return text
 
@@ -174,7 +174,7 @@ class KInduction:
             self.solver.write(self.pn_reduced.smtlib_declare_places(k + 1))
             log.info("\t>> Transition Relation: {} -> {}".format(k, k + 1))
             self.solver.write(self.pn_reduced.smtlib_transitions(k))
-            log.info("\t>> Pop")
+            log.info("\t>> Push")
             self.solver.push()
             self.solver.write(self.eq.smtlib_ordered(k + 1))
             k += 1
@@ -185,19 +185,21 @@ class KInduction:
 if __name__ == '__main__':
     
     if len(sys.argv) < 2:
-        exit("File missing: ./kinduction.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
+        exit("File missing: ./k_induction.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
+    
+    log.basicConfig(format="%(message)s", level=log.DEBUG)
 
     pn = PetriNet(sys.argv[1])
     formula = Formula(pn)
     
     if len(sys.argv) == 3:
         pn_reduced = PetriNet(sys.argv[2])
-        system = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
+        eq = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
     else:
         pn_reduced = None
-        system = None
-    
-    k_induction = KInduction(pn, formula, pn_reduced, system)
+        eq = None
+
+    k_induction = KInduction(pn, formula, pn_reduced, eq)
 
     print("Input into the SMT Solver")
     print("-------------------------")
