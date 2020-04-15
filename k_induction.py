@@ -94,10 +94,10 @@ class KInduction:
 
         return text
 
-    def prove(self):
+    def prove(self, display=True):
         """ Prover.
         """
-        print("---K-INDUCTION RUNNING---")
+        log.info("---K-INDUCTION RUNNING---")
         
         if self.pn_reduced is None:
             k = self.prove_non_reduced()
@@ -105,16 +105,22 @@ class KInduction:
         else:
             k = self.prove_reduced()
             order = None
-
-        print()
+        
+        model = None
+        
         if k < 100 and not stop_it.is_set():
             self.formula.result(True)
-            self.solver.display_model(self.pn, order)
+            if display:
+                self.solver.display_model(self.pn, order)
+            else:
+                model = self.solver.get_model(self.pn, order)
         else:
             print("Method stopped.")
             self.formula.result(False)
 
         self.solver.exit()
+        
+        return model
 
     def prove_non_reduced(self):
         """ Prover using the original Petri Net.
@@ -143,7 +149,7 @@ class KInduction:
             log.info("\t>> Formula to check the satisfiability (order: {})".format(k + 1))
             self.solver.write(self.formula.smtlib(k + 1))
             k += 1
-   
+
         return k
 
     def prove_reduced(self):

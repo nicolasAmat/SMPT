@@ -99,6 +99,8 @@ class Formula:
             marking[self.pn.places["p_100"]] = 1
             # End Debug
             self.generate_reachability(marking)
+        if prop == 'concurrent_places':
+            self.generate_concurrent_places()
 
     def __str__(self):
         """ Formula to logic format.
@@ -174,6 +176,15 @@ class Formula:
         for pl, counter in marking.items():
             self.clauses.append(Inequality(pl, counter, '='))
 
+    def generate_concurrent_places(self):
+        """ Generator of a `concurrent places` formula.
+        """
+        inequalities = []
+        for pl in self.pn.places.values():
+            inequalities.append(Inequality(pl, 0, '>'))
+        self.clauses.append(Clause([AtLeast(2, inequalities)], 'and'))
+        self.operator = "and"
+
     def result(self, sat):
         """ Display the result.
         """
@@ -219,7 +230,8 @@ class Clause:
         text = ""
         for ineq in self.inequalities:
             text += ineq.smtlib(k)
-        text = "({} {})".format(self.operator, text)
+        if len(self.inequalities) > 1:
+            text = "({} {})".format(self.operator, text)
         if neg:
             text = "(not {})".format(text)
         if write_assert:
@@ -255,6 +267,38 @@ class Inequality:
             return "({} {}@{} {})".format(self.operator, self.left_member.id, k, self.right_member)
         else:
             return "({} {} {})".format(self.operator, self.left_member.id, self.right_member)
+
+
+class AtLeast:
+    """
+    At Least defined by:
+    - a minimum k
+    - a list of inequalities
+    """
+    def __init__(self, k, inequalities):
+        self.k = k
+        self.inequalities = inequalities
+
+    def __str__(self):
+        """ At least to logic format.
+        """
+        text = ">=_{} (".format(self.k)
+        for index, ineq in enumerate(self.inequalities):
+            text += str(ineq)
+            if index != len(self.inequalities) - 1:
+                text += ", "
+        text += ")"
+        return text
+
+    def smtlib(self, k=None):
+        """ Inequality.
+            SMT-LIB format
+        """
+        smt_input = "((_ at-least {}) ".format(self.k)
+        for ineq in self.inequalities:
+            smt_input += ineq.smtlib(k)
+        smt_input += ")"
+        return smt_input
 
 
 if __name__ == '__main__':

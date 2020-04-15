@@ -56,6 +56,8 @@ class Solver:
         """" Exit z3.
         """
         self.write("(exit)\n")
+        self.solver.stdin.close()
+        self.solver.stdout.close()
 
     def push(self):
         """ Push.

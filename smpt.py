@@ -9,11 +9,12 @@ Author: Nicolas AMAT
 """
 
 from pn import PetriNet
-from formula import Properties
+from formula import Properties, Formula
 from eq import System
 from enumerative_marking import EnumerativeMarking
 from k_induction import KInduction
 from ic3 import IC3
+from concurrent_places import ConcurrentPlaces
 
 import argparse
 import logging as log
@@ -69,7 +70,7 @@ def k_induction(pn, formula, pn_reduced, eq, debug, timeout):
     k_induction = KInduction(pn, formula, pn_reduced, eq, debug)
 
     # Run solver with timeout
-    proc = Thread(target= k_induction.prove)
+    proc = Thread(target=k_induction.prove)
     proc.start()
     proc.join(timeout)
     stop_it.set()
@@ -104,10 +105,21 @@ def main():
                         type=str,
                         help='path to Petri Net (.net format)')
 
-    parser.add_argument('path_props',
-                        metavar='properties',
+    group_formula = parser.add_mutually_exclusive_group(required=True)
+
+    group_formula.add_argument('--xml',
+                        action='store',
+                        dest='path_properties',
                         type=str,
-                        help='path to Properties (.xml format)')
+                        help='use xml format for properties')
+
+    group_formula.add_argument('--concurrent-places',
+                        action='store_true',
+                        help="concurrent places analyze")
+
+    parser.add_argument('--compressed-matrix',
+                        action='store_true',
+                        help="concurrent places matrix compressed")
 
     group_reduce = parser.add_mutually_exclusive_group()
     
@@ -148,14 +160,13 @@ def main():
         log.basicConfig(format="%(message)s")
 
     pn = PetriNet(results.path_pn)
-    props = Properties(pn, results.path_props)
     
     pn_reduced = None
     eq = None
     
     if results.auto_reduce:
         fp_pn_reduced = tempfile.NamedTemporaryFile(suffix='.net')
-        subprocess.run(["reduce", "-rg,4ti2,redundant,compact,convert,transitions", results.path_pn, fp_pn_reduced.name])
+        subprocess.run(["reduce", "-rg,redundant,compact,convert,transitions", results.path_pn, fp_pn_reduced.name])
         results.path_pn_reduced = fp_pn_reduced.name
 
     if results.path_pn_reduced is not None:
@@ -171,13 +182,21 @@ def main():
         subprocess.run(["tina", "-aut", "-sp", "1", path_pn, fp_markings.name])
         results.path_markings = fp_markings.name
 
-    for formula_id, formula in props.formulas.items():
-        print("---{}---".format(formula_id))
-        if results.path_markings is not None:
-            enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
-        else:
-            k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
+    if results.path_properties is not None:
+        props = Properties(pn, results.path_properties)
+        for formula_id, formula in props.formulas.items():
+            print("---{}---".format(formula_id))
+            if results.path_markings is not None:
+                enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
+            else:
+                k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
     
+    if results.concurrent_places:
+        formula = Formula(pn, prop='concurrent_places')
+        concurrent_places = ConcurrentPlaces(pn, formula, pn_reduced, eq)
+        concurrent_places.analyze(results.timeout)
+        concurrent_places.display(compressed=results.compressed_matrix)
+
     if results.auto_reduce:
         fp_pn_reduced.close()
 
