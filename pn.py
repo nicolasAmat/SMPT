@@ -22,6 +22,9 @@ class PetriNet:
         self.id = ""
         self.places = {}
         self.transitions = {}
+
+        self.counter_places = 0
+
         self.parse_net(filename)
 
     def __str__(self):
@@ -143,7 +146,8 @@ class PetriNet:
             arc = [arc]
 
         if arc[0] not in self.places:
-            self.places[arc[0]] = Place(arc[0])
+            self.places[arc[0]] = Place(arc[0], self.counter_places)
+            self.counter_places += 1
         
         if len(arc) == 1:
             weight = 1
@@ -177,7 +181,8 @@ class PetriNet:
             marking = 0
 
         if place_id not in self.places:
-            self.places[place_id] = Place(place_id, marking)
+            self.places[place_id] = Place(place_id, self.counter_places, marking)
+            self.counter_places += 1
         else:
             self.places.get(place_id).marking = marking
 
@@ -200,10 +205,12 @@ class Place:
     Place defined by:
     - an identifier
     - an initial marking
+    - an order
     """
-    def __init__(self, id, marking = 0):
+    def __init__(self, id, order, marking=0):
         self.id = id
         self.marking = marking
+        self.order = order
 
     def __str__(self):
         """ Place to .net format.

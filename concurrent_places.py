@@ -18,7 +18,8 @@ stop_it_concurrent_places = Event()
 
 
 class ConcurrentPlaces:
-    """ Concurrent Places Analyzer.
+    """ 
+    Concurrent Places Analyzer.
     """
 
     def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=None, compressed=True):
@@ -33,14 +34,13 @@ class ConcurrentPlaces:
         self.formula = formula
         self.c = []
 
-        self.place_order = {}
         self.matrix = None
 
     def analyze(self, timeout):
         """
         Run Concurrent Places Analysis using k-induction.
         """
-        self.build_order_and_matrix()
+        self.build_matrix()
         self.initialization()
         proc = Thread(target=self.iterate)
         proc.start()
@@ -59,14 +59,11 @@ class ConcurrentPlaces:
         else:
             self.display_matrix()
 
-    def build_order_and_matrix(self):
+    def build_matrix(self):
         """ Build a dictionary that create an order on the places.
         """
-        for index, pl in enumerate(self.pn.places.values()):
-            self.place_order[pl] = index
-
-        self.matrix = [[0 for j in range(i + 1)] for i in range(len(self.place_order))]
-        for i in range(len(self.place_order)):
+        self.matrix = [[0 for j in range(i + 1)] for i in range(self.pn.counter_places)]
+        for i in range(self.pn.counter_places):
             self.matrix[i][i] = 1
 
     def initialization(self):
@@ -123,12 +120,10 @@ class ConcurrentPlaces:
         """
         for index, pl1 in enumerate(m):
             for pl2 in m[index + 1:]:
-                order_pl1 = self.place_order[pl1]
-                order_pl2 = self.place_order[pl2] 
-                if order_pl1 > order_pl2:
-                    self.matrix[order_pl1][order_pl2] = 1 
+                if pl1.order > pl2.order:
+                    self.matrix[pl1.order][pl2.order] = 1 
                 else:
-                    self.matrix[order_pl2][order_pl1] = 1
+                    self.matrix[pl2.order][pl1.order] = 1
 
     def display_matrix(self):
         """ Display Concurrent Places matrix.
