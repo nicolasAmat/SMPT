@@ -62,6 +62,7 @@ class ConcurrentPlaces:
     def build_matrix(self):
         """ Build a dictionary that create an order on the places.
         """
+        # EXPERIMENTAL: need to put `.` every where!
         self.matrix = [[0 for j in range(i + 1)] for i in range(self.pn.counter_places)]
         for i in range(self.pn.counter_places):
             self.matrix[i][i] = 1
