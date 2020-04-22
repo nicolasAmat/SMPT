@@ -22,8 +22,10 @@ class System:
     def __init__(self, filename, places = [], places_reduced = []):
         self.places = places
         self.places_reduced = places_reduced
-        self.additionalVars = []
+        self.additional_vars = []
+
         self.system = []
+
         self.parser(filename)
 
     def __str__(self):
@@ -40,7 +42,7 @@ class System:
             SMT-LIB format
         """
         smt_input = ""
-        for var in self.additionalVars:
+        for var in self.additional_vars:
             smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var, var)
         for eq in self.system:
             smt_input += eq.smtlib() + '\n'
@@ -53,13 +55,13 @@ class System:
             SMT-LIB format
         """
         smt_input = ""
-        for var in self.additionalVars:
+        for var in self.additional_vars:
             if var not in self.places_reduced:
                 var_name = var if k_original is None else "{}@{}".format(var, k_original) 
                 smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var_name, var_name)
         for eq in self.system:
             if not eq.contain_reduced:
-                smt_input += eq.smtlib(k_original, [*self.places] + self.additionalVars) + '\n'
+                smt_input += eq.smtlib(k_original, [*self.places] + self.additional_vars) + '\n'
         return smt_input
         
     def smtlib_ordered(self, k, k_original=None):
@@ -71,7 +73,7 @@ class System:
         smt_input = ""
         for eq in self.system:
             if eq.contain_reduced:
-                smt_input += eq.smtlib_ordered(k, k_original, self.places_reduced, [*self.places] + self.additionalVars) + '\n'
+                smt_input += eq.smtlib_ordered(k, k_original, self.places_reduced, [*self.places] + self.additional_vars) + '\n'
         for pl in self.places_reduced:
             if pl in self.places:
                 if k_original is None:
@@ -199,8 +201,8 @@ class Equation:
                 else:
                     element = element.replace('{', '').replace('}', '').replace('#', '')
                     if not element.isnumeric():
-                        if element not in system.places and element not in system.additionalVars:
-                            system.additionalVars.append(element)
+                        if element not in system.places and element not in system.additional_vars:
+                            system.additional_vars.append(element)
                         if element in system.places_reduced:
                             self.contain_reduced = True
                     if left:

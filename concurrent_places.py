@@ -22,7 +22,7 @@ class ConcurrentPlaces:
     Concurrent Places Analyzer.
     """
 
-    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False):
+    def __init__(self, pn, pn_reduced=None, eq=None, debug=False):
         """ Initializer.
         """
         self.pn = pn
@@ -31,7 +31,7 @@ class ConcurrentPlaces:
 
         self.debug = debug
 
-        self.formula = formula
+        self.formula = Formula(pn, prop='concurrent_places')
         self.c = []
 
         self.matrix = None

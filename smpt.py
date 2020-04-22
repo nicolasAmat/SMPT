@@ -192,8 +192,7 @@ def main():
                 k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
     
     if results.concurrent_places:
-        formula = Formula(pn, prop='concurrent_places')
-        concurrent_places = ConcurrentPlaces(pn, formula, pn_reduced, eq, results.debug)
+        concurrent_places = ConcurrentPlaces(pn, pn_reduced, eq, results.debug)
         concurrent_places.analyze(results.timeout)
         concurrent_places.display(compressed=results.compressed_matrix)
 
