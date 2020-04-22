@@ -1,0 +1,261 @@
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-37B-A4D5-0" type ="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>kanban</text>
+  </name>
+ <page id="g-37B-AC42-1">
+  <place id="p-37B-AC44-2">
+  <name>
+   <text>P1</text>
+  </name>
+   <initialMarking>
+    <text>5</text>
+   </initialMarking>
+  </place>
+  <place id="p-37B-AD9C-3">
+  <name>
+   <text>P2</text>
+  </name>
+   <initialMarking>
+    <text>5</text>
+   </initialMarking>
+  </place>
+  <place id="p-37B-AD9F-4">
+  <name>
+   <text>P3</text>
+  </name>
+   <initialMarking>
+    <text>5</text>
+   </initialMarking>
+  </place>
+  <place id="p-37B-ADA6-5">
+  <name>
+   <text>P4</text>
+  </name>
+   <initialMarking>
+    <text>5</text>
+   </initialMarking>
+  </place>
+  <place id="p-37B-ADA8-6">
+  <name>
+   <text>Pback1</text>
+  </name>
+  </place>
+  <place id="p-37B-ADA9-7">
+  <name>
+   <text>Pback2</text>
+  </name>
+  </place>
+  <place id="p-37B-ADAD-8">
+  <name>
+   <text>Pback3</text>
+  </name>
+  </place>
+  <place id="p-37B-ADAE-9">
+  <name>
+   <text>Pback4</text>
+  </name>
+  </place>
+  <place id="p-37B-ADC0-10">
+  <name>
+   <text>Pm1</text>
+  </name>
+  </place>
+  <place id="p-37B-ADC2-11">
+  <name>
+   <text>Pm2</text>
+  </name>
+  </place>
+  <place id="p-37B-ADC3-12">
+  <name>
+   <text>Pm3</text>
+  </name>
+  </place>
+  <place id="p-37B-ADC6-13">
+  <name>
+   <text>Pm4</text>
+  </name>
+  </place>
+  <place id="p-37B-ADD8-14">
+  <name>
+   <text>Pout1</text>
+  </name>
+  </place>
+  <place id="p-37B-ADD9-15">
+  <name>
+   <text>Pout2</text>
+  </name>
+  </place>
+  <place id="p-37B-ADDC-16">
+  <name>
+   <text>Pout3</text>
+  </name>
+  </place>
+  <place id="p-37B-ADDE-17">
+  <name>
+   <text>Pout4</text>
+  </name>
+  </place>
+  <transition id="t-37B-ADDF-18">
+  <name>
+   <text>tback1</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADE2-19">
+  <name>
+   <text>tback2</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADE4-20">
+  <name>
+   <text>tback3</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADE7-21">
+  <name>
+   <text>tback4</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADE8-22">
+  <name>
+   <text>tin4</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADEB-23">
+  <name>
+   <text>tok1</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADED-24">
+  <name>
+   <text>tok2</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADEE-25">
+  <name>
+   <text>tok3</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADF1-26">
+  <name>
+   <text>tok4</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADF2-27">
+  <name>
+   <text>tout1</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADF5-28">
+  <name>
+   <text>tredo1</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADF6-29">
+  <name>
+   <text>tredo2</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADF8-30">
+  <name>
+   <text>tredo3</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADFB-31">
+  <name>
+   <text>tredo4</text>
+  </name>
+  </transition>
+  <transition id="t-37B-ADFC-32">
+  <name>
+   <text>tsynch1_23</text>
+  </name>
+  </transition>
+  <transition id="t-37B-AE00-33">
+  <name>
+   <text>tsynch4_23</text>
+  </name>
+  </transition>
+  <arc id="e-37B-AE05-34" source="p-37B-ADA8-6" target="t-37B-ADDF-18">
+  </arc>
+  <arc id="e-37B-AFA3-35" source="t-37B-ADE8-22" target="p-37B-ADC6-13">
+  </arc>
+  <arc id="e-37B-AFA5-36" source="p-37B-ADC0-10" target="t-37B-ADEB-23">
+  </arc>
+  <arc id="e-37B-AFA7-37" source="t-37B-ADEB-23" target="p-37B-ADD8-14">
+  </arc>
+  <arc id="e-37B-AFA8-38" source="p-37B-ADC2-11" target="t-37B-ADED-24">
+  </arc>
+  <arc id="e-37B-AFA9-39" source="t-37B-ADED-24" target="p-37B-ADD9-15">
+  </arc>
+  <arc id="e-37B-AFAA-40" source="p-37B-ADC3-12" target="t-37B-ADEE-25">
+  </arc>
+  <arc id="e-37B-AFAB-41" source="t-37B-ADEE-25" target="p-37B-ADDC-16">
+  </arc>
+  <arc id="e-37B-AFAC-42" source="p-37B-ADC6-13" target="t-37B-ADF1-26">
+  </arc>
+  <arc id="e-37B-AFAD-43" source="t-37B-ADF1-26" target="p-37B-ADDE-17">
+  </arc>
+  <arc id="e-37B-AFAF-44" source="p-37B-ADD8-14" target="t-37B-ADF2-27">
+  </arc>
+  <arc id="e-37B-B04E-45" source="t-37B-ADDF-18" target="p-37B-ADC0-10">
+  </arc>
+  <arc id="e-37B-B04F-46" source="t-37B-ADF2-27" target="p-37B-AC44-2">
+  </arc>
+  <arc id="e-37B-B051-47" source="p-37B-ADC0-10" target="t-37B-ADF5-28">
+  </arc>
+  <arc id="e-37B-B052-48" source="t-37B-ADF5-28" target="p-37B-ADA8-6">
+  </arc>
+  <arc id="e-37B-B053-49" source="p-37B-ADC2-11" target="t-37B-ADF6-29">
+  </arc>
+  <arc id="e-37B-B054-50" source="t-37B-ADF6-29" target="p-37B-ADA9-7">
+  </arc>
+  <arc id="e-37B-B055-51" source="p-37B-ADC3-12" target="t-37B-ADF8-30">
+  </arc>
+  <arc id="e-37B-B057-52" source="t-37B-ADF8-30" target="p-37B-ADAD-8">
+  </arc>
+  <arc id="e-37B-B058-53" source="p-37B-ADC6-13" target="t-37B-ADFB-31">
+  </arc>
+  <arc id="e-37B-B059-54" source="t-37B-ADFB-31" target="p-37B-ADAE-9">
+  </arc>
+  <arc id="e-37B-B05A-55" source="p-37B-AC44-2" target="t-37B-ADFC-32">
+  </arc>
+  <arc id="e-37B-B05B-56" source="p-37B-ADA9-7" target="t-37B-ADE2-19">
+  </arc>
+  <arc id="e-37B-B062-57" source="p-37B-ADD9-15" target="t-37B-ADFC-32">
+  </arc>
+  <arc id="e-37B-B071-58" source="p-37B-ADDC-16" target="t-37B-ADFC-32">
+  </arc>
+  <arc id="e-37B-B072-59" source="t-37B-ADFC-32" target="p-37B-AD9C-3">
+  </arc>
+  <arc id="e-37B-B073-60" source="t-37B-ADFC-32" target="p-37B-AD9F-4">
+  </arc>
+  <arc id="e-37B-B075-61" source="t-37B-ADFC-32" target="p-37B-ADC0-10">
+  </arc>
+  <arc id="e-37B-B076-62" source="p-37B-AD9C-3" target="t-37B-AE00-33">
+  </arc>
+  <arc id="e-37B-B077-63" source="p-37B-AD9F-4" target="t-37B-AE00-33">
+  </arc>
+  <arc id="e-37B-B078-64" source="p-37B-ADDE-17" target="t-37B-AE00-33">
+  </arc>
+  <arc id="e-37B-B079-65" source="t-37B-AE00-33" target="p-37B-ADA6-5">
+  </arc>
+  <arc id="e-37B-B07A-66" source="t-37B-AE00-33" target="p-37B-ADC2-11">
+  </arc>
+  <arc id="e-37B-B07B-67" source="t-37B-ADE2-19" target="p-37B-ADC2-11">
+  </arc>
+  <arc id="e-37B-B07C-68" source="t-37B-AE00-33" target="p-37B-ADC3-12">
+  </arc>
+  <arc id="e-37B-B07F-69" source="p-37B-ADAD-8" target="t-37B-ADE4-20">
+  </arc>
+  <arc id="e-37B-B080-70" source="t-37B-ADE4-20" target="p-37B-ADC3-12">
+  </arc>
+  <arc id="e-37B-B081-71" source="p-37B-ADAE-9" target="t-37B-ADE7-21">
+  </arc>
+  <arc id="e-37B-B082-72" source="t-37B-ADE7-21" target="p-37B-ADC6-13">
+  </arc>
+  <arc id="e-37B-B083-73" source="p-37B-ADA6-5" target="t-37B-ADE8-22">
+  </arc>
+ </page>
+ </net>
+</pnml>
