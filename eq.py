@@ -211,6 +211,97 @@ class Equation:
                         self.right.append(element)
 
 
+class Relation:
+    """
+    Graph relation between original net and reduced net.
+    A relation is composed of:
+    - Chains of agglomerations
+    - Constant places
+    - Equalities between places
+    """
+    def __init__(self, eq):
+        self.eq = eq
+
+        self.variables = {}
+
+        self.agglomerations = []
+        self.constant_places = []
+        self.equal_places = []
+
+    def construct(self):
+        """
+        """
+        for eq in self.eq.system:
+            left = self.get_variable(eq.left[0])
+
+            if len(eq.right) == 1:
+
+                # case p = k
+                if eq.right[0].isnumeric():
+                    left.value = int(eq.right[0])
+                    self.constant_places.append(left)
+
+                # case p = q
+                else:
+                    right = self.get_variable(eq.right[0])
+                    left.equals.append(right)
+                    right.equals.append(left)
+                    self.equal_places.append([left, right])
+                
+            else:
+                
+                right_1 = self.get_variable(eq.right[0])
+                right_2 = self.get_variable(eq.right[1])
+
+                # case p = q + r
+                if left in self.eq.places:
+                    left.chidren.append([right_1, right_2])
+                
+                else:
+                
+                    # case a = p + a'
+                    if right_2.id not in self.eq.places:
+                        left.children.append([right_1, right_2])
+                        if right_2 in self.agglomerations:
+                            self.agglomerations.remove(right_2)
+                        self.agglomerations.append(left)
+
+                    # case a = p + q
+                    else:
+                        left.children.append([right_1, right_2])
+                        self.agglomerations.append(left)
+
+
+    def get_variable(self, id_var):
+        """ Create the corresponding Variable
+            if it is not already created,
+            otherwise return the corresponding Variable.
+        """
+        if id_var in self.variables:
+            return self.variables[id_var]
+        else:
+            new_var = Variable(id_var)
+            self.variables[id_var] = new_var
+            return new_var
+
+
+class Variable:
+    """
+    Place or additional variable.
+    Used by the Concurrency Matrix Constructor.
+    A variable defined by:
+    - an ID
+    - a value
+    - a set of equals variables
+    - a set of children
+    """
+    def __init__(self, id):    
+        self.id = id
+        self.value = -1
+        self.equals = []
+        self.children = []
+
+
 if __name__ == "__main__":
     
     if len(sys.argv) == 1:
