@@ -22,7 +22,7 @@ class ConcurrentPlaces:
     Concurrent Places Analyzer.
     """
 
-    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=None, compressed=True):
+    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False):
         """ Initializer.
         """
         self.pn = pn
@@ -95,6 +95,7 @@ class ConcurrentPlaces:
                 return
 
             m = []
+
             for eq in model.inequalities:
                 if eq.right_member > 0:
                     m.append(eq.left_member)

@@ -193,7 +193,7 @@ def main():
     
     if results.concurrent_places:
         formula = Formula(pn, prop='concurrent_places')
-        concurrent_places = ConcurrentPlaces(pn, formula, pn_reduced, eq)
+        concurrent_places = ConcurrentPlaces(pn, formula, pn_reduced, eq, results.debug)
         concurrent_places.analyze(results.timeout)
         concurrent_places.display(compressed=results.compressed_matrix)
 
