@@ -228,8 +228,24 @@ class Relation:
         self.constant_places = []
         self.equal_places = []
 
+        self.construct()
+        self.propagate()
+
+    def __str__(self):
+        text = "Agglomerations\n--------------\n"
+        for agglo in self.agglomerations:
+            text += str(agglo) + '\n'
+        text += "\nConstant Places\n---------------\n"
+        for pl in self.constant_places:
+            text += pl.id + ' = ' + str(pl.value) + '\n'
+        text += "\nEqual Places\n------------\n"
+        for eq in self.equal_places:
+            text += eq[0].id + ' = ' + eq[1].id + '\n'
+        
+        return text
+
     def construct(self):
-        """
+        """ Parse the equation and construct the relation.
         """
         for eq in self.eq.system:
             left = self.get_variable(eq.left[0])
@@ -254,23 +270,53 @@ class Relation:
                 right_2 = self.get_variable(eq.right[1])
 
                 # case p = q + r
-                if left in self.eq.places:
-                    left.chidren.append([right_1, right_2])
+                if not left.additional:
+                    left.chidren = [right_1, right_2]
                 
                 else:
                 
                     # case a = p + a'
-                    if right_2.id not in self.eq.places:
-                        left.children.append([right_1, right_2])
+                    if right_1.additional or right_2.additional:
+                        left.children = [right_1, right_2]
+                        if right_1 in self.agglomerations:
+                            self.agglomerations.remove(right_1)
                         if right_2 in self.agglomerations:
                             self.agglomerations.remove(right_2)
                         self.agglomerations.append(left)
 
                     # case a = p + q
                     else:
-                        left.children.append([right_1, right_2])
+                        left.children = [right_1, right_2]
                         self.agglomerations.append(left)
 
+    def propagate(self):
+        """ Propagate places to the head of each agglomeration.
+        """
+        for agglo in self.agglomerations:
+            
+            agglo_list = []
+            current_place = agglo
+            
+            while True:
+
+                if not current_place.additional:
+                    agglo_list.append(current_place)
+
+                if current_place.children[1].additional: 
+                    agglo_list.append(current_place.children[0])
+                    current_place = current_place.children[1]
+                elif current_place.children[0].additional:
+                    agglo_list.append(current_place.children[1])
+                    current_place = current_place.children[0]
+                else:
+                    agglo_list.append(current_place.children[0])
+                    agglo_list.append(current_place.children[1])
+                    break
+
+            agglo.places_propagated = agglo_list
+
+    def construct_matrix(self, matrix_reduced, matrix):
+        pass
 
     def get_variable(self, id_var):
         """ Create the corresponding Variable
@@ -280,7 +326,7 @@ class Relation:
         if id_var in self.variables:
             return self.variables[id_var]
         else:
-            new_var = Variable(id_var)
+            new_var = Variable(id_var, id_var not in self.eq.places)
             self.variables[id_var] = new_var
             return new_var
 
@@ -295,11 +341,21 @@ class Variable:
     - a set of equals variables
     - a set of children
     """
-    def __init__(self, id):    
+    def __init__(self, id, additional):    
         self.id = id
+        self.additional = additional
+
         self.value = -1
         self.equals = []
-        self.children = []
+        self.children = None
+
+        self.places_propagated = []
+
+    def __str__(self):
+        text = self.id + ':'
+        for var in self.places_propagated:
+            text += ' ' + var.id
+        return text
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ Ref: Garavel, “Nested-Unit Petri Nets.”
 """
 
 from pn import PetriNet, Place
-from eq import System
+from eq import System, Relation
 from formula import Formula, Clause, Inequality
 from k_induction import KInduction
 
@@ -29,6 +29,8 @@ class ConcurrentPlaces:
         self.pn_reduced = pn_reduced
         self.eq = eq
 
+        self.reduced = eq is not None
+
         self.debug = debug
 
         self.formula = Formula(pn, prop='concurrent_places')
@@ -40,6 +42,15 @@ class ConcurrentPlaces:
         """
         Run Concurrent Places Analysis using k-induction.
         """
+        if self.reduced:
+            self.analyze_reduced(timeout)
+        else:
+            self.analyze_non_reduced(timeout)
+
+    def analyze_non_reduced(self, timeout):
+        """
+        Analysis on a non-reduced net.
+        """
         self.build_matrix()
         self.initialization()
         proc = Thread(target=self.iterate)
@@ -47,17 +58,12 @@ class ConcurrentPlaces:
         proc.join(timeout)
         stop_it_concurrent_places.set()
 
-    def display(self, compressed=True):
+    def analyze_reduced(self, timeout):
         """
-        Display Concurrent Places matrix.
+        Analysis on a reduced net.
         """
-        if self.matrix is None:
-            print("Cannot display the Concurrent Places matrix before analyze.")
-            exit(0)
-        if compressed:
-            self.display_compressed_matrix()
-        else:
-            self.display_matrix()
+        relation = Relation(self.eq)
+        print(relation)
 
     def build_matrix(self):
         """ Build a dictionary that create an order on the places.
@@ -88,7 +94,7 @@ class ConcurrentPlaces:
         """
         while not stop_it_concurrent_places.is_set():
 
-            k_induction = KInduction(self.pn, self.formula, self.pn_reduced, self.eq, self.debug)
+            k_induction = KInduction(self.pn, self.formula, self.eq, self.debug)
             model = k_induction.prove(display=False)
 
             if model is None:
@@ -127,20 +133,24 @@ class ConcurrentPlaces:
                 else:
                     self.matrix[pl2.order][pl1.order] = 1
 
+    def display(self, compressed=True):
+        """
+        Display Concurrent Places matrix.
+        """
+        if self.matrix is None:
+            print("Cannot display the Concurrent Places matrix before analyze.")
+            exit(0)
+        if compressed:
+            self.display_compressed_matrix()
+        else:
+            self.display_matrix()
+
     def display_matrix(self):
         """ Display Concurrent Places matrix.
             Half matrix, raw format.
         """
         for line in self.matrix:
             print(' '.join(map(str, line)))
-
-    def compression_rle(self, elem, counter):
-        """ Run-Length Encoding helper.
-        """
-        if counter < 4:
-            return str(elem) * counter
-        else:
-            return "{}({})".format(elem, counter)
 
     def display_compressed_matrix(self):
         """ Display Concurrent Places matrix.
@@ -168,11 +178,19 @@ class ConcurrentPlaces:
                         counter += 1
             print(text)
 
+    def compression_rle(self, elem, counter):
+        """ Run-Length Encoding helper.
+        """
+        if counter < 4:
+            return str(elem) * counter
+        else:
+            return "{}({})".format(elem, counter)
+
 
 if __name__ == '__main__':
     
     if len(sys.argv) < 2:
-        exit("File missing: ./kinduction.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
+        exit("File missing: ./concurrent_places.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
 
     pn = PetriNet(sys.argv[1])
     
