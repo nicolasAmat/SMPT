@@ -28,53 +28,61 @@ class ConcurrentPlaces:
         self.pn = pn
         self.pn_reduced = pn_reduced
         self.eq = eq
-
-        self.reduced = eq is not None
-
         self.debug = debug
-
-        self.formula = Formula(pn, prop='concurrent_places')
-        self.c = []
 
         self.matrix = None
         
+        self.reduced = eq is not None
+        
         if self.reduced:
             self.matrix_reduced = None
+            self.pn_analyzed = self.pn_reduced
+        else:
+            self.pn_analyzed = self.pn
+
+        self.formula = Formula(pn, prop='concurrent_places')
+        self.c = []
 
     def analyze(self, timeout):
         """
         Run Concurrent Places Analysis using k-induction.
         """
-        if self.reduced:
-            self.analyze_reduced(timeout)
-        else:
-            self.analyze_non_reduced(timeout)
-
-    def analyze_non_reduced(self, timeout):
-        """
-        Analysis on a non-reduced net.
-        """
         self.build_matrix()
         self.initialization()
-        proc = Thread(target=self.iterate)
-        proc.start()
-        proc.join(timeout)
-        stop_it_concurrent_places.set()
 
-    def analyze_reduced(self, timeout):
+        if self.pn_analyzed.places != {}:
+            proc = Thread(target=self.iterate)
+            proc.start()
+            proc.join(timeout)
+            stop_it_concurrent_places.set()
+
+        if self.reduced:
+            self.analyze_reduced()
+
+    def analyze_reduced(self):
         """
         Analysis on a reduced net.
         """
         relation = Relation(self.eq)
-        print(relation)
+        c_stables = relation.trivial_c_stables()
+        print(c_stables)
+        for c_stable in c_stables:
+            self.fill_matrix(self.place_translator(c_stable), self.matrix)
 
     def build_matrix(self):
         """ Build a dictionary that create an order on the places.
+            Assumption: No Dead Place
         """
-        # EXPERIMENTAL: need to put `.` every where!
         self.matrix = [[0 for j in range(i + 1)] for i in range(self.pn.counter_places)]
         for i in range(self.pn.counter_places):
             self.matrix[i][i] = 1
+        self.matrix_analyzed = self.matrix
+
+        if self.reduced:
+            self.matrix_reduced = [[0 for j in range(i + 1)] for i in range(self.pn_reduced.counter_places)]
+            for i in range(self.pn_reduced.counter_places):
+                self.matrix_reduced[i][i] = 1
+            self.matrix_analyzed = self.matrix_reduced
 
     def initialization(self):
         """ Initialization.
@@ -83,7 +91,7 @@ class ConcurrentPlaces:
         """
         m_zero = []
 
-        for pl in self.pn.places.values():
+        for pl in self.pn_analyzed.places.values():
             if pl.marking > 0:
                 m_zero.append(pl)
         
@@ -97,7 +105,7 @@ class ConcurrentPlaces:
         """
         while not stop_it_concurrent_places.is_set():
 
-            k_induction = KInduction(self.pn, self.formula, self.eq, self.debug)
+            k_induction = KInduction(self.pn_analyzed, self.formula, debug=self.debug)
             model = k_induction.prove(display=False)
 
             if model is None:
@@ -118,23 +126,29 @@ class ConcurrentPlaces:
         
         inequalities = []
 
-        for pl in self.pn.places.values():
+        for pl in self.pn_analyzed.places.values():
             if pl not in m:
                 inequalities.append(Inequality(pl, 0, '>'))
         cl = Clause(inequalities, 'or')
         self.formula.clauses.append(cl)
 
-        self.fill_matrix(m)
+        self.fill_matrix(m, self.matrix_analyzed)
 
-    def fill_matrix(self, m):
-        """ Fill a marking m in the Concurrent Places matrix.
+    def fill_matrix(self, c, matrix):
+        """ Fill a c-stable c in the Concurrent Places matrix.
         """
-        for index, pl1 in enumerate(m):
-            for pl2 in m[index + 1:]:
+        for index, pl1 in enumerate(c):
+            for pl2 in c[index + 1:]:
                 if pl1.order > pl2.order:
-                    self.matrix[pl1.order][pl2.order] = 1 
+                    matrix[pl1.order][pl2.order] = 1 
                 else:
-                    self.matrix[pl2.order][pl1.order] = 1
+                    matrix[pl2.order][pl1.order] = 1
+
+    def place_translator(self, c):
+        """ Take a c-stable c with ids of places,
+            return same c-stable with places from the initial net.
+        """
+        return [self.pn.places[id_pl] for id_pl in c]
 
     def display(self, compressed=True):
         """

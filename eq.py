@@ -292,26 +292,42 @@ class Relation:
 
     def propagate(self):
         """ Propagate places to the head of each agglomeration.
+            Propagate value of each agglomeration.
         """
         for agglo in self.agglomerations:
             
             agglo_list = []
             current_place = agglo
-            
-            while True:
+            value = agglo.value
 
+            while True:
+                
                 if not current_place.additional:
                     agglo_list.append(current_place)
 
-                if current_place.children[1].additional: 
-                    agglo_list.append(current_place.children[0])
-                    current_place = current_place.children[1]
-                elif current_place.children[0].additional:
-                    agglo_list.append(current_place.children[1])
-                    current_place = current_place.children[0]
+                for pl in current_place.equals:
+                    if value > pl.value:
+                        pl.value = value
+                        # TO CHECK
+                        self.constant_places.append(pl)
+
+                left_child = current_place.children[0]
+                right_child = current_place.children[1]
+
+                if left_child.value < value:
+                    left_child.value = value
+                if right_child.value < value:
+                    right_child.value = value
+
+                if left_child.additional: 
+                    agglo_list.append(right_child)
+                    current_place = left_child
+                elif right_child.additional:
+                    agglo_list.append(left_child)
+                    current_place = right_child
                 else:
-                    agglo_list.append(current_place.children[0])
-                    agglo_list.append(current_place.children[1])
+                    agglo_list.append(left_child)
+                    agglo_list.append(right_child)
                     break
 
             agglo.places_propagated = agglo_list
@@ -328,6 +344,51 @@ class Relation:
             self.variables[id_var] = new_var
             return new_var
 
+    def trivial_c_stables(self):
+        c_stables = []
+        
+        # agglomerations with a value > 1
+        for agglo in self.agglomerations:
+            # a_n = k > 1
+            # a_n = p_n + a_n-1
+            # ...
+            # a_1 = p_1 + p_0
+            if agglo.value > 1:
+                c_stable = []
+                for pl in agglo.places_propagated:
+                    c_stable.append(pl.id)
+                    for pl_eq in pl.equals:
+                        c_stable.append(pl_eq.id)
+                c_stables.append(c_stable)
+            
+            # p = q + r
+            if not agglo.additional:
+                c_stables.append([agglo, agglo.children[0]])
+                c_stables.append([agglo, agglo.children[1]])
+
+        # constant places and agglomerations
+        if len(self.constant_places) > 0:
+            for index, agglo1 in enumerate(self.constant_places):
+                for agglo2 in self.constant_places[index + 1:]:
+                    for pl1 in agglo1.places_propagated:
+                        for pl2 in agglo2.places_propagated:
+                            c_stables.append([pl1.id, pl2.id])
+                            for pl_eq in pl1.equals:
+                                c_stables.append([pl_eq.id, pl2.id])
+                            for pl_eq in pl2.equals:
+                                c_stables.append([pl1.id, pl_eq.id])
+        
+        # equals places
+        for (agglo1, agglo2) in self.equal_places:
+            if not (agglo1.additional or agglo2.additional):
+                c_stables.append([agglo1.id, agglo2.id])
+            
+            else:
+                for pl1 in agglo1.places_propagated:
+                    for pl2 in agglo2.places_propagated:
+                        c_stables.append([pl1.id, pl2.id])
+
+        return c_stables
 
 class Variable:
     """
