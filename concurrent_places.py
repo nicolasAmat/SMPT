@@ -37,6 +37,9 @@ class ConcurrentPlaces:
         self.c = []
 
         self.matrix = None
+        
+        if self.reduced:
+            self.matrix_reduced = None
 
     def analyze(self, timeout):
         """

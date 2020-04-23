@@ -6,6 +6,7 @@ Reduction Equations Module
 Equations provided by the tool `reduce`
 Input file format: .net
 """
+from pn import PetriNet
 
 import re
 import sys
@@ -315,9 +316,6 @@ class Relation:
 
             agglo.places_propagated = agglo_list
 
-    def construct_matrix(self, matrix_reduced, matrix):
-        pass
-
     def get_variable(self, id_var):
         """ Create the corresponding Variable
             if it is not already created,
@@ -360,15 +358,25 @@ class Variable:
 
 if __name__ == "__main__":
     
-    if len(sys.argv) == 1:
-        exit("File missing: ./eq <path_to_file>")
+    if len(sys.argv) < 3:
+        exit("File missing: ./eq <path_to_initial_net> <path_to_reduced_net>")
     
-    system = System(sys.argv[1])
-    
+    pn = PetriNet(sys.argv[1])
+    pn_reduced = PetriNet(sys.argv[2])
+
+    eq = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
+
+    relation = Relation(eq)
+
     print("Equations")
     print("---------")
-    print(system)
+    print(eq)
     
     print("\nSMTlib2 Format")
     print("--------------")
-    print(system.smtlib())
+    print(eq.smtlib())
+
+    print("\nRelations")
+    print("---------")
+    print(relation)
+
