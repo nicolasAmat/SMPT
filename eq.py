@@ -295,20 +295,19 @@ class Relation:
             Propagate value of each agglomeration.
         """
         for agglo in self.agglomerations:
-            
-            agglo_list = []
+        
+            places_propagated = []
             current_place = agglo
             value = agglo.value
 
             while True:
                 
                 if not current_place.additional:
-                    agglo_list.append(current_place)
+                    places_propagated.append(current_place)
 
                 for pl in current_place.equals:
                     if value > pl.value:
                         pl.value = value
-                        # TO CHECK
                         self.constant_places.append(pl)
 
                 left_child = current_place.children[0]
@@ -320,17 +319,17 @@ class Relation:
                     right_child.value = value
 
                 if left_child.additional: 
-                    agglo_list.append(right_child)
+                    places_propagated.append(right_child)
                     current_place = left_child
                 elif right_child.additional:
-                    agglo_list.append(left_child)
+                    places_propagated.append(left_child)
                     current_place = right_child
                 else:
-                    agglo_list.append(left_child)
-                    agglo_list.append(right_child)
+                    places_propagated.append(left_child)
+                    places_propagated.append(right_child)
                     break
 
-            agglo.places_propagated = agglo_list
+            agglo.places_propagated = places_propagated
 
     def get_variable(self, id_var):
         """ Create the corresponding Variable

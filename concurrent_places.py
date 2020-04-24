@@ -65,9 +65,14 @@ class ConcurrentPlaces:
         """
         relation = Relation(self.eq)
         c_stables = relation.trivial_c_stables()
-        print(c_stables)
+        
         for c_stable in c_stables:
             self.fill_matrix(self.place_translator(c_stable), self.matrix)
+
+        for i, line in enumerate(self.matrix_reduced):
+            for j, concurrent in enumerate(line):
+                if concurrent:
+                    # i,j do someting
 
     def build_matrix(self):
         """ Build a dictionary that create an order on the places.
