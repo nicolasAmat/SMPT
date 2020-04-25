@@ -24,6 +24,7 @@ class PetriNet:
         self.transitions = {}
 
         self.counter_places = 0
+        self.ordered_places = []
 
         self.parse_net(filename)
 
@@ -145,8 +146,12 @@ class PetriNet:
         else:
             arc = [arc]
 
-        if arc[0] not in self.places:
-            self.places[arc[0]] = Place(arc[0], self.counter_places)
+        place_id = arc[0]
+
+        if place_id not in self.places:
+            new_place = Place(place_id, self.counter_places)
+            self.places[place_id] = new_place
+            self.ordered_places.append(new_place)
             self.counter_places += 1
         
         if len(arc) == 1:
@@ -158,7 +163,7 @@ class PetriNet:
         if inhibitor_arc:
             weight = -weight
 
-        pl = self.places.get(arc[0])
+        pl = self.places.get(place_id)
         arcs[pl] = weight
 
         # In a case of a test arc, we add a second arc 
@@ -181,7 +186,9 @@ class PetriNet:
             marking = 0
 
         if place_id not in self.places:
-            self.places[place_id] = Place(place_id, self.counter_places, marking)
+            new_place = Place(place_id, self.counter_places, marking)
+            self.places[place_id] = new_place
+            self.ordered_places.append(new_place)
             self.counter_places += 1
         else:
             self.places.get(place_id).marking = marking

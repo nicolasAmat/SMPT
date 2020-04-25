@@ -294,11 +294,11 @@ class Relation:
         """ Propagate places to the head of each agglomeration.
             Propagate value of each agglomeration.
         """
-        for agglo in self.agglomerations:
+        for var in self.agglomerations:
         
             places_propagated = []
-            current_place = agglo
-            value = agglo.value
+            current_place = var
+            value = var.value
 
             while True:
                 
@@ -329,7 +329,12 @@ class Relation:
                     places_propagated.append(right_child)
                     break
 
-            agglo.places_propagated = places_propagated
+            var.places_propagated = places_propagated
+
+        for var in self.constant_places:
+            if not var.additional:
+                var.places_propagated.append(var)
+
 
     def get_variable(self, id_var):
         """ Create the corresponding Variable
@@ -347,30 +352,30 @@ class Relation:
         c_stables = []
         
         # agglomerations with a value > 1
-        for agglo in self.agglomerations:
+        for var in self.agglomerations:
             # a_n = k > 1
             # a_n = p_n + a_n-1
             # ...
             # a_1 = p_1 + p_0
-            if agglo.value > 1:
+            if var.value > 1:
                 c_stable = []
-                for pl in agglo.places_propagated:
+                for pl in var.places_propagated:
                     c_stable.append(pl.id)
                     for pl_eq in pl.equals:
                         c_stable.append(pl_eq.id)
                 c_stables.append(c_stable)
             
             # p = q + r
-            if not agglo.additional:
-                c_stables.append([agglo, agglo.children[0]])
-                c_stables.append([agglo, agglo.children[1]])
+            if not var.additional:
+                c_stables.append([var, var.children[0]])
+                c_stables.append([var, var.children[1]])
 
         # constant places and agglomerations
         if len(self.constant_places) > 0:
-            for index, agglo1 in enumerate(self.constant_places):
-                for agglo2 in self.constant_places[index + 1:]:
-                    for pl1 in agglo1.places_propagated:
-                        for pl2 in agglo2.places_propagated:
+            for index, var1 in enumerate(self.constant_places):
+                for var2 in self.constant_places[index + 1:]:
+                    for pl1 in var1.places_propagated:
+                        for pl2 in var2.places_propagated:
                             c_stables.append([pl1.id, pl2.id])
                             for pl_eq in pl1.equals:
                                 c_stables.append([pl_eq.id, pl2.id])
@@ -378,16 +383,35 @@ class Relation:
                                 c_stables.append([pl1.id, pl_eq.id])
         
         # equals places
-        for (agglo1, agglo2) in self.equal_places:
-            if not (agglo1.additional or agglo2.additional):
-                c_stables.append([agglo1.id, agglo2.id])
+        for (var1, var2) in self.equal_places:
+            if not (var1.additional or var2.additional):
+                c_stables.append([var1.id, var2.id])
             
             else:
-                for pl1 in agglo1.places_propagated:
-                    for pl2 in agglo2.places_propagated:
+                for pl1 in var1.places_propagated:
+                    for pl2 in var2.places_propagated:
                         c_stables.append([pl1.id, pl2.id])
 
         return c_stables
+
+    def c_stable_matrix(self, var1, var2):
+        var1 = self.get_variable(var1.id)
+        var2 = self.get_variable(var2.id)
+        
+        c_stables = []
+
+        for pl1 in var1.places_propagated:
+            for pl2 in var2.places_propagated:
+                c_stables.append([pl1.id, pl2.id])
+                for pl_eq in pl1.equals:
+                    if not pl_eq.additional:
+                        c_stables.append([pl_eq.id, pl2.id])
+                for pl_eq in pl2.equals:
+                    if not pl_eq.additional:
+                        c_stables.append([pl1.id, pl_eq.id])
+        
+        return c_stables
+
 
 class Variable:
     """

@@ -71,8 +71,18 @@ class ConcurrentPlaces:
 
         for i, line in enumerate(self.matrix_reduced):
             for j, concurrent in enumerate(line):
-                if concurrent:
-                    # i,j do someting
+                if i != j and concurrent:
+                        var1 = self.pn_reduced.ordered_places[i]
+                        var2 = self.pn_reduced.ordered_places[j]
+
+                        if var1 not in self.pn.places.values() or var2 not in self.pn.places.values():
+                            c_stables = relation.c_stable_matrix(var1, var2)
+                            for c_stable in c_stables:
+                                self.fill_matrix(self.place_translator(c_stable), self.matrix)
+
+                        else:
+                            pl1, pl2 = self.pn.places[var1.id], self.pn.places[var2.id]
+                            self.fill_matrix([pl1, pl2], self.matrix)
 
     def build_matrix(self):
         """ Build a dictionary that create an order on the places.
@@ -171,8 +181,8 @@ class ConcurrentPlaces:
         """ Display Concurrent Places matrix.
             Half matrix, raw format.
         """
-        for line in self.matrix:
-            print(' '.join(map(str, line)))
+        for index, line in enumerate(self.matrix):
+            print(self.pn.ordered_places[index].id, ' '.join(map(str, line)))
 
     def display_compressed_matrix(self):
         """ Display Concurrent Places matrix.
