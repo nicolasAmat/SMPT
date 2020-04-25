@@ -412,6 +412,13 @@ class Relation:
         
         return c_stables
 
+    def equalities(self):
+        equals = []
+        for var1, var2 in self.equal_places:
+            if not (var1.additional or var2.additional):
+                 equals.append([var1.id, var2.id])
+        return equals
+
 
 class Variable:
     """
