@@ -6,7 +6,9 @@ Petri Net Stepper.
 
 from pn import PetriNet
 
+from random import shuffle
 import sys
+
 
 class Stepper:
     """
@@ -16,6 +18,9 @@ class Stepper:
         """ Initializer.
         """
         self.pn = pn
+
+        self.transitions = [*self.pn.transitions]
+
         # A precondition vector associated to each transition
         self.pre = {}
         # A delta vector assiciated to each transition
@@ -28,8 +33,8 @@ class Stepper:
             Output: `pre` and `delta` vectors associated to each transitions.
         """
         text = ""
-        for tr in self.pn.transitions.values():
-            text += tr.id + ":"
+        for tr in self.transitions:
+            text += tr + ":"
             pre, delta = self.pre[tr], self.delta[tr]
             
             text +=  "\n\t> Pre: "
@@ -54,7 +59,7 @@ class Stepper:
     def initialization(self):
         """ Initialize `pre` and `delta` vetors.
         """
-        for tr in self.pn.transitions.values():
+        for tr_id, tr in self.pn.transitions.items():
             
             pre = [0 for _ in range(self.pn.counter_places)]
             delta = [0 for _ in range(self.pn.counter_places)]
@@ -67,13 +72,30 @@ class Stepper:
             for pl, weight in tr.output.items():
                 delta[pl.order] += weight
 
-            self.pre[tr], self.delta[tr] = pre, delta
+            self.pre[tr_id], self.delta[tr_id] = pre, delta
 
-    def get_markings(self, m, c):
+    def get_markings(self, m=None, c=None):
         """
         """
-        
-    
+        new_markings = []
+
+        # Shuffle the transtitions
+        shuffle(self.transitions)
+
+        # Iterate over transitions until one is fireable
+        for tr in self.transitions:
+            if self.is_fireable(tr, m): # fireable
+                if True: # new marking
+                    break
+
+        return new_markings
+
+    def is_fireable(self, tr, marking):
+        """ Check if a transitions is fireable given a marking.
+        """
+        pre = self.pre[tr]
+        return True
+
 if __name__ == '__main__':
     
     if len(sys.argv) == 1:
