@@ -214,8 +214,8 @@ class Place:
     - an initial marking
     - an order
     """
-    def __init__(self, id, order, marking=0):
-        self.id = id
+    def __init__(self, pl_id, order, marking=0):
+        self.id = pl_id
         self.marking = marking
         self.order = order
 
@@ -257,8 +257,8 @@ class Transition:
     - the set of all the places linked to the transition,
 
     """
-    def __init__(self, id, pn):
-        self.id = id
+    def __init__(self, tr_id, pn):
+        self.id = tr_id
         self.pn = pn
         self.input = {}
         self.output = {}
