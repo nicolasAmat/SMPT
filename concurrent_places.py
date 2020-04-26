@@ -40,12 +40,11 @@ class ConcurrentPlaces:
         else:
             self.pn_analyzed = self.pn
 
-        self.formula = Formula(pn, prop='concurrent_places')
+        self.formula = Formula(self.pn_analyzed, prop='concurrent_places')
         self.c = []
 
     def analyze(self, timeout):
-        """
-        Run Concurrent Places Analysis using k-induction.
+        """ Run Concurrent Places Analysis using k-induction.
         """
         self.build_matrix()
         self.initialization()
@@ -60,8 +59,7 @@ class ConcurrentPlaces:
             self.analyze_reduced()
 
     def analyze_reduced(self):
-        """
-        Analysis on a reduced net.
+        """ Analysis on a reduced net.
         """
         relation = Relation(self.eq)
         c_stables = relation.trivial_c_stables()
@@ -138,7 +136,7 @@ class ConcurrentPlaces:
         """ Block a marking m.
         """
         self.c.append(m)
-        
+
         inequalities = []
 
         for pl in self.pn_analyzed.places.values():
@@ -166,8 +164,7 @@ class ConcurrentPlaces:
         return [self.pn.places[id_pl] for id_pl in c]
 
     def display(self, compressed=True):
-        """
-        Display Concurrent Places matrix.
+        """ Display Concurrent Places matrix.
         """
         if self.matrix is None:
             print("Cannot display the Concurrent Places matrix before analyze.")

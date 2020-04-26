@@ -69,6 +69,10 @@ class Stepper:
 
             self.pre[tr], self.delta[tr] = pre, delta
 
+    def get_markings(self, m, c):
+        """
+        """
+        
     
 if __name__ == '__main__':
     
