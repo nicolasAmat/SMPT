@@ -214,11 +214,15 @@ class Equation:
 
 class Relation:
     """
-    Graph relation between original net and reduced net.
+    Graph relation between a net and its reduced net.
+    
     A relation is composed of:
-    - Chains of agglomerations
-    - Constant places
-    - Equalities between places
+    - Agglomerations of Variables
+    - Constant Variables
+    - Equalities between Variables
+
+    Used for the Concurrent Places Problem.
+    See: `concurrent_places.py`
     """
     def __init__(self, eq):
         self.eq = eq
@@ -226,115 +230,65 @@ class Relation:
         self.variables = {}
 
         self.agglomerations = []
-        self.constant_places = []
-        self.equal_places = []
+        self.constant_vars = []
+        self.equal_vars = []
 
         self.construct()
         self.propagate()
 
     def __str__(self):
+        """ Relation to String:
+            - Agglomerations
+            - Constant Variables
+            - Equal Variables
+        """
         text = "Agglomerations\n--------------\n"
         for agglo in self.agglomerations:
             text += str(agglo) + '\n'
-        text += "\nConstant Places\n---------------\n"
-        for pl in self.constant_places:
+        
+        text += "\nConstant Variables\n------------------\n"
+        for pl in self.constant_vars:
             text += pl.id + ' = ' + str(pl.value) + '\n'
-        text += "\nEqual Places\n------------\n"
-        for eq in self.equal_places:
+        
+        text += "\nEqual Variables\n---------------\n"
+        for eq in self.equal_vars:
             text += eq[0].id + ' = ' + eq[1].id + '\n'
         
         return text
 
     def construct(self):
-        """ Parse the equation and construct the relation.
+        """ Parse the equations and construct the relation.
         """
         for eq in self.eq.system:
+            
             left = self.get_variable(eq.left[0])
 
             if len(eq.right) == 1:
 
-                # case p = k
                 if eq.right[0].isnumeric():
+                    # case p = k or a = k
                     left.value = int(eq.right[0])
-                    self.constant_places.append(left)
+                    self.constant_vars.append(left)
 
-                # case p = q
                 else:
+                    # case p = q
                     right = self.get_variable(eq.right[0])
                     left.equals.append(right)
                     right.equals.append(left)
-                    self.equal_places.append([left, right])
+                    self.equal_vars.append([left, right])
                 
             else:
-                
-                right_1 = self.get_variable(eq.right[0])
-                right_2 = self.get_variable(eq.right[1])
-
-                # case p = q + r
-                if not left.additional:
-                    left.chidren = [right_1, right_2]
-                
-                else:
-                
-                    # case a = p + a'
-                    if right_1.additional or right_2.additional:
-                        left.children = [right_1, right_2]
-                        if right_1 in self.agglomerations:
-                            self.agglomerations.remove(right_1)
-                        if right_2 in self.agglomerations:
-                            self.agglomerations.remove(right_2)
-                        self.agglomerations.append(left)
-
-                    # case a = p + q
-                    else:
-                        left.children = [right_1, right_2]
-                        self.agglomerations.append(left)
+                # case a = p + a' or a = p + q or p = q + r
+                left.children.append(self.get_variable(eq.right[0]))
+                left.children.append(self.get_variable(eq.right[1]))
+                self.agglomerations.append(left)
 
     def propagate(self):
         """ Propagate places to the head of each agglomeration.
             Propagate value of each agglomeration.
         """
-        for var in self.agglomerations:
-        
-            places_propagated = []
-            current_place = var
-            value = var.value
-
-            while True:
-                
-                if not current_place.additional:
-                    places_propagated.append(current_place)
-
-                for pl in current_place.equals:
-                    if value > pl.value:
-                        pl.value = value
-                        self.constant_places.append(pl)
-
-                left_child = current_place.children[0]
-                right_child = current_place.children[1]
-
-                if left_child.value < value:
-                    left_child.value = value
-                if right_child.value < value:
-                    right_child.value = value
-
-                if left_child.additional: 
-                    places_propagated.append(right_child)
-                    current_place = left_child
-                elif right_child.additional:
-                    places_propagated.append(left_child)
-                    current_place = right_child
-                else:
-                    places_propagated.append(left_child)
-                    places_propagated.append(right_child)
-                    break
-
-            var.places_propagated = places_propagated
-
-        for var in self.constant_places:
-            if not var.additional:
-                var.places_propagated.append(var)
-
+        for var in self.variables.values():
+            var.propagate(var.value)
 
     def get_variable(self, id_var):
         """ Create the corresponding Variable
@@ -349,9 +303,11 @@ class Relation:
             return new_var
 
     def trivial_c_stables(self):
+        """ Return a set of c-stables obtained trivially
+            from the reduction equations.
+        """
         c_stables = []
         
-        # agglomerations with a value > 1
         for var in self.agglomerations:
             # a_n = k > 1
             # a_n = p_n + a_n-1
@@ -361,29 +317,23 @@ class Relation:
                 c_stable = []
                 for pl in var.places_propagated:
                     c_stable.append(pl.id)
-                    for pl_eq in pl.equals:
-                        c_stable.append(pl_eq.id)
                 c_stables.append(c_stable)
             
             # p = q + r
             if not var.additional:
-                c_stables.append([var, var.children[0]])
-                c_stables.append([var, var.children[1]])
+                c_stables.append([var.id, var.children[0].id])
+                c_stables.append([var.id, var.children[1].id])
 
         # constant places and agglomerations
-        if len(self.constant_places) > 0:
-            for index, var1 in enumerate(self.constant_places):
-                for var2 in self.constant_places[index + 1:]:
+        if len(self.constant_vars) > 0:
+            for index, var1 in enumerate(self.constant_vars):
+                for var2 in self.constant_vars[index + 1:]:
                     for pl1 in var1.places_propagated:
                         for pl2 in var2.places_propagated:
                             c_stables.append([pl1.id, pl2.id])
-                            for pl_eq in pl1.equals:
-                                c_stables.append([pl_eq.id, pl2.id])
-                            for pl_eq in pl2.equals:
-                                c_stables.append([pl1.id, pl_eq.id])
         
-        # equals places
-        for (var1, var2) in self.equal_places:
+        # equals variables
+        for (var1, var2) in self.equal_vars:
             if not (var1.additional or var2.additional):
                 c_stables.append([var1.id, var2.id])
             
@@ -395,6 +345,9 @@ class Relation:
         return c_stables
 
     def c_stable_matrix(self, var1, var2):
+        """ Given two concurrent places from the reduced net
+            return associated c-stables in the original net.
+        """
         var1 = self.get_variable(var1.id)
         var2 = self.get_variable(var2.id)
         
@@ -403,20 +356,17 @@ class Relation:
         for pl1 in var1.places_propagated:
             for pl2 in var2.places_propagated:
                 c_stables.append([pl1.id, pl2.id])
-                for pl_eq in pl1.equals:
-                    if not pl_eq.additional:
-                        c_stables.append([pl_eq.id, pl2.id])
-                for pl_eq in pl2.equals:
-                    if not pl_eq.additional:
-                        c_stables.append([pl1.id, pl_eq.id])
         
         return c_stables
 
     def equalities(self):
+        """ Return the list of equals places.
+            Not used for the moment.
+        """
         equals = []
-        for var1, var2 in self.equal_places:
+        for var1, var2 in self.equal_vars:
             if not (var1.additional or var2.additional):
-                 equals.append([var1.id, var2.id])
+                equals.append([var1.id, var2.id])
         return equals
 
 
@@ -427,8 +377,12 @@ class Variable:
     A variable defined by:
     - an ID
     - a value
-    - a set of equals variables
-    - a set of children
+    - a list of equals variables
+    - a list of children
+    - after propagation, a set of places associated
+
+    Used for the Concurrent Places Problem.
+    See: `concurrent_places.py`
     """
     def __init__(self, id, additional):    
         self.id = id
@@ -436,15 +390,38 @@ class Variable:
 
         self.value = -1
         self.equals = []
-        self.children = None
+        self.children = []
 
-        self.places_propagated = []
+        self.places_propagated = set()
 
     def __str__(self):
         text = self.id + ':'
         for var in self.places_propagated:
             text += ' ' + var.id
         return text
+
+    def propagate(self, value):
+        """ Recursive propagation for agglomerations.
+        """
+        # Update value
+        if self.value < value:
+            self.value = value
+
+        # Add place
+        if not self.additional:
+            self.places_propagated.add(self)
+
+        # For each child, propagate it and add the places (recursively)
+        for child in self.children:
+            if not child.places_propagated:
+                child.propagate(value)
+            self.places_propagated = self.places_propagated.union(child.places_propagated)
+        
+        # For each equal var, propagate it and add the places (recursively)
+        for equal in self.equals:
+            if not equal.places_propagated:
+                equal.propagate(value)
+            self.places_propagated = self.places_propagated.union(equal.places_propagated)
 
 
 if __name__ == "__main__":
