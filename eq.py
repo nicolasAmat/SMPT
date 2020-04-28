@@ -316,7 +316,7 @@ class Relation:
             # a_1 = p_1 + p_0
             if var.value > 1:
                 c_stable = []
-                for pl in var.places_propagated:
+                for pl in var.propagated_places:
                     c_stable.append(pl.id)
                 c_stables.append(c_stable)
             
@@ -329,8 +329,8 @@ class Relation:
         if len(self.constant_vars) > 0:
             for index, var1 in enumerate(self.constant_vars):
                 for var2 in self.constant_vars[index + 1:]:
-                    for pl1 in var1.places_propagated:
-                        for pl2 in var2.places_propagated:
+                    for pl1 in var1.propagated_places:
+                        for pl2 in var2.propagated_places:
                             c_stables.append([pl1.id, pl2.id])
         
         # equals variables
@@ -339,8 +339,8 @@ class Relation:
                 c_stables.append([var1.id, var2.id])
             
             else:
-                for pl1 in var1.places_propagated:
-                    for pl2 in var2.places_propagated:
+                for pl1 in var1.propagated_places:
+                    for pl2 in var2.propagated_places:
                         c_stables.append([pl1.id, pl2.id])
 
         return c_stables
@@ -355,8 +355,8 @@ class Relation:
 
         c_stables = []
 
-        for pl1 in var1.places_propagated:
-            for pl2 in var2.places_propagated:
+        for pl1 in var1.propagated_places:
+            for pl2 in var2.propagated_places:
                 c_stables.append([pl1.id, pl2.id])
         
         return c_stables
@@ -394,14 +394,14 @@ class Variable:
         self.equals = []
         self.children = []
 
-        self.places_propagated = set()
+        self.propagated_places = set()
 
         if not self.additional:
-            self.places_propagated.add(self)
+            self.propagated_places.add(self)
 
     def __str__(self):
         text = self.id + ':'
-        for var in self.places_propagated:
+        for var in self.propagated_places:
             text += ' ' + var.id
         return text
 
@@ -414,15 +414,15 @@ class Variable:
 
         # For each child, propagate it and add the places (recursively)
         for child in self.children:
-            if not child.places_propagated:
+            if not child.propagated_places:
                 child.propagate(value)
-            self.places_propagated = self.places_propagated.union(child.places_propagated)
+            self.propagated_places = self.propagated_places.union(child.propagated_places)
         
         # For each equal var, propagate it and add the places (recursively)
         for equal in self.equals:
-            if not equal.places_propagated:
+            if not equal.propagated_places:
                 equal.propagate(value)
-            self.places_propagated = self.places_propagated.union(equal.places_propagated)
+            self.propagated_places = self.propagated_places.union(equal.propagated_places)
 
 
 if __name__ == "__main__":
