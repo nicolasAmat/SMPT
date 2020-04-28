@@ -297,6 +297,7 @@ class Relation:
         """
         if id_var in self.variables:
             return self.variables[id_var]
+
         else:
             new_var = Variable(id_var, id_var not in self.eq.places)
             self.variables[id_var] = new_var
@@ -344,13 +345,14 @@ class Relation:
 
         return c_stables
 
-    def c_stable_matrix(self, var1, var2):
+    def c_stable_matrix(self, var1_id, var2_id):
         """ Given two concurrent places from the reduced net
             return associated c-stables in the original net.
         """
-        var1 = self.get_variable(var1.id)
-        var2 = self.get_variable(var2.id)
+        var1 = self.get_variable(var1_id)
+        var2 = self.get_variable(var2_id)
         
+
         c_stables = []
 
         for pl1 in var1.places_propagated:
@@ -394,6 +396,9 @@ class Variable:
 
         self.places_propagated = set()
 
+        if not self.additional:
+            self.places_propagated.add(self)
+
     def __str__(self):
         text = self.id + ':'
         for var in self.places_propagated:
@@ -406,10 +411,6 @@ class Variable:
         # Update value
         if self.value < value:
             self.value = value
-
-        # Add place
-        if not self.additional:
-            self.places_propagated.add(self)
 
         # For each child, propagate it and add the places (recursively)
         for child in self.children:
