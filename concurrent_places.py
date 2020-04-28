@@ -9,7 +9,8 @@ Ref: Garavel, “Nested-Unit Petri Nets.”
 from pn import PetriNet, Place
 from eq import System, Relation
 from formula import Formula, Clause, Inequality
-from k_induction import KInduction
+from k_induction import KInduction, stop_it
+from stepper import Stepper
 
 import sys
 from threading import Thread, Event
@@ -21,7 +22,6 @@ class ConcurrentPlaces:
     """ 
     Concurrent Places Analyzer.
     """
-
     def __init__(self, pn, pn_reduced=None, eq=None, debug=False):
         """ Initializer.
         """
@@ -41,19 +41,23 @@ class ConcurrentPlaces:
             self.pn_analyzed = self.pn
 
         self.formula = Formula(self.pn_analyzed, prop='concurrent_places')
+        
+        self.init_marking_vector = []
         self.c = []
+
+        self.stepper = Stepper(self.pn_analyzed, self.c)
 
     def analyze(self, timeout):
         """ Run Concurrent Places Analysis using k-induction.
         """
         self.build_matrix()
-        self.initialization()
 
-        if self.pn_analyzed.places != {}:
+        if self.pn_analyzed.places:
+            self.initialization()
             proc = Thread(target=self.iterate)
             proc.start()
             proc.join(timeout)
-            stop_it_concurrent_places.set()
+            stop_it.set()
 
         if self.reduced:
             self.analyze_reduced()
@@ -69,9 +73,10 @@ class ConcurrentPlaces:
 
         for i, line in enumerate(self.matrix_reduced):
             for j, concurrent in enumerate(line):
+
                 if i != j and concurrent:
-                        var1 = self.pn_reduced.ordered_places[i]
-                        var2 = self.pn_reduced.ordered_places[j]
+                        var1 = self.pn_reduced.ordered_places[i].id
+                        var2 = self.pn_reduced.ordered_places[j].id
 
                         if var1 not in self.pn.places.values() or var2 not in self.pn.places.values():
                             c_stables = relation.c_stable_matrix(var1, var2)
@@ -87,14 +92,18 @@ class ConcurrentPlaces:
             Assumption: No Dead Place
         """
         self.matrix = [[0 for j in range(i + 1)] for i in range(self.pn.counter_places)]
+
         for i in range(self.pn.counter_places):
             self.matrix[i][i] = 1
+
         self.matrix_analyzed = self.matrix
 
         if self.reduced:
             self.matrix_reduced = [[0 for j in range(i + 1)] for i in range(self.pn_reduced.counter_places)]
+
             for i in range(self.pn_reduced.counter_places):
                 self.matrix_reduced[i][i] = 1
+
             self.matrix_analyzed = self.matrix_reduced
 
     def initialization(self):
@@ -102,50 +111,89 @@ class ConcurrentPlaces:
             If at least two places in m0 are marked,
             C := {m0}
         """
-        m_zero = []
-
-        for pl in self.pn_analyzed.places.values():
-            if pl.marking > 0:
-                m_zero.append(pl)
-        
-        if len(m_zero) > 1:
-            self.add_clause(m_zero)
-
-    def iterate(self):
-        """ Iterate until it finds new markings m
-            where at least two places are marked in it.
-            C := C U {m}
-        """
-        while not stop_it_concurrent_places.is_set():
-
-            k_induction = KInduction(self.pn_analyzed, self.formula, debug=self.debug)
-            model = k_induction.prove(display=False)
-
-            if model is None:
-                return
-
-            m = []
-
-            for eq in model.inequalities:
-                if eq.right_member > 0:
-                    m.append(eq.left_member)
-            
-            self.add_clause(m)
-
-    def add_clause(self, m):
-        """ Block a marking m.
-        """
-        self.c.append(m)
-
         inequalities = []
 
         for pl in self.pn_analyzed.places.values():
-            if pl not in m:
-                inequalities.append(Inequality(pl, 0, '>'))
-        cl = Clause(inequalities, 'or')
+                inequalities.append(Inequality(pl, pl.marking, '='))
+        
+        self.init_marking_vector = self.add_clause(Clause(inequalities, "and"))
+
+    def iterate(self):
+        """ Call the stepper until it returns new markings
+            If the stepper does not return new markings,
+            find a new marking using k-induction (SMT).
+        """
+        self.iterate_stepper(self.init_marking_vector)
+
+        while not stop_it.is_set():
+
+            k_induction = KInduction(self.pn_analyzed, self.formula, debug=self.debug)
+            
+            model = k_induction.prove(display=False)
+            if model is None:
+                return
+
+            marking_vector = self.add_clause(model)
+
+            self.iterate_stepper(marking_vector)
+
+    def iterate_stepper(self, marking_vector):
+        """ Iterate using the stepper.
+        """
+        # Get one-step markings from the marking vector.
+        markings = self.stepper.get_markings(marking_vector)
+        
+        # Add the one-step markings
+        for marking in markings:
+            self.add_clause_from_marking_vector(marking)
+
+        # Iterate on each marking next transitions, until we find new markings
+        while markings:
+            for marking in markings:
+                new_markings = self.stepper.get_markings(marking)
+                for new_marking in new_markings:
+                    self.add_clause_from_marking_vector(new_marking)
+            markings = new_markings
+
+    def add_clause(self, model, recursive=True):
+        """ Block a marking m.
+        """
+        cl_inequalities = []
+
+        marked_places = []
+        marking_vector = [0 for _ in range(self.pn_analyzed.counter_places)]
+
+        for eq in model.inequalities:
+            if eq.right_member == 0:
+                cl_inequalities.append(Inequality(eq.left_member, 0, '>'))
+            else:
+                marked_places.append(eq.left_member)
+            marking_vector[eq.left_member.order] = eq.right_member
+
+        cl = Clause(cl_inequalities, 'or')
         self.formula.clauses.append(cl)
 
-        self.fill_matrix(m, self.matrix_analyzed)
+        self.c.append(marked_places)
+        self.fill_matrix(marked_places, self.matrix_analyzed)
+
+        return marking_vector
+
+    def add_clause_from_marking_vector(self, marking_vector):
+        """ Block a marking vector (and sub vectors).
+        """
+        marked_places = []
+        cl_inequalities = []
+
+        for pl, pl_marking in zip(self.pn_analyzed.ordered_places, marking_vector):
+            if pl_marking == 0:
+                cl_inequalities.append(Inequality(pl, 0, '>'))
+            else:
+                marked_places.append(pl)
+
+        cl = Clause(cl_inequalities, 'or')
+        self.formula.clauses.append(cl)
+
+        self.fill_matrix(marked_places, self.matrix_analyzed)
 
     def fill_matrix(self, c, matrix):
         """ Fill a c-stable c in the Concurrent Places matrix.
