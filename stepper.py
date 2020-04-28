@@ -19,6 +19,7 @@ class Stepper:
         """
         self.pn = pn
 
+        # List of transitions to be shuffled
         self.transitions = [*self.pn.transitions]
 
         # A precondition vector associated to each transition
@@ -26,6 +27,7 @@ class Stepper:
         # A delta vector assiciated to each transition
         self.delta = {}
 
+        # List of markings (list of marked places) already explored
         self.c = c
 
         self.initialization()
@@ -59,7 +61,7 @@ class Stepper:
         return text
     
     def initialization(self):
-        """ Initialize `pre` and `delta` vetors.
+        """ Initialize `pre` and `delta` vetors for each transition.
         """
         for tr_id, tr in self.pn.transitions.items():
             
@@ -102,10 +104,10 @@ class Stepper:
         
         return new_markings
 
-    def is_fireable(self, tr, m):
+    def is_fireable(self, tr, marking):
         """ Check if a transitions is fireable given a marking.
         """
-        for pl_cond, pl_m in zip(self.pre[tr], m):
+        for pl_cond, pl_m in zip(self.pre[tr], marking):
             
             # Normal Arc
             if pl_cond > 0 and pl_m < pl_cond:
@@ -117,12 +119,15 @@ class Stepper:
             
         return True
 
-    def contains_new_pair(self, new_m):
-        """ Check if a new marking is not a included in a list of markings.
+    def contains_new_pair(self, new_marking):
+        """ Check if the new marking contains at least two marked palces,
+            and if it is not included in markings already explored (`c`).
         """
-        for m in self.c:
+        if len(new_marking) < 2:
+            return False
 
-            if set(new_m) <= set(m):
+        for marking in self.c:
+            if set(new_marking) <= set(marking):
                 return False
 
         return True
