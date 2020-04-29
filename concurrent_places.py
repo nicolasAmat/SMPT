@@ -3,6 +3,7 @@
 """
 Concurrent Places Analyzer.
 
+Assumption: No Dead Place
 Ref: Garavel, “Nested-Unit Petri Nets.”
 """
 
@@ -67,7 +68,7 @@ class ConcurrentPlaces:
         """
         relation = Relation(self.eq)
         c_stables = relation.trivial_c_stables()
-        
+
         for c_stable in c_stables:
             self.fill_matrix(self.place_translator(c_stable), self.matrix)
 
@@ -89,7 +90,6 @@ class ConcurrentPlaces:
 
     def build_matrix(self):
         """ Build a dictionary that create an order on the places.
-            Assumption: No Dead Place
         """
         self.matrix = [[0 for j in range(i + 1)] for i in range(self.pn.counter_places)]
 
@@ -108,13 +108,12 @@ class ConcurrentPlaces:
 
     def initialization(self):
         """ Initialization.
-            If at least two places in m0 are marked,
-            C := {m0}
+            Add m0 as a c-stable.
         """
         inequalities = []
 
         for pl in self.pn_analyzed.places.values():
-                inequalities.append(Inequality(pl, pl.marking, '='))
+            inequalities.append(Inequality(pl, pl.marking, '='))
         
         self.init_marking_vector = self.add_clause(Clause(inequalities, "and"))
 
