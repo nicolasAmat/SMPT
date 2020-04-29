@@ -226,15 +226,19 @@ class ConcurrentPlaces:
         """ Display Concurrent Places matrix.
             Half matrix, raw format.
         """
-        for index, line in enumerate(self.matrix):
-            print(self.pn.ordered_places[index].id, ' '.join(map(str, line)))
+        max_len = max([len(pl) for pl in self.pn.places])
+
+        for pl, line in zip(self.pn.ordered_places, self.matrix):
+            print(pl.id, ' ' * (max_len - len(pl.id)), ' '.join(map(str, line)))
 
     def display_compressed_matrix(self):
         """ Display Concurrent Places matrix.
             Comrpessed format.
         """
-        for line in self.matrix:
-            text = ""
+        max_len = max([len(pl) for pl in self.pn.places])
+
+        for pl, line in zip(self.pn.ordered_places, self.matrix):
+            text = pl.id + " " * (max_len - len(pl.id) + 2)
             for i in range(len(line)):
                 elem = line[i]
                 if i == 0:
