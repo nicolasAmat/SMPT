@@ -447,4 +447,3 @@ if __name__ == "__main__":
     print("\nRelations")
     print("---------")
     print(relation)
-

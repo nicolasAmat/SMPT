@@ -6,7 +6,6 @@ Petri Net Stepper.
 
 from pn import PetriNet
 
-from random import shuffle
 import sys
 
 
@@ -18,9 +17,6 @@ class Stepper:
         """ Initializer.
         """
         self.pn = pn
-
-        # List of transitions to be shuffled
-        self.transitions = [*self.pn.transitions]
 
         # A precondition vector associated to each transition
         self.pre = {}
@@ -37,7 +33,7 @@ class Stepper:
             Output: `pre` and `delta` vectors associated to each transitions.
         """
         text = ""
-        for tr in self.transitions:
+        for tr in self.pn.transitions:
             text += tr + ":"
             pre, delta = self.pre[tr], self.delta[tr]
             
@@ -84,11 +80,8 @@ class Stepper:
         """
         new_markings = []
 
-        # Shuffle the transtitions
-        shuffle(self.transitions)
-
         # Iterate over transitions until one is fireable
-        for tr in self.transitions:
+        for tr in self.pn.transitions:
         
             # Check if tr is fireable
             if self.is_fireable(tr, marking_vector):
