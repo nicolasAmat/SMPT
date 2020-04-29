@@ -98,7 +98,7 @@ class Stepper:
                 marked_place = [self.pn.ordered_places[index] for index, marking in enumerate(new_marking) if marking > 0]
 
                 # Check if the new marking is not included in markings already explored
-                if self.contains_new_pair(marked_place):
+                if self.not_explored(marked_place):
                     new_markings.append(new_marking)
                     self.c.append(new_marking)
         
@@ -119,7 +119,7 @@ class Stepper:
             
         return True
 
-    def contains_new_pair(self, new_marking):
+    def not_explored(self, new_marking):
         """ Check if the new marking contains at least two marked palces,
             and if it is not included in markings already explored (`c`).
         """
@@ -165,4 +165,3 @@ if __name__ == '__main__':
         markings_2 += stepper.get_markings(marking)
     for marking in markings_2:
         print(marking)
-
