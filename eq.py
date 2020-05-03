@@ -327,8 +327,8 @@ class Relation:
 
         # constant places and agglomerations (assumption: No dead place)
         if len(self.constant_vars) > 0:
-            for var1 in self.constant_vars:
-                for pl1 in var1.propagated_places:
+            for var in self.constant_vars:
+                for pl1 in var.propagated_places:
                     for pl2 in self.eq.places:
                             c_stables.append([pl1.id, pl2])
         
