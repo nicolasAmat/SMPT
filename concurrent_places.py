@@ -53,11 +53,16 @@ class ConcurrentPlaces:
         self.build_matrix()
 
         if self.pn_analyzed.places:
+            
             self.initialization()
+            
             proc = Thread(target=self.iterate)
             proc.start()
             proc.join(timeout)
             stop_it.set()
+
+            for clique in self.stepper.c:
+                self.fill_matrix(clique, self.matrix_analyzed)
 
         if self.reduced:
             self.analyze_reduced()
@@ -147,8 +152,6 @@ class ConcurrentPlaces:
             new_markings = []
             for marking in markings:
                 new_markings += self.stepper.get_markings(marking)
-            for new_marking in new_markings:
-                self.propagate_from_marking_vector(new_marking)
             markings = new_markings
 
     def propagate_from_model(self, model, recursive=True):
@@ -166,20 +169,7 @@ class ConcurrentPlaces:
 
         self.stepper.add_clique(marked_places)
 
-        self.fill_matrix(marked_places, self.matrix_analyzed)
-
         return marking_vector
-
-    def propagate_from_marking_vector(self, marking_vector):
-        """ Fill the analyzed matrix from a marking vector
-        """
-        marked_places = []
-
-        for pl, pl_marking in zip(self.pn_analyzed.ordered_places, marking_vector):
-            if pl_marking > 0:
-                marked_places.append(pl)
-
-        self.fill_matrix(marked_places, self.matrix_analyzed)
 
     def update_formula(self):
         """ Update formula
