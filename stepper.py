@@ -6,6 +6,7 @@ Petri Net Stepper.
 
 from pn import PetriNet
 
+import logging as log
 import sys
 
 
@@ -137,11 +138,14 @@ class Stepper:
         for pl in clique:
             pl.card_concurrency_relation += len(clique) - 1
 
+        # If all places of a clique in c are updated, remove this clique
         for cl in self.c[:]:
             if all(pl.card_concurrency_relation != pl.card_concurrency_relation_old for pl in cl):
                 self.c.remove(cl)
 
         self.c.append(clique)
+
+        log.info("> Clique explored: {}".format(' '.join([pl.id for pl in clique])))
 
 
 if __name__ == '__main__':
