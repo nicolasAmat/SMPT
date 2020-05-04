@@ -44,8 +44,7 @@ class ConcurrentPlaces:
         self.formula = Formula(self.pn_analyzed, prop='concurrent_places')
         
         self.init_marking_vector = []
-        self.c = []
-
+ 
         self.stepper = Stepper(self.pn_analyzed, self)
 
     def analyze(self, timeout):
@@ -169,7 +168,7 @@ class ConcurrentPlaces:
                 marked_places.append(eq.left_member)
             marking_vector[eq.left_member.order] = eq.right_member
 
-        self.add_clique(marked_places)
+        self.stepper.add_clique(marked_places)
 
         self.fill_matrix(marked_places, self.matrix_analyzed)
 
@@ -186,31 +185,13 @@ class ConcurrentPlaces:
 
         self.fill_matrix(marked_places, self.matrix_analyzed)
 
-    def add_clique(self, clique):
-        """ Add a clique to `c`.
-            Include cliques maximization.
-        """
-        # Restore old value
-        for pl in self.pn_analyzed.places.values():
-            pl.card_concurrency_relation_old = pl.card_concurrency_relation
-        
-        # Update new value
-        for pl in clique:
-            pl.card_concurrency_relation += len(clique) - 1
-
-        for cl in self.c[:]:
-            if all(pl.card_concurrency_relation != pl.card_concurrency_relation_old for pl in cl):
-                self.c.remove(cl)
-
-        self.c.append(clique)
-
     def update_formula(self):
         """ Update formula
         """
         # Keep only the first clause: at least 2 marked places
         clauses = [self.formula.clauses[0]]    
       
-        for clique in self.c:
+        for clique in self.stepper.c:
             inequalities = []
             for pl in self.pn_analyzed.places.values():
                 if pl not in clique:

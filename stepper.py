@@ -24,12 +24,7 @@ class Stepper:
         self.delta = {}
 
         # List of markings (list of marked places) already explored
-        if concurrent_places:
-            self.c = concurrent_places.c
-        else:
-            self.c = []
-        
-        self.add_clique = concurrent_places.add_clique
+        self.c = []
 
         self.initialization()
 
@@ -129,6 +124,25 @@ class Stepper:
                 return False
 
         return True
+
+    def add_clique(self, clique):
+        """ Add a clique to `c`.
+            Include cliques maximization.
+        """
+        # Restore old value
+        for pl in self.pn.places.values():
+            pl.card_concurrency_relation_old = pl.card_concurrency_relation
+        
+        # Update new value
+        for pl in clique:
+            pl.card_concurrency_relation += len(clique) - 1
+
+        for cl in self.c[:]:
+            if all(pl.card_concurrency_relation != pl.card_concurrency_relation_old for pl in cl):
+                self.c.remove(cl)
+
+        self.c.append(clique)
+
 
 if __name__ == '__main__':
     
