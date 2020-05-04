@@ -140,19 +140,15 @@ class ConcurrentPlaces:
     def iterate_stepper(self, marking_vector):
         """ Iterate using the stepper.
         """
-        # Get one-step markings from the marking vector.
-        markings = self.stepper.get_markings(marking_vector)
+        markings = [marking_vector]
         
-        # Add the one-step markings
-        for marking in markings:
-            self.propagate_from_marking_vector(marking)
-
         # Iterate on each marking next transitions, until we find new markings
         while markings:
+            new_markings = []
             for marking in markings:
-                new_markings = self.stepper.get_markings(marking)
-                for new_marking in new_markings:
-                    self.propagate_from_marking_vector(new_marking)
+                new_markings += self.stepper.get_markings(marking)
+            for new_marking in new_markings:
+                self.propagate_from_marking_vector(new_marking)
             markings = new_markings
 
     def propagate_from_model(self, model, recursive=True):
