@@ -46,7 +46,7 @@ class ConcurrentPlaces:
         self.init_marking_vector = []
         self.c = []
 
-        self.stepper = Stepper(self.pn_analyzed, self.c)
+        self.stepper = Stepper(self.pn_analyzed, self)
 
     def analyze(self, timeout):
         """ Run Concurrent Places Analysis using k-induction.
@@ -115,7 +115,7 @@ class ConcurrentPlaces:
         for pl in self.pn_analyzed.places.values():
             inequalities.append(Inequality(pl, pl.marking, '='))
         
-        self.init_marking_vector = self.add_clause(Clause(inequalities, "and"))
+        self.init_marking_vector = self.propagate_from_model(Clause(inequalities, "and"))
 
     def iterate(self):
         """ Call the stepper until it returns new markings
@@ -126,13 +126,15 @@ class ConcurrentPlaces:
 
         while not stop_it.is_set():
 
+            self.update_formula()
+
             k_induction = KInduction(self.pn_analyzed, self.formula, debug=self.debug)
             
             model = k_induction.prove(display=False)
             if model is None:
                 return
 
-            marking_vector = self.add_clause(model)
+            marking_vector = self.propagate_from_model(model)
 
             self.iterate_stepper(marking_vector)
 
@@ -144,55 +146,78 @@ class ConcurrentPlaces:
         
         # Add the one-step markings
         for marking in markings:
-            self.add_clause_from_marking_vector(marking)
+            self.propagate_from_marking_vector(marking)
 
         # Iterate on each marking next transitions, until we find new markings
         while markings:
             for marking in markings:
                 new_markings = self.stepper.get_markings(marking)
                 for new_marking in new_markings:
-                    self.add_clause_from_marking_vector(new_marking)
+                    self.propagate_from_marking_vector(new_marking)
             markings = new_markings
 
-    def add_clause(self, model, recursive=True):
-        """ Block a marking m.
+    def propagate_from_model(self, model, recursive=True):
+        """ Fill the analyzed matrix from a model,
+            add the marked place to `c`,
+            and return the corresponding marking vector.
         """
-        cl_inequalities = []
-
         marked_places = []
         marking_vector = [0 for _ in range(self.pn_analyzed.counter_places)]
 
         for eq in model.inequalities:
-            if eq.right_member == 0:
-                cl_inequalities.append(Inequality(eq.left_member, 0, '>'))
-            else:
+            if eq.right_member > 0:
                 marked_places.append(eq.left_member)
             marking_vector[eq.left_member.order] = eq.right_member
 
-        cl = Clause(cl_inequalities, 'or')
-        self.formula.clauses.append(cl)
+        self.add_clique(marked_places)
 
-        self.c.append(marked_places)
         self.fill_matrix(marked_places, self.matrix_analyzed)
 
         return marking_vector
 
-    def add_clause_from_marking_vector(self, marking_vector):
-        """ Block a marking vector (and sub vectors).
+    def propagate_from_marking_vector(self, marking_vector):
+        """ Fill the analyzed matrix from a marking vector
         """
         marked_places = []
-        cl_inequalities = []
 
         for pl, pl_marking in zip(self.pn_analyzed.ordered_places, marking_vector):
-            if pl_marking == 0:
-                cl_inequalities.append(Inequality(pl, 0, '>'))
-            else:
+            if pl_marking > 0:
                 marked_places.append(pl)
 
-        cl = Clause(cl_inequalities, 'or')
-        self.formula.clauses.append(cl)
-
         self.fill_matrix(marked_places, self.matrix_analyzed)
+
+    def add_clique(self, clique):
+        """ Add a clique to `c`.
+            Include cliques maximization.
+        """
+        # Restore old value
+        for pl in self.pn_analyzed.places.values():
+            pl.card_concurrency_relation_old = pl.card_concurrency_relation
+        
+        # Update new value
+        for pl in clique:
+            pl.card_concurrency_relation += len(clique) - 1
+
+        for cl in self.c[:]:
+            if all(pl.card_concurrency_relation != pl.card_concurrency_relation_old for pl in cl):
+                self.c.remove(cl)
+
+        self.c.append(clique)
+
+    def update_formula(self):
+        """ Update formula
+        """
+        # Keep only the first clause: at least 2 marked places
+        clauses = [self.formula.clauses[0]]    
+      
+        for clique in self.c:
+            inequalities = []
+            for pl in self.pn_analyzed.places.values():
+                if pl not in clique:
+                    inequalities.append(Inequality(pl, 0, '>'))
+            clauses.append(Clause(inequalities, 'or'))
+        
+        self.formula.clauses = clauses
 
     def fill_matrix(self, c, matrix):
         """ Fill a c-stable c in the Concurrent Places matrix.

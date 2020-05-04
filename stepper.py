@@ -13,7 +13,7 @@ class Stepper:
     """
     Stepper.
     """
-    def __init__(self, pn, c=[]):
+    def __init__(self, pn, concurrent_places=None):
         """ Initializer.
         """
         self.pn = pn
@@ -24,7 +24,12 @@ class Stepper:
         self.delta = {}
 
         # List of markings (list of marked places) already explored
-        self.c = c
+        if concurrent_places:
+            self.c = concurrent_places.c
+        else:
+            self.c = []
+        
+        self.add_clique = concurrent_places.add_clique
 
         self.initialization()
 
@@ -88,12 +93,12 @@ class Stepper:
                 
                 # Compute the resulting marking
                 new_marking = [m + delta for m, delta in zip(marking_vector, self.delta[tr])]
-                marked_place = [self.pn.ordered_places[index] for index, marking in enumerate(new_marking) if marking > 0]
+                new_marked_places = [self.pn.ordered_places[index] for index, marking in enumerate(new_marking) if marking > 0]
 
                 # Check if the new marking is not included in markings already explored
-                if self.not_explored(marked_place):
+                if self.not_explored(new_marked_places):
                     new_markings.append(new_marking)
-                    self.c.append(new_marking)
+                    self.add_clique(new_marked_places)
         
         return new_markings
 
@@ -112,15 +117,15 @@ class Stepper:
             
         return True
 
-    def not_explored(self, new_marking):
+    def not_explored(self, new_marked_places):
         """ Check if the new marking contains at least two marked palces,
             and if it is not included in markings already explored (`c`).
         """
-        if len(new_marking) < 2:
+        if len(new_marked_places) < 2:
             return False
 
-        for marking in self.c:
-            if set(new_marking) <= set(marking):
+        for marked_places in self.c:
+            if set(new_marked_places) <= set(marked_places):
                 return False
 
         return True

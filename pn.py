@@ -219,6 +219,10 @@ class Place:
         self.marking = marking
         self.order = order
 
+        # Only used for the Concurrent Places Problem
+        self.card_concurrency_relation_old = 0
+        self.card_concurrency_relation = 0 
+
     def __str__(self):
         """ Place to .net format.
         """
