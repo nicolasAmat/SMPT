@@ -13,7 +13,7 @@ class Stepper:
     """
     Stepper.
     """
-    def __init__(self, pn, concurrent_places=None):
+    def __init__(self, pn):
         """ Initializer.
         """
         self.pn = pn
@@ -150,10 +150,8 @@ if __name__ == '__main__':
         exit("File missing: ./stepper <path_to_net>")
     
     pn = PetriNet(sys.argv[1])
-    
-    c = [[pl for pl in pn.places.values() if pl.marking > 0]]
 
-    stepper = Stepper(pn, c)
+    stepper = Stepper(pn)
 
     print("Stepper")
     print("-------")

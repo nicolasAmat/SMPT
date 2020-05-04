@@ -45,7 +45,7 @@ class ConcurrentPlaces:
         
         self.init_marking_vector = []
  
-        self.stepper = Stepper(self.pn_analyzed, self)
+        self.stepper = Stepper(self.pn_analyzed)
 
     def analyze(self, timeout):
         """ Run Concurrent Places Analysis using k-induction.
