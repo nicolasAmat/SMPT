@@ -24,9 +24,11 @@ class PetriNet:
         self.transitions = {}
 
         self.counter_places = 0
-        self.ordered_places = []
 
         self.parse_net(filename)
+        
+        self.ordered_places = []
+        self.order_places()
 
     def __str__(self):
         """ Petri Net to .net format.
@@ -149,9 +151,8 @@ class PetriNet:
         place_id = arc[0]
 
         if place_id not in self.places:
-            new_place = Place(place_id, self.counter_places)
+            new_place = Place(place_id)
             self.places[place_id] = new_place
-            self.ordered_places.append(new_place)
             self.counter_places += 1
         
         if len(arc) == 1:
@@ -186,9 +187,8 @@ class PetriNet:
             marking = 0
 
         if place_id not in self.places:
-            new_place = Place(place_id, self.counter_places, marking)
+            new_place = Place(place_id, marking)
             self.places[place_id] = new_place
-            self.ordered_places.append(new_place)
             self.counter_places += 1
         else:
             self.places.get(place_id).marking = marking
@@ -206,6 +206,13 @@ class PetriNet:
                 index_pl += 1
         return content[index_pl:]
 
+    def order_places(self):
+        """ Order the places according to an alphanumeric order.
+        """
+        self.ordered_places = sorted(self.places.values(), key=lambda x: x.id)
+        for index, pl in enumerate(self.ordered_places):
+            pl.order = index
+
 
 class Place:
     """
@@ -214,10 +221,10 @@ class Place:
     - an initial marking
     - an order
     """
-    def __init__(self, pl_id, order, marking=0):
+    def __init__(self, pl_id, marking=0):
         self.id = pl_id
         self.marking = marking
-        self.order = order
+        self.order = -1
 
         # Only used for the Concurrent Places Problem
         self.card_concurrency_relation_old = 0
