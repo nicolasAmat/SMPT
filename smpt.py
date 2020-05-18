@@ -113,13 +113,23 @@ def main():
                         type=str,
                         help='use xml format for properties')
 
+    group_formula.add_argument('--reachability',
+                        action='store',
+                        dest='reach_places',
+                        type=str,
+                        help='reachibility analysis (seperate places by commas)')
+
     group_formula.add_argument('--concurrent-places',
                         action='store_true',
-                        help="concurrent places analyze")
+                        help="concurrent places analysis")
 
     parser.add_argument('--compressed-matrix',
                         action='store_true',
                         help="concurrent places matrix compressed")
+
+    parser.add_argument('--complete-matrix',
+                        action='store_true',
+                        help="run an analysis on the compleness of the matrix")
 
     group_reduce = parser.add_mutually_exclusive_group()
     
@@ -190,7 +200,19 @@ def main():
                 enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
             else:
                 k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
-    
+
+    if results.reach_places is not None:
+        places = results.reach_places.split(',')
+        marking = {}
+        for pl in places:
+            marking[pn.places[pl]] = 1
+        formula = Formula(pn, 'reachability', marking=marking)
+        ic3 = IC3(pn, formula, pn_reduced, eq, results.debug)
+        if ic3.prove():
+            print("Proved")
+        else:
+            print("Counterexample")
+
     if results.concurrent_places:
         concurrent_places = ConcurrentPlaces(pn, pn_reduced, eq, results.debug)
         concurrent_places.analyze(results.timeout)

@@ -82,23 +82,23 @@ class Formula:
     - an associated Petri Net
     - a set of clauses
     - an operator ('or', 'and') applied between the clauses
-    - a property ('deadlock', 'fireability', 'reachability')
+    - a property ('deadlock', 'fireability', 'reachability', 'concurrent places')
     """
-    def __init__(self, pn, prop='deadlock', transitions=[]):
+    def __init__(self, pn, prop='deadlock', transitions=[], marking=[]):
         self.pn = pn
         self.clauses = []
         self.operator = ""
         self.prop = prop
+        
         if prop == 'deadlock':
             self.generate_deadlock()
+        
         if prop == 'fireability':
             self.generate_fireability(transitions)
+        
         if prop == 'reachability':
-            # Start Debug
-            marking = {}
-            marking[self.pn.places["p_100"]] = 1
-            # End Debug
             self.generate_reachability(marking)
+        
         if prop == 'concurrent_places':
             self.generate_concurrent_places()
 
