@@ -1,0 +1,171 @@
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-9E7-F1B80-0" type ="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>AirplaneLD-COL-0010</text>
+  </name>
+ <page id="g-9E7-F2302-1">
+  <place id="p-9E7-F2305-2">
+  <name>
+   <text>a10</text>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+  </place>
+  <place id="p-9E7-F2447-3">
+  <name>
+   <text>a20</text>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+  </place>
+  <place id="p-9E7-F244A-4">
+  <name>
+   <text>a22</text>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+  </place>
+  <place id="p-9E7-F244F-5">
+  <name>
+   <text>a44</text>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+  </place>
+  <place id="p-9E7-F2450-6">
+  <name>
+   <text>a45</text>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+  </place>
+  <place id="p-9E7-F2452-7">
+  <name>
+   <text>p_0</text>
+  </name>
+  </place>
+  <place id="p-9E7-F2453-8">
+  <name>
+   <text>p_84</text>
+  </name>
+  </place>
+  <place id="p-9E7-F2456-9">
+  <name>
+   <text>p_85</text>
+  </name>
+  </place>
+  <place id="p-9E7-F2457-10">
+  <name>
+   <text>p_86</text>
+  </name>
+  </place>
+  <place id="p-9E7-F2458-11">
+  <name>
+   <text>p_87</text>
+  </name>
+  </place>
+  <transition id="t-9E7-F245C-12">
+  <name>
+   <text>t22</text>
+  </name>
+  </transition>
+  <transition id="t-9E7-F245D-13">
+  <name>
+   <text>t28</text>
+  </name>
+  </transition>
+  <transition id="t-9E7-F245E-14">
+  <name>
+   <text>t32</text>
+  </name>
+  </transition>
+  <transition id="t-9E7-F2461-15">
+  <name>
+   <text>t34</text>
+  </name>
+  </transition>
+  <transition id="t-9E7-F2462-16">
+  <name>
+   <text>t40</text>
+  </name>
+  </transition>
+  <transition id="t-9E7-F2463-17">
+  <name>
+   <text>t49</text>
+  </name>
+  </transition>
+  <transition id="t-9E7-F2467-18">
+  <name>
+   <text>t72</text>
+  </name>
+  </transition>
+  <transition id="t-9E7-F2468-19">
+  <name>
+   <text>t76</text>
+  </name>
+  </transition>
+  <transition id="t-9E7-F2469-20">
+  <name>
+   <text>t87</text>
+  </name>
+  </transition>
+  <arc id="e-9E7-F246E-21" source="p-9E7-F2447-3" target="t-9E7-F245C-12">
+  </arc>
+  <arc id="e-9E7-F25B3-22" source="p-9E7-F2305-2" target="t-9E7-F2461-15">
+  </arc>
+  <arc id="e-9E7-F25B4-23" source="p-9E7-F2457-10" target="t-9E7-F2461-15">
+  </arc>
+  <arc id="e-9E7-F25B6-24" source="t-9E7-F2461-15" target="p-9E7-F2456-9">
+  </arc>
+  <arc id="e-9E7-F25B7-25" source="p-9E7-F2452-7" target="t-9E7-F2462-16">
+  </arc>
+  <arc id="e-9E7-F25B8-26" source="p-9E7-F244F-5" target="t-9E7-F2462-16">
+  </arc>
+  <arc id="e-9E7-F25B9-27" source="t-9E7-F2462-16" target="p-9E7-F2453-8">
+  </arc>
+  <arc id="e-9E7-F25BA-28" source="p-9E7-F2450-6" target="t-9E7-F2463-17">
+  </arc>
+  <arc id="e-9E7-F25BB-29" source="t-9E7-F2463-17" target="p-9E7-F2453-8">
+  </arc>
+  <arc id="e-9E7-F25BC-30" source="p-9E7-F2447-3" target="t-9E7-F2467-18">
+  </arc>
+  <arc id="e-9E7-F25C1-31" source="p-9E7-F2458-11" target="t-9E7-F2467-18">
+  </arc>
+  <arc id="e-9E7-F25C2-32" source="p-9E7-F2458-11" target="t-9E7-F245C-12">
+  </arc>
+  <arc id="e-9E7-F25C3-33" source="t-9E7-F2467-18" target="p-9E7-F2453-8">
+  </arc>
+  <arc id="e-9E7-F25C4-34" source="p-9E7-F2452-7" target="t-9E7-F2468-19">
+  </arc>
+  <arc id="e-9E7-F25C5-35" source="p-9E7-F244F-5" target="t-9E7-F2468-19">
+  </arc>
+  <arc id="e-9E7-F25C5-36" source="t-9E7-F2468-19" target="p-9E7-F2458-11">
+  </arc>
+  <arc id="e-9E7-F25C7-37" source="p-9E7-F244A-4" target="t-9E7-F2469-20">
+  </arc>
+  <arc id="e-9E7-F25C8-38" source="p-9E7-F2450-6" target="t-9E7-F2469-20">
+  </arc>
+  <arc id="e-9E7-F25CA-39" source="t-9E7-F2469-20" target="p-9E7-F2452-7">
+  </arc>
+  <arc id="e-9E7-F25CC-40" source="t-9E7-F245C-12" target="p-9E7-F2457-10">
+  </arc>
+  <arc id="e-9E7-F25CD-41" source="p-9E7-F2305-2" target="t-9E7-F245D-13">
+  </arc>
+  <arc id="e-9E7-F28C7-42" source="p-9E7-F2457-10" target="t-9E7-F245D-13">
+  </arc>
+  <arc id="e-9E7-F28C9-43" source="t-9E7-F245D-13" target="p-9E7-F2453-8">
+  </arc>
+  <arc id="e-9E7-F28CA-44" source="p-9E7-F244A-4" target="t-9E7-F245E-14">
+  </arc>
+  <arc id="e-9E7-F292B-45" source="p-9E7-F2450-6" target="t-9E7-F245E-14">
+  </arc>
+  <arc id="e-9E7-F292C-46" source="t-9E7-F245E-14" target="p-9E7-F2453-8">
+  </arc>
+ </page>
+ </net>
+</pnml>
