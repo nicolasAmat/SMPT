@@ -110,7 +110,7 @@ class EnumerativeMarking:
         self.solver.write(self.pn.smtlib_declare_places())
         log.info("> Property Formula")
         self.solver.write(self.formula.smtlib())
-        log.info("> Reduced Net Markings")
+        log.info("> Net Markings")
         self.solver.write(self.smtlib())
 
     def prove_reduced(self):
