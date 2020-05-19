@@ -12,9 +12,10 @@ from pn import PetriNet
 from formula import Properties, Formula
 from eq import System
 from enumerative_marking import EnumerativeMarking
-from k_induction import KInduction
-from ic3 import IC3
+from k_induction import KInduction, stop_k_induction
+from ic3 import IC3, stop_ic3
 from concurrent_places import ConcurrentPlaces
+from parallelizer import Parallelizer
 
 import argparse
 import logging as log
@@ -23,8 +24,6 @@ import subprocess
 import sys
 import tempfile
 from threading import Thread, Event
-
-stop_it = Event()
 
 
 def about():
@@ -69,16 +68,22 @@ def k_induction(pn, formula, pn_reduced, eq, debug, timeout):
     """
     k_induction = KInduction(pn, formula, pn_reduced, eq, debug)
 
-    # Run solver with timeout
+    # Run analysis method with timeout
     proc = Thread(target=k_induction.prove)
     proc.start()
     proc.join(timeout)
-    stop_it.set()
+    stop_k_induction.set()
 
 def ic3(pn):
     """ IC3 method caller
     """
-    pass
+    ic3 = IC3(pn, formula, pn_reduced, eq, debug)
+
+    # Run analysis method with timeout
+    proc = Thread(target=ic3.prove)
+    proc.start()
+    proc.join(timeout)
+    stop_ic3.set()
 
 def main():
     """ Main Function
@@ -207,16 +212,13 @@ def main():
         for pl in places:
             marking[pn.places[pl]] = 1
         formula = Formula(pn, 'reachability', marking=marking)
-        ic3 = IC3(pn, formula, pn_reduced, eq, results.debug)
-        if ic3.prove():
-            print("Proved")
-        else:
-            print("Counterexample")
-
+        parallelizer = Parallelizer(pn, formula, pn_reduced, eq, results.debug)
+        model = parallelizer.run()
+       
     if results.concurrent_places:
         concurrent_places = ConcurrentPlaces(pn, pn_reduced, eq, results.debug)
-        concurrent_places.analyze(results.timeout)
-        concurrent_places.display(compressed=results.compressed_matrix)
+        concurrent_places.analyze(results.timeout, results.complete_matrix)
+        concurrent_places.display(results.compressed_matrix)
 
     if results.auto_reduce:
         fp_pn_reduced.close()

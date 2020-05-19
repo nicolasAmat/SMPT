@@ -13,7 +13,7 @@ import sys
 import logging as log
 from threading import Thread, Event
 
-stop_it = Event()
+stop_k_induction = Event()
 
 
 class KInduction:
@@ -110,20 +110,20 @@ class KInduction:
         
         model = None
         
-        if k < 100 and not stop_it.is_set():
+        if k < 100 and not stop_k_induction.is_set():
             self.formula.result(True)
             if display:
                 self.solver.display_model(self.pn, order)
             else:
                 model = self.solver.get_model(self.pn, order)
         else:
-            print("Method stopped.")
             self.formula.result(False)
 
         self.solver.exit()
         
         if self.stop_concurrent:
-            self.stop_concurrent.set()
+            stop_k_induction.set()
+        
         if result is not None:
             result.append(model)
 
@@ -143,7 +143,7 @@ class KInduction:
         self.solver.write(self.formula.smtlib(0))
         
         k = 0
-        while k < 100 and not self.solver.check_sat() and not stop_it.is_set():
+        while k < 100 and not self.solver.check_sat() and not stop_k_induction.is_set():
             log.info("> k = {}".format(k))
             log.info("\t>> Pop")
             self.solver.pop()
@@ -179,7 +179,7 @@ class KInduction:
         self.solver.write(self.eq.smtlib_ordered(0))
         
         k = 0
-        while k < 100 and not self.solver.check_sat() and not stop_it.is_set():
+        while k < 100 and not self.solver.check_sat() and not stop_k_induction.is_set():
             log.info("> k = {}".format(k))
             log.info("\t>> Pop")
             self.solver.pop()
@@ -223,4 +223,4 @@ if __name__ == '__main__':
     proc = Thread(target= k_induction.prove)
     proc.start()
     proc.join(timeout = 600)
-    stop_it.set()
+    stop_k_induction.set()

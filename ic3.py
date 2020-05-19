@@ -27,6 +27,9 @@ import copy
 import logging as log
 from subprocess import PIPE, Popen
 import sys
+from threading import Event
+
+stop_ic3 = Event()
 
 
 class Counterexample(Exception):
@@ -299,7 +302,7 @@ class IC3:
 
         k = 1
 
-        while True:
+        while not stop_ic3.is_set():
             log.info("> F{} = P".format(k + 1))
             
             self.oars.append([self.P])
@@ -310,11 +313,14 @@ class IC3:
 
             for i in range(1, k + 1):
                 if set(self.oars[i]) == set(self.oars[i + 1]):
-                    if self.stop_concurrent:
+                    if self.stop_concurrent is not None:
                         self.stop_concurrent.set()
+
                     if result is not None:
                         result.append(True)
+
                     return True
+
             k += 1
 
     def strengthen(self, k):
@@ -324,7 +330,7 @@ class IC3:
         log.info("> Strengthen (k = {})".format(k))
         
         try:
-            while self.formula_reach_bad_state(k):
+            while self.formula_reach_bad_state(k) and not stop_ic3.is_set():
                 s = self.cuber_filter(self.solver.get_model(self.pn_current, 0))
                 n = self.inductively_generalize(s, k - 2, k)
                 
@@ -384,7 +390,7 @@ class IC3:
         """
         log.info("\t> Push generalization (k = {})".format(k))
         
-        while True:
+        while not stop_ic3.is_set():
             state = min(states, key= lambda t: t[0])
             n, s = state[0], state[1]
 

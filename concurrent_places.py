@@ -10,15 +10,14 @@ Ref: Garavel, “Nested-Unit Petri Nets.”
 from pn import PetriNet, Place
 from eq import System, Relation
 from formula import Formula, Clause, Inequality
-from ic3 import IC3
-from k_induction import KInduction, stop_it
+from k_induction import KInduction, stop_k_induction
 from parallelizer import Parallelizer
 from stepper import Stepper
 
 import sys
 from threading import Thread, Event
 
-stop_it_concurrent_places = Event()
+stop_concurrent_places = Event()
 
 
 class ConcurrentPlaces:
@@ -61,7 +60,8 @@ class ConcurrentPlaces:
             proc = Thread(target=self.iterate)
             proc.start()
             proc.join(timeout)
-            stop_it.set()
+            stop_k_induction.set()
+            stop_concurrent_places.set()
 
             for clique in self.stepper.c:
                 self.fill_matrix(clique, self.matrix_analyzed)
@@ -146,7 +146,7 @@ class ConcurrentPlaces:
         """
         self.iterate_stepper(self.init_marking_vector)
 
-        while not stop_it_concurrent_places.is_set():
+        while not stop_concurrent_places.is_set():
 
             self.update_formula()
 
@@ -166,7 +166,7 @@ class ConcurrentPlaces:
         markings = [marking_vector]
         
         # Iterate on each marking next transitions, until we find new markings
-        while markings and not stop_it_concurrent_places.is_set():
+        while markings and not stop_concurrent_places.is_set():
             new_markings = []
             for marking in markings:
                 new_markings += self.stepper.get_markings(marking)

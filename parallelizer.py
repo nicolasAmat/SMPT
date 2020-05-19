@@ -7,14 +7,11 @@ Parallelizer for IC3 and k-induction analysis methods.
 from pn import PetriNet
 from formula import Formula
 from eq import System
-from ic3 import IC3
-from k_induction import KInduction, stop_it
+from ic3 import IC3, stop_ic3
+from k_induction import KInduction, stop_k_induction
 
 import sys
 from threading import Thread, Event
-
-stop_ic3 = Event()
-stop_k_induction = Event()
 
 
 class Parallelizer:
@@ -37,6 +34,9 @@ class Parallelizer:
         
         proc_ic3 =  Thread(target=self.ic3.prove, args=(result_ic3,))
         proc_k_induction = Thread(target=self.k_induction.prove, args=(False, result_k_induction,))
+
+        stop_ic3.clear()
+        stop_k_induction.clear()
 
         proc_ic3.start()
         proc_k_induction.start()
