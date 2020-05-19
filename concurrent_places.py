@@ -34,6 +34,7 @@ class ConcurrentPlaces:
         self.debug = debug
 
         self.matrix = None
+        self.matrix_analyzed = None
 
         self.reduced = eq is not None
 
