@@ -207,7 +207,8 @@ def main():
                 k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
 
     if results.reach_places is not None:
-        places = results.reach_places.split(',')
+        print("---Reachability: {}---".format(results.reach_places))
+        places = results.reach_places.replace('#', '').replace('{', '').replace('}', '').split(',')
         marking = {}
         for pl in places:
             marking[pn.places[pl]] = 1
