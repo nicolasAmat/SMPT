@@ -17,6 +17,7 @@ from threading import Thread, Event
 class Parallelizer:
     """ Concurrent analyzer.
     """
+
     def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False):
         """ Initializer.
         """
@@ -31,8 +32,8 @@ class Parallelizer:
         """
         result_ic3 = []
         result_k_induction = []
-        
-        proc_ic3 =  Thread(target=self.ic3.prove, args=(result_ic3,))
+
+        proc_ic3 = Thread(target=self.ic3.prove, args=(result_ic3,))
         proc_k_induction = Thread(target=self.k_induction.prove, args=(False, result_k_induction,))
 
         stop_ic3.clear()
@@ -51,14 +52,14 @@ class Parallelizer:
 
 
 if __name__ == '__main__':
-    
+
     if len(sys.argv) < 2:
         exit("File missing: ./parallelizer.py <place_to_reach> <path_to_petri_net> [<path_to_reduced_petri_net>]")
-    
+
     pn = PetriNet(sys.argv[2])
-    marking = {pn.places[sys.argv[1]] : 1}
+    marking = {pn.places[sys.argv[1]]: 1}
     formula = Formula(pn, prop='reachability', marking=marking)
-    
+
     if len(sys.argv) == 4:
         pn_reduced = PetriNet(sys.argv[3])
         eq = System(sys.argv[3], pn.places.keys(), pn_reduced.places.keys())

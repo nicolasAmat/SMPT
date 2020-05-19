@@ -18,6 +18,7 @@ class PetriNet:
     - a finite set of places (identified by names)
     - a finite set of transitions (identified by names)
     """
+
     def __init__(self, filename):
         self.id = ""
         self.places = {}
@@ -26,7 +27,7 @@ class PetriNet:
         self.counter_places = 0
 
         self.parse_net(filename)
-        
+
         self.ordered_places = []
         self.order_places()
 
@@ -89,7 +90,7 @@ class PetriNet:
         try:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
-                    content = re.split(r'\s+', line.strip().replace('#', '')) # '#' is forbidden in SMT-LIB
+                    content = re.split(r'\s+', line.strip().replace('#', ''))  # '#' is forbidden in SMT-LIB
                     element = content.pop(0)
                     if element == "net":
                         self.id = content[0]
@@ -106,7 +107,7 @@ class PetriNet:
             Input format: .net
         """
         tr_id = content.pop(0)
-        
+
         if tr_id in self.transitions:
             tr = self.transitions[tr.id]
         else:
@@ -125,7 +126,7 @@ class PetriNet:
         for arc in dst:
             tr.pl_linked.append(self.parse_arc(arc, tr.output))
 
-    def parse_arc(self, arc, arcs, opposite_arcs = []):
+    def parse_arc(self, arc, arcs, opposite_arcs=[]):
         """ Arc parser.
             Can handle:
                 - Normal Arc
@@ -133,9 +134,9 @@ class PetriNet:
                 - Inhibitor Arc
             Input format: .net
         """
-        arc = arc.replace('{', '').replace('}', '') # '{' and '}' are forbidden in SMT-LIB
+        arc = arc.replace('{', '').replace('}', '')  # '{' and '}' are forbidden in SMT-LIB
 
-        test_arc, inhibitor_arc = False, False 
+        test_arc, inhibitor_arc = False, False
 
         if '?-' in arc:
             inhibitor_arc = True
@@ -154,12 +155,12 @@ class PetriNet:
             new_place = Place(place_id)
             self.places[place_id] = new_place
             self.counter_places += 1
-        
+
         if len(arc) == 1:
             weight = 1
         else:
             weight = int(arc[1])
-        
+
         # To recognize an inhibitor arc, we set a negative weight
         if inhibitor_arc:
             weight = -weight
@@ -170,15 +171,15 @@ class PetriNet:
         # In a case of a test arc, we add a second arc 
         if test_arc:
             opposite_arcs[pl] = weight
-        
+
         return pl
 
     def parse_place(self, content):
         """ Place parser.
             Input format: .net
         """
-        place_id = content.pop(0).replace('{', '').replace('}', '') # '{' and '}' are forbidden in SMT-LIB
-        
+        place_id = content.pop(0).replace('{', '').replace('}', '')  # '{' and '}' are forbidden in SMT-LIB
+
         content = self.parse_label(content)
 
         if len(content) == 1:
@@ -202,7 +203,7 @@ class PetriNet:
             label_skipped = content[index_pl + 1][0] != '{'
             index_pl = 2
             while not label_skipped:
-                label_skipped = content[index_pl][-1] == '}'             
+                label_skipped = content[index_pl][-1] == '}'
                 index_pl += 1
         return content[index_pl:]
 
@@ -221,6 +222,7 @@ class Place:
     - an initial marking
     - an order
     """
+
     def __init__(self, pl_id, marking=0):
         self.id = pl_id
         self.marking = marking
@@ -228,7 +230,7 @@ class Place:
 
         # Only used for the Concurrent Places Problem
         self.card_concurrency_relation_old = 0
-        self.card_concurrency_relation = 0 
+        self.card_concurrency_relation = 0
 
     def __str__(self):
         """ Place to .net format.
@@ -268,6 +270,7 @@ class Transition:
     - the set of all the places linked to the transition,
 
     """
+
     def __init__(self, tr_id, pn):
         self.id = tr_id
         self.pn = pn
@@ -365,16 +368,16 @@ class Transition:
 
 
 if __name__ == "__main__":
-    
+
     if len(sys.argv) == 1:
         exit("File missing: ./pn <path_to_file>")
-    
+
     net = PetriNet(sys.argv[1])
-    
+
     print("Petri Net")
     print("---------")
     print(net)
-    
+
     print("SMTlib")
     print("------")
     print(net.smtlib_declare_places())

@@ -42,6 +42,7 @@ class IC3:
     """
     IC3 Method
     """
+
     def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False, unsat_core=True, stop_concurrent=None):
         """ IC3 initializer.
 
@@ -57,7 +58,7 @@ class IC3:
         self.pn_current = self.pn_reduced if self.reduced else self.pn
 
         self.P = None
-        self.oars = [] # list of CNF
+        self.oars = []  # list of CNF
         self.solver = Solver(debug)
 
         if unsat_core:
@@ -75,19 +76,19 @@ class IC3:
         """
         if init:
             if self.reduced:
-                return self.pn.smtlib_declare_places(10)        \
-                     + self.pn_reduced.smtlib_declare_places(0)
+                return self.pn.smtlib_declare_places(10) \
+                       + self.pn_reduced.smtlib_declare_places(0)
             else:
                 return self.pn.smtlib_declare_places(0)
         else:
             if self.reduced:
-                return self.pn.smtlib_declare_places(10)        \
-                     + self.pn.smtlib_declare_places(11)        \
-                     + self.pn_reduced.smtlib_declare_places(0) \
-                     + self.pn_reduced.smtlib_declare_places(1)
+                return self.pn.smtlib_declare_places(10) \
+                       + self.pn.smtlib_declare_places(11) \
+                       + self.pn_reduced.smtlib_declare_places(0) \
+                       + self.pn_reduced.smtlib_declare_places(1)
             else:
                 return self.pn.smtlib_declare_places(0) \
-                     + self.pn.smtlib_declare_places(1)
+                       + self.pn.smtlib_declare_places(1)
 
     def assert_equations(self, init=False):
         """ Reduction equations.
@@ -100,13 +101,13 @@ class IC3:
 
         if init:
             return self.eq.smtlib_only_non_reduced_places(10) \
-                 + self.eq.smtlib_ordered(0, 10)
+                   + self.eq.smtlib_ordered(0, 10)
         else:
             return self.eq.smtlib_only_non_reduced_places(10) \
-                 + self.eq.smtlib_ordered(0, 10)              \
-                 + self.eq.smtlib_only_non_reduced_places(11) \
-                 + self.eq.smtlib_ordered(1, 11)
-    
+                   + self.eq.smtlib_ordered(0, 10) \
+                   + self.eq.smtlib_only_non_reduced_places(11) \
+                   + self.eq.smtlib_ordered(1, 11)
+
     def assert_formula(self, i):
         """ F_i
         """
@@ -115,7 +116,7 @@ class IC3:
         else:
             smt_input = self.oars[i][0].smtlib(self.reduced * 10, write_assert=True)
         for clause in self.oars[i][1:]:
-           smt_input += clause.smtlib(0, write_assert=True)
+            smt_input += clause.smtlib(0, write_assert=True)
         return smt_input
 
     def oars_initialization(self):
@@ -123,13 +124,13 @@ class IC3:
             F0 = I and F1 = P.
         """
         log.info("> F0 = I and F1 = P")
-        
+
         # F0 = I
         inequalities = []
         for pl in self.pn_current.places.values():
             inequalities.append(Inequality(pl, pl.marking, '='))
         self.oars.append([Clause(inequalities, 'and')])
-        
+
         # F1 = P
         inequalities = []
         for ineq in self.formula.clauses:
@@ -146,7 +147,7 @@ class IC3:
         self.solver.write(self.assert_equations(init=True))
         self.solver.write(self.pn_current.smtlib_set_marking(0))
         self.solver.write(self.formula.smtlib(self.reduced * 10))
-        
+
         return self.solver.check_sat()
 
     def init_tr_reach_bad_state(self):
@@ -168,13 +169,13 @@ class IC3:
         """ sat (Fk and T and -P)
         """
         self.solver.reset()
-        
+
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(k))
         self.solver.write(self.pn_current.smtlib_transitions(0))
         self.solver.write(self.assert_equations())
         self.solver.write(self.formula.smtlib(self.reduced * 10 + 1))
-        
+
         return self.solver.check_sat()
 
     def formula_reach_clause(self, i, c):
@@ -186,34 +187,34 @@ class IC3:
         self.solver.write(self.assert_formula(i))
         self.solver.write(self.pn_current.smtlib_transitions(0))
         self.solver.write(c.smtlib(1, write_assert=True, neg=True))
-        
+
         return self.solver.check_sat()
 
     def state_reachable(self, i, s):
         """ sat (-s and Fi and T and s')
         """
         self.solver.reset()
-        
+
         self.solver.write(self.declare_places())
         self.solver.write(s.smtlib(0, write_assert=True, neg=True))
         self.solver.write(self.assert_formula(i))
         self.solver.write(self.pn_current.smtlib_transitions(0))
         self.solver.write(self.assert_equations())
         self.solver.write(s.smtlib(1, write_assert=True))
-        
+
         return self.solver.check_sat()
 
     def formula_reach_state(self, i, s):
         """ sat (F_i and T and s')
         """
         self.solver.reset()
-        
+
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
         self.solver.write(self.pn_current.smtlib_transitions(0))
         self.solver.write(self.assert_equations())
         self.solver.write(s.smtlib(k=1, write_assert=True))
-        
+
         return self.solver.check_sat()
 
     def sub_clause_finder_unsat_core(self, i, s):
@@ -222,7 +223,7 @@ class IC3:
         self.solver.reset()
 
         self.solver.produce_unsat_core()
-        
+
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
         self.solver.write(self.pn_current.smtlib_transitions(0))
@@ -233,7 +234,7 @@ class IC3:
 
         # Read Unsatisfiable Core
         unsat_core = self.solver.get_unsat_core()
-        
+
         inequalities = []
         for eq in s.inequalities:
             if eq.left_member.id in unsat_core:
@@ -242,19 +243,19 @@ class IC3:
                 else:
                     inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
         cl = Clause(inequalities, "or")
-        
+
         log.info("\t\t\t>> Clause learned: {}".format(cl))
         return cl
 
     def sub_clause_finder_mic(self, i, s):
-        """ Miniman inductive clause (MIC)
+        """ Minimal inductive clause (MIC)
         """
         c = copy.deepcopy(s)
-        
+
         while len(c.inequalities) > 1:
-            
+
             lit = c.inequalities.pop()
-            
+
             self.solver.reset()
             self.solver.write(self.declare_places())
             self.solver.write(self.assert_formula(i))
@@ -275,7 +276,7 @@ class IC3:
 
         inequalities = []
         for eq in s.inequalities:
-                inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
+            inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
         cl = Clause(inequalities, "or")
         log.info("\t\t\t>> Clause learned: {}".format(cl))
         return cl
@@ -304,7 +305,7 @@ class IC3:
 
         while not stop_ic3.is_set():
             log.info("> F{} = P".format(k + 1))
-            
+
             self.oars.append([self.P])
             if not self.strengthen(k):
                 return False
@@ -328,18 +329,18 @@ class IC3:
             that lead to a dangerous state in one step.
         """
         log.info("> Strengthen (k = {})".format(k))
-        
+
         try:
             while self.formula_reach_bad_state(k) and not stop_ic3.is_set():
                 s = self.cuber_filter(self.solver.get_model(self.pn_current, 0))
                 n = self.inductively_generalize(s, k - 2, k)
-                
+
                 log.info("\t\t>> s: {}".format(s))
                 log.info("\t\t>> n: {}".format(n))
-                
+
                 self.push_generalization([(n + 1, s)], k)
             return True
-        
+
         except Counterexample:
             return False
 
@@ -347,13 +348,13 @@ class IC3:
         """ For 1 <= i <= k.
             Look at a clause c in CL(Fi) and not in CL(Fi+1),
             s.t. unsat (Fi and T and -c').
-            When this is the case, propagate the clause foraward,
+            When this is the case, propagate the clause forward,
             i.e. add c to CL(Fi+1)
         """
         log.info("> Propagate Clauses (k = {})".format(k))
-        
+
         for i in range(1, k + 1):
-            for c in self.oars[i][1:]: # we do not look at the first clause that corresponds to I or P
+            for c in self.oars[i][1:]:  # we do not look at the first clause that corresponds to I or P
                 if not self.formula_reach_clause(i, c) and c not in self.oars[i + 1]:
                     self.oars[i + 1].append(c)
 
@@ -362,7 +363,7 @@ class IC3:
             by adding cubes generated during the `push_generalization`.
         """
         log.info("\t> Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
-    
+
         if minimum < 0 and self.state_reachable(0, s):
             raise Counterexample
 
@@ -370,7 +371,7 @@ class IC3:
             if self.state_reachable(i, s):
                 self.generate_clause(s, i - 1, k)
                 return i - 1
-        
+
         self.generate_clause(s, k, k)
         return k
 
@@ -379,7 +380,7 @@ class IC3:
             Add c to CL(Fi) for all 1 <= j <= i.
         """
         log.info("\t\t\t> Generate Clause (i = {}, k = {})".format(i, k))
-        
+
         c = self.sub_clause_finder(i, s)
         for j in range(1, i + 2):
             self.oars[j].append(c)
@@ -389,9 +390,9 @@ class IC3:
             to its Fi state predecessors.
         """
         log.info("\t> Push generalization (k = {})".format(k))
-        
+
         while not stop_ic3.is_set():
-            state = min(states, key= lambda t: t[0])
+            state = min(states, key=lambda t: t[0])
             n, s = state[0], state[1]
 
             if n > k:
@@ -408,16 +409,16 @@ class IC3:
 
 
 if __name__ == '__main__':
-    
+
     if len(sys.argv) < 2:
         exit("File missing: ./ic3.py <place_to_reach> <path_to_initial_petri_net> [<path_to_reduce_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
     pn = PetriNet(sys.argv[2])
-    marking = {pn.places[sys.argv[1]] : 1}
+    marking = {pn.places[sys.argv[1]]: 1}
     formula = Formula(pn, prop='reachability', marking=marking)
-    
+
     if len(sys.argv) == 3:
         pn_reduced = None
         eq = None
@@ -426,7 +427,7 @@ if __name__ == '__main__':
         eq = System(sys.argv[3], pn.places.keys(), pn_reduced.places.keys())
 
     ic3 = IC3(pn, formula, pn_reduced, eq)
-    
+
     if ic3.prove():
         print("Proved")
     else:

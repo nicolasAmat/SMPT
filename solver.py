@@ -15,11 +15,13 @@ from formula import Clause, Inequality
 
 from subprocess import PIPE, Popen
 
+
 class Solver:
     """
     Solver defined by:
     - a Z3 process
     """
+
     def __init__(self, debug=False):
         """ Execute z3 in a new process.
         """
@@ -93,7 +95,7 @@ class Solver:
             place_content = self.readline().split(' ')
             if len(place_content) < 2 or self.solver.poll() is not None:
                 break
-            place_marking =  self.readline().replace(' ', '').replace(')', '')
+            place_marking = self.readline().replace(' ', '').replace(')', '')
             place = ""
             if order is None:
                 place = place_content[1]
@@ -115,7 +117,7 @@ class Solver:
             From the current UNSAT stack.
             Return a clause (disjunctive).
         """
-        assert(not self.check_sat())
+        assert (not self.check_sat())
         self.write("(get-unsat-core)\n")
         self.flush()
         return self.readline().replace('(', '').replace(')', '').split(' ')

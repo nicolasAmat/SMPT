@@ -20,7 +20,8 @@ class System:
     - a set of additional variables
     - a set of (in)equations
     """
-    def __init__(self, filename, places = [], places_reduced = []):
+
+    def __init__(self, filename, places=[], places_reduced=[]):
         self.places = places
         self.places_reduced = places_reduced
         self.additional_vars = []
@@ -58,13 +59,13 @@ class System:
         smt_input = ""
         for var in self.additional_vars:
             if var not in self.places_reduced:
-                var_name = var if k_initial is None else "{}@{}".format(var, k_initial) 
+                var_name = var if k_initial is None else "{}@{}".format(var, k_initial)
                 smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var_name, var_name)
         for eq in self.system:
             if not eq.contain_reduced:
                 smt_input += eq.smtlib(k_initial, [*self.places] + self.additional_vars) + '\n'
         return smt_input
-        
+
     def smtlib_ordered(self, k, k_initial=None):
         """ Equations involving places in the reduced net,
             k:          used by k-induction and IC3,
@@ -74,7 +75,8 @@ class System:
         smt_input = ""
         for eq in self.system:
             if eq.contain_reduced:
-                smt_input += eq.smtlib_ordered(k, k_initial, self.places_reduced, [*self.places] + self.additional_vars) + '\n'
+                smt_input += eq.smtlib_ordered(k, k_initial, self.places_reduced,
+                                               [*self.places] + self.additional_vars) + '\n'
         for pl in self.places_reduced:
             if pl in self.places:
                 if k_initial is None:
@@ -89,7 +91,7 @@ class System:
         """
         try:
             with open(filename, 'r') as fp:
-                content = re.search(r'# generated equations\n(.*)?\n\n', fp.read(), re.DOTALL) 
+                content = re.search(r'# generated equations\n(.*)?\n\n', fp.read(), re.DOTALL)
                 if content:
                     lines = re.split('\n+', content.group())[1:-1]
                     equations = [re.split(r'\s+', line.partition(' |- ')[2]) for line in lines]
@@ -107,6 +109,7 @@ class Equation:
     - Right member
     - Operator
     """
+
     def __init__(self, eq, system):
         self.left = []
         self.right = []
@@ -133,8 +136,8 @@ class Equation:
         """ Equation.
             SMT-LIB format
         """
-        return "(assert ({}".format(self.operator)                      \
-               + self.member_smtlib(self.left, k_initial, other_vars)  \
+        return "(assert ({}".format(self.operator) \
+               + self.member_smtlib(self.left, k_initial, other_vars) \
                + self.member_smtlib(self.right, k_initial, other_vars) \
                + "))"
 
@@ -162,12 +165,12 @@ class Equation:
             other_vars:     other identifiers from equations and initial net
             SMTLIB format
         """
-        return "(assert ({}".format(self.operator)                                                 \
-               + self.member_smtlib_ordered(self.left, k, k_initial, places_reduced, other_vars)  \
+        return "(assert ({}".format(self.operator) \
+               + self.member_smtlib_ordered(self.left, k, k_initial, places_reduced, other_vars) \
                + self.member_smtlib_ordered(self.right, k, k_initial, places_reduced, other_vars) \
                + "))"
 
-    def member_smtlib_ordered(self, member, k, k_initial, places_reduced=[], other_vars = []):
+    def member_smtlib_ordered(self, member, k, k_initial, places_reduced=[], other_vars=[]):
         """ Equation with orders.
             k:              used by k-induction and IC3
             k_initial:     used by IC3
@@ -224,6 +227,7 @@ class Relation:
     Used for the Concurrent Places Problem.
     See: `concurrent_places.py`
     """
+
     def __init__(self, eq):
         self.eq = eq
 
@@ -245,22 +249,22 @@ class Relation:
         text = "Agglomerations\n--------------\n"
         for agglo in self.agglomerations:
             text += str(agglo) + '\n'
-        
+
         text += "\nConstant Variables\n------------------\n"
         for pl in self.constant_vars:
             text += pl.id + ' = ' + str(pl.value) + '\n'
-        
+
         text += "\nEqual Variables\n---------------\n"
         for eq in self.equal_vars:
             text += eq[0].id + ' = ' + eq[1].id + '\n'
-        
+
         return text
 
     def construct(self):
         """ Parse the equations and construct the relation.
         """
         for eq in self.eq.system:
-            
+
             left = self.get_variable(eq.left[0])
 
             if len(eq.right) == 1:
@@ -276,7 +280,7 @@ class Relation:
                     left.equals.append(right)
                     right.equals.append(left)
                     self.equal_vars.append([left, right])
-                
+
             else:
                 # case a = p + a' or a = p + q or p = q + r
                 left.children.append(self.get_variable(eq.right[0]))
@@ -308,7 +312,7 @@ class Relation:
             from the reduction equations.
         """
         c_stables = []
-        
+
         for var in self.agglomerations:
             # a_n = k > 1
             # a_n = p_n + a_n-1
@@ -319,7 +323,7 @@ class Relation:
                 for pl in var.propagated_places:
                     c_stable.append(pl.id)
                 c_stables.append(c_stable)
-            
+
             # p = q + r
             if not var.additional:
                 c_stables.append([var.id, var.children[0].id])
@@ -330,13 +334,13 @@ class Relation:
             for var in self.constant_vars:
                 for pl1 in var.propagated_places:
                     for pl2 in self.eq.places:
-                            c_stables.append([pl1.id, pl2])
-        
+                        c_stables.append([pl1.id, pl2])
+
         # equals variables
         for (var1, var2) in self.equal_vars:
             if not (var1.additional or var2.additional):
                 c_stables.append([var1.id, var2.id])
-            
+
             else:
                 for pl1 in var1.propagated_places:
                     for pl2 in var2.propagated_places:
@@ -350,14 +354,13 @@ class Relation:
         """
         var1 = self.get_variable(var1_id)
         var2 = self.get_variable(var2_id)
-        
 
         c_stables = []
 
         for pl1 in var1.propagated_places:
             for pl2 in var2.propagated_places:
                 c_stables.append([pl1.id, pl2.id])
-        
+
         return c_stables
 
     def equalities(self):
@@ -385,7 +388,8 @@ class Variable:
     Used for the Concurrent Places Problem.
     See: `concurrent_places.py`
     """
-    def __init__(self, id, additional):    
+
+    def __init__(self, id, additional):
         self.id = id
         self.additional = additional
 
@@ -416,7 +420,7 @@ class Variable:
             if not child.propagated_places:
                 child.propagate(value)
             self.propagated_places = self.propagated_places.union(child.propagated_places)
-        
+
         # For each equal var, propagate it and add the places (recursively)
         for equal in self.equals:
             if not equal.propagated_places:
@@ -425,10 +429,10 @@ class Variable:
 
 
 if __name__ == "__main__":
-    
+
     if len(sys.argv) < 3:
         exit("File missing: ./eq <path_to_initial_net> <path_to_reduced_net>")
-    
+
     pn = PetriNet(sys.argv[1])
     pn_reduced = PetriNet(sys.argv[2])
 
@@ -439,7 +443,7 @@ if __name__ == "__main__":
     print("Equations")
     print("---------")
     print(eq)
-    
+
     print("\nSMTlib2 Format")
     print("--------------")
     print(eq.smtlib())

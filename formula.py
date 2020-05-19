@@ -17,10 +17,11 @@ class Properties:
     - an associated Petri Net
     - a set of Formulas
     """
+
     def __init__(self, pn, xml_filename):
         self.pn = pn
         self.formulas = {}
-        self.parseXML(xml_filename)
+        self.parse_xml(xml_filename)
 
     def __str__(self):
         """ Properties to logic format.
@@ -30,7 +31,7 @@ class Properties:
             text += "--- Property {} ---\n".format(formula_id)
             text += str(formula)
         return text
-    
+
     def smtlib(self):
         """ Assertions corresponding to the properties.
             SMT-LIB format
@@ -41,14 +42,14 @@ class Properties:
             text += formula.smtlib()
         return text
 
-    def parseXML(self, filename):
+    def parse_xml(self, filename):
         """ Properties parser.
             Input format: .xml
         """
         tree = ET.parse(filename)
         prop_set = tree.getroot()
-        
-        namespace_m = re.match(r'\{.*\}', prop_set.tag) 
+
+        namespace_m = re.match(r'\{.*\}', prop_set.tag)
         if namespace_m:
             namespace = namespace_m.group(0)
         else:
@@ -60,8 +61,10 @@ class Properties:
             prop_id = prop.find(namespace + 'id').text
             prop_formula = prop.find(namespace + 'formula')
 
-            deadlock = prop_formula.find('./' + namespace + 'exists-path/'+ namespace + 'finally/' + namespace + 'deadlock')
-            fireability = prop_formula.find('./' + namespace + 'exists-path/'+ namespace + 'finally/' + namespace + 'is-fireable')
+            deadlock = prop_formula.find(
+                './' + namespace + 'exists-path/' + namespace + 'finally/' + namespace + 'deadlock')
+            fireability = prop_formula.find(
+                './' + namespace + 'exists-path/' + namespace + 'finally/' + namespace + 'is-fireable')
 
             if deadlock is not None:
                 formula = Formula(self.pn, 'deadlock')
@@ -84,21 +87,22 @@ class Formula:
     - an operator ('or', 'and') applied between the clauses
     - a property ('deadlock', 'fireability', 'reachability', 'concurrent places')
     """
+
     def __init__(self, pn, prop='deadlock', transitions=[], marking=[]):
         self.pn = pn
         self.clauses = []
         self.operator = ""
         self.prop = prop
-        
+
         if prop == 'deadlock':
             self.generate_deadlock()
-        
+
         if prop == 'fireability':
             self.generate_fireability(transitions)
-        
+
         if prop == 'reachability':
             self.generate_reachability(marking)
-        
+
         if prop == 'concurrent_places':
             self.generate_concurrent_places()
 
@@ -193,13 +197,13 @@ class Formula:
                 print("Deadlock.")
             else:
                 print("Deadlockless")
-        
+
         if self.prop == 'reachability':
             if sat:
                 print("Reachable.")
             else:
                 print("Unreachable.")
-        
+
         if self.prop == "fireability":
             if sat:
                 print("Fireable.")
@@ -213,10 +217,11 @@ class Clause:
     - a set of inequalities
     - a boolean operator
     """
+
     def __init__(self, inequalities, operator):
         if operator not in ["and", "or"]:
             raise ValueError("Invalid operator for a clause")
-        
+
         self.inequalities = inequalities
         self.operator = operator
 
@@ -253,6 +258,7 @@ class Inequality:
     - a right member
     - an operator (=, <=, >=, <, >, distinct)
     """
+
     def __init__(self, left_member, right_member, operator):
         if operator not in ["=", "<=", ">=", "<", ">", "distinct"]:
             raise ValueError("Invalid operator for an inequality")
@@ -282,6 +288,7 @@ class AtLeast:
     - a minimum k
     - a list of inequalities
     """
+
     def __init__(self, k, inequalities):
         self.k = k
         self.inequalities = inequalities
@@ -309,17 +316,17 @@ class AtLeast:
 
 
 if __name__ == '__main__':
-    
+
     if len(sys.argv) == 1:
         exit("File missing: ./formula <path_to_net> <path_to_xml")
-    
+
     pn = PetriNet(sys.argv[1])
     props = Properties(pn, sys.argv[2])
 
     print("Logic Formula")
     print("-------------")
     print(props)
-    
+
     print("\nSMTlib2 Format")
     print("--------------")
     print(props.smtlib())

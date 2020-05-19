@@ -30,26 +30,26 @@ def about():
     """ About printer.
     """
     logo = "            _____                    _____                    _____                _____            \n" \
-         + "           /\    \                  /\    \                  /\    \              /\    \           \n" \
-         + "          /::\    \                /::\____\                /::\    \            /::\    \          \n" \
-         + "         /::::\    \              /::::|   |               /::::\    \           \:::\    \         \n" \
-         + "        /::::::\    \            /:::::|   |              /::::::\    \           \:::\    \        \n" \
-         + "       /:::/\:::\    \          /::::::|   |             /:::/\:::\    \           \:::\    \       \n" \
-         + "      /:::/__\:::\    \        /:::/|::|   |            /:::/__\:::\    \           \:::\    \      \n" \
-         + "      \:::\   \:::\    \      /:::/ |::|   |           /::::\   \:::\    \          /::::\    \     \n" \
-         + "    ___\:::\   \:::\    \    /:::/  |::|___|______    /::::::\   \:::\    \        /::::::\    \    \n" \
-         + "   /\   \:::\   \:::\    \  /:::/   |::::::::\    \  /:::/\:::\   \:::\____\      /:::/\:::\    \   \n" \
-         + "  /::\   \:::\   \:::\____\/:::/    |:::::::::\____\/:::/  \:::\   \:::|    |    /:::/  \:::\____\  \n" \
-         + "  \:::\   \:::\   \::/    /\::/    / ~~~~~/:::/    /\::/    \:::\  /:::|____|   /:::/    \::/    /  \n" \
-         + "   \:::\   \:::\   \/____/  \/____/      /:::/    /  \/_____/\:::\/:::/    /   /:::/    / \/____/   \n" \
-         + "    \:::\   \:::\    \                  /:::/    /            \::::::/    /   /:::/    /            \n" \
-         + "     \:::\   \:::\____\                /:::/    /              \::::/    /   /:::/    /             \n" \
-         + "      \:::\  /:::/    /               /:::/    /                \::/____/    \::/    /              \n" \
-         + "       \:::\/:::/    /               /:::/    /                  ~~           \/____/               \n" \
-         + "        \::::::/    /               /:::/    /                                                      \n" \
-         + "         \::::/    /               /:::/    /                                                       \n" \
-         + "          \::/    /                \::/    /                                                        \n" \
-         + "           \/____/                  \/____/                                                         \n"
+           + "           /\    \                  /\    \                  /\    \              /\    \           \n" \
+           + "          /::\    \                /::\____\                /::\    \            /::\    \          \n" \
+           + "         /::::\    \              /::::|   |               /::::\    \           \:::\    \         \n" \
+           + "        /::::::\    \            /:::::|   |              /::::::\    \           \:::\    \        \n" \
+           + "       /:::/\:::\    \          /::::::|   |             /:::/\:::\    \           \:::\    \       \n" \
+           + "      /:::/__\:::\    \        /:::/|::|   |            /:::/__\:::\    \           \:::\    \      \n" \
+           + "      \:::\   \:::\    \      /:::/ |::|   |           /::::\   \:::\    \          /::::\    \     \n" \
+           + "    ___\:::\   \:::\    \    /:::/  |::|___|______    /::::::\   \:::\    \        /::::::\    \    \n" \
+           + "   /\   \:::\   \:::\    \  /:::/   |::::::::\    \  /:::/\:::\   \:::\____\      /:::/\:::\    \   \n" \
+           + "  /::\   \:::\   \:::\____\/:::/    |:::::::::\____\/:::/  \:::\   \:::|    |    /:::/  \:::\____\  \n" \
+           + "  \:::\   \:::\   \::/    /\::/    / ~~~~~/:::/    /\::/    \:::\  /:::|____|   /:::/    \::/    /  \n" \
+           + "   \:::\   \:::\   \/____/  \/____/      /:::/    /  \/_____/\:::\/:::/    /   /:::/    / \/____/   \n" \
+           + "    \:::\   \:::\    \                  /:::/    /            \::::::/    /   /:::/    /            \n" \
+           + "     \:::\   \:::\____\                /:::/    /              \::::/    /   /:::/    /             \n" \
+           + "      \:::\  /:::/    /               /:::/    /                \::/____/    \::/    /              \n" \
+           + "       \:::\/:::/    /               /:::/    /                  ~~           \/____/               \n" \
+           + "        \::::::/    /               /:::/    /                                                      \n" \
+           + "         \::::/    /               /:::/    /                                                       \n" \
+           + "          \::/    /                \::/    /                                                        \n" \
+           + "           \/____/                  \/____/                                                         \n"
     print(logo)
     print("\tSatisfiability Modulo PeTri Net")
     print("\t-------------------------------\n")
@@ -57,11 +57,13 @@ def about():
     print("Author: Nicolas AMAT")
     exit(0)
 
+
 def enumerative_marking(path_markings, pn, formula, pn_reduced, eq, debug):
     """ Enumerative method caller
     """
     markings = EnumerativeMarking(path_markings, pn, formula, pn_reduced, eq, debug)
     markings.prove()
+
 
 def k_induction(pn, formula, pn_reduced, eq, debug, timeout):
     """ K-induction method caller
@@ -74,7 +76,8 @@ def k_induction(pn, formula, pn_reduced, eq, debug, timeout):
     proc.join(timeout)
     stop_k_induction.set()
 
-def ic3(pn):
+
+def ic3(pn, formula, pn_reduced, eq, debug, timeout):
     """ IC3 method caller
     """
     ic3 = IC3(pn, formula, pn_reduced, eq, debug)
@@ -84,6 +87,7 @@ def ic3(pn):
     proc.start()
     proc.join(timeout)
     stop_ic3.set()
+
 
 def main():
     """ Main Function
@@ -104,7 +108,7 @@ def main():
     parser.add_argument('--debug',
                         action='store_true',
                         help="display the SMT-LIB input/ouput")
-    
+
     parser.add_argument('path_pn',
                         metavar='pn',
                         type=str,
@@ -113,20 +117,20 @@ def main():
     group_formula = parser.add_mutually_exclusive_group(required=True)
 
     group_formula.add_argument('--xml',
-                        action='store',
-                        dest='path_properties',
-                        type=str,
-                        help='use xml format for properties')
+                               action='store',
+                               dest='path_properties',
+                               type=str,
+                               help='use xml format for properties')
 
     group_formula.add_argument('--reachability',
-                        action='store',
-                        dest='reach_places',
-                        type=str,
-                        help='reachibility analysis (seperate places by commas)')
+                               action='store',
+                               dest='reach_places',
+                               type=str,
+                               help='reachibility analysis (seperate places by commas)')
 
     group_formula.add_argument('--concurrent-places',
-                        action='store_true',
-                        help="concurrent places analysis")
+                               action='store_true',
+                               help="concurrent places analysis")
 
     parser.add_argument('--compressed-matrix',
                         action='store_true',
@@ -137,35 +141,35 @@ def main():
                         help="run an analysis on the compleness of the matrix")
 
     group_reduce = parser.add_mutually_exclusive_group()
-    
+
     group_reduce.add_argument('--auto-reduce',
-                        action='store_true',
-                        help="reduce automatically the Petri Net (using `reduce`)")
+                              action='store_true',
+                              help="reduce automatically the Petri Net (using `reduce`)")
 
     group_reduce.add_argument('--reduced',
-                        action='store',
-                        dest='path_pn_reduced',
-                        type=str,
-                        help='path to reduced Petri Net (.net format)')
+                              action='store',
+                              dest='path_pn_reduced',
+                              type=str,
+                              help='path to reduced Petri Net (.net format)')
 
     group_enumerative = parser.add_mutually_exclusive_group()
 
     group_enumerative.add_argument('--auto-enumerative',
-                        action='store_true',
-                        help="enumerate automatically the states (using `tina`)")
+                                   action='store_true',
+                                   help="enumerate automatically the states (using `tina`)")
 
     group_enumerative.add_argument('--enumerative',
-                        action='store',
-                        dest='path_markings',
-                        type=str,
-                        help='Path to markings  (.aut format)')
+                                   action='store',
+                                   dest='path_markings',
+                                   type=str,
+                                   help='Path to markings  (.aut format)')
 
     parser.add_argument('--timeout',
                         action='store',
                         dest='timeout',
                         type=int,
                         default=60,
-                        help='configure the timeout')                    
+                        help='configure the timeout')
 
     results = parser.parse_args()
 
@@ -175,10 +179,10 @@ def main():
         log.basicConfig(format="%(message)s")
 
     pn = PetriNet(results.path_pn)
-    
+
     pn_reduced = None
     eq = None
-    
+
     if results.auto_reduce:
         fp_pn_reduced = tempfile.NamedTemporaryFile(suffix='.net')
         subprocess.run(["reduce", "-rg,redundant,compact,convert,transitions", results.path_pn, fp_pn_reduced.name])
@@ -187,7 +191,7 @@ def main():
     if results.path_pn_reduced is not None:
         pn_reduced = PetriNet(results.path_pn_reduced)
         eq = System(results.path_pn_reduced, pn.places.keys(), pn_reduced.places.keys())
-    
+
     if results.auto_enumerative:
         fp_markings = tempfile.NamedTemporaryFile(suffix='.aut')
         if results.path_pn_reduced is not None:
@@ -215,7 +219,7 @@ def main():
         formula = Formula(pn, 'reachability', marking=marking)
         parallelizer = Parallelizer(pn, formula, pn_reduced, eq, results.debug)
         model = parallelizer.run()
-       
+
     if results.concurrent_places:
         concurrent_places = ConcurrentPlaces(pn, pn_reduced, eq, results.debug)
         concurrent_places.analyze(results.timeout, results.complete_matrix)
