@@ -19,6 +19,8 @@ class Properties:
     """
 
     def __init__(self, pn, xml_filename):
+        """ Initializer.
+        """
         self.pn = pn
         self.formulas = {}
         self.parse_xml(xml_filename)
@@ -146,7 +148,7 @@ class Formula:
         return text
 
     def generate_deadlock(self):
-        """ Generator of a `deadlock` formula.
+        """ `deadlock` formula generator.
         """
         for tr in self.pn.transitions.values():
             inequalities = []
@@ -160,7 +162,7 @@ class Formula:
         self.operator = "and"
 
     def generate_fireability(self, transitions):
-        """ Generator of a `fireability` formula.
+        """ `fireability` formula generator.
         """
         for tr_id in transitions:
             inequalities = []
@@ -175,13 +177,13 @@ class Formula:
         self.operator = "or"
 
     def generate_reachability(self, marking):
-        """ Generator of a `reachability` formula.
+        """ `reachability` formula generator.
         """
         for pl, counter in marking.items():
             self.clauses.append(Inequality(pl, counter, '='))
 
     def generate_concurrent_places(self):
-        """ Generator of a `concurrent places` formula.
+        """ `concurrent places` formula generator.
         """
         inequalities = []
         for pl in self.pn.places.values():
