@@ -10,7 +10,9 @@ Ref: Garavel, “Nested-Unit Petri Nets.”
 from pn import PetriNet, Place
 from eq import System, Relation
 from formula import Formula, Clause, Inequality
+from ic3 import IC3
 from k_induction import KInduction, stop_it
+from parallelizer import Parallelizer
 from stepper import Stepper
 
 import sys
@@ -47,7 +49,7 @@ class ConcurrentPlaces:
  
         self.stepper = Stepper(self.pn_analyzed)
 
-    def analyze(self, timeout):
+    def analyze(self, timeout, completeness=False):
         """ Run Concurrent Places Analysis using k-induction.
         """
         self.build_matrix()
@@ -63,9 +65,13 @@ class ConcurrentPlaces:
 
             for clique in self.stepper.c:
                 self.fill_matrix(clique, self.matrix_analyzed)
+        
+        if completeness:
+            self.check_completeness()
 
         if self.reduced:
             self.analyze_reduced()
+
 
     def analyze_reduced(self):
         """ Analysis on a reduced net.
@@ -92,10 +98,22 @@ class ConcurrentPlaces:
                             pl1, pl2 = self.pn.places[var1.id], self.pn.places[var2.id]
                             self.fill_matrix([pl1, pl2], self.matrix)
 
+        completed = True
+        for line in self.matrix_analyzed:
+            if '.' in line:
+                completed = False
+                break
+        
+        if completed:
+            for i, line in enumerate(self.matrix):
+                for j, elem in enumerate(line):
+                    if elem == '.':
+                        self.matrix[i][j] = 0
+
     def build_matrix(self):
         """ Build a dictionary that create an order on the places.
         """
-        self.matrix = [[0 for j in range(i + 1)] for i in range(self.pn.counter_places)]
+        self.matrix = [['.' for j in range(i + 1)] for i in range(self.pn.counter_places)]
 
         for i in range(self.pn.counter_places):
             self.matrix[i][i] = 1
@@ -103,7 +121,7 @@ class ConcurrentPlaces:
         self.matrix_analyzed = self.matrix
 
         if self.reduced:
-            self.matrix_reduced = [[0 for j in range(i + 1)] for i in range(self.pn_reduced.counter_places)]
+            self.matrix_reduced = [['.' for j in range(i + 1)] for i in range(self.pn_reduced.counter_places)]
 
             for i in range(self.pn_reduced.counter_places):
                 self.matrix_reduced[i][i] = 1
@@ -128,7 +146,7 @@ class ConcurrentPlaces:
         """
         self.iterate_stepper(self.init_marking_vector)
 
-        while not stop_it.is_set():
+        while not stop_it_concurrent_places.is_set():
 
             self.update_formula()
 
@@ -148,13 +166,13 @@ class ConcurrentPlaces:
         markings = [marking_vector]
         
         # Iterate on each marking next transitions, until we find new markings
-        while markings:
+        while markings and not stop_it_concurrent_places.is_set():
             new_markings = []
             for marking in markings:
                 new_markings += self.stepper.get_markings(marking)
             markings = new_markings
 
-    def propagate_from_model(self, model, recursive=True):
+    def propagate_from_model(self, model, fill_matrix=False):
         """ Fill the analyzed matrix from a model,
             add the marked place to `c`,
             and return the corresponding marking vector.
@@ -168,6 +186,9 @@ class ConcurrentPlaces:
             marking_vector[eq.left_member.order] = eq.right_member
 
         self.stepper.add_clique(marked_places)
+
+        if fill_matrix:
+            self.fill_matrix(marked_places, self.matrix_analyzed)
 
         return marking_vector
 
@@ -257,6 +278,23 @@ class ConcurrentPlaces:
             return str(elem) * counter
         else:
             return "{}({})".format(elem, counter)
+
+    def check_completeness(self):
+        """ Check the completeness of the analyzed matrix.
+            Use IC3 and k-induction in parallel.
+        """
+        for i, line in enumerate(self.matrix_analyzed):
+            for j, elem in enumerate(line):
+                if elem == '.':
+                    marking = {self.pn_analyzed.ordered_places[i] : 1, self.pn_analyzed.ordered_places[j] : 1}
+                    formula = Formula(self.pn_analyzed, prop='reachability', marking=marking)
+                    
+                    parallelizer = Parallelizer(self.pn_analyzed, formula)
+                    model = parallelizer.run()
+                    if  model == True:
+                        self.matrix_analyzed[i][j] = 0
+                    else:
+                        self.propagate_from_model(model, fill_matrix=True)
 
 
 if __name__ == '__main__':

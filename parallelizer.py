@@ -44,6 +44,11 @@ class Parallelizer:
         proc_ic3.join()
         proc_k_induction.join()
 
+        if len(result_ic3) == 1:
+            return True
+        else:
+            return result_k_induction[0]
+
 
 if __name__ == '__main__':
     
