@@ -69,7 +69,7 @@ class KInduction:
         """
         text = ""
 
-        text += "; Declaration of the places from the original Petri Net\n"
+        text += "; Declaration of the places from the initial Petri Net\n"
         text += self.pn.smtlib_declare_places()
 
         text += "; Formula to check the satisfiability\n"
@@ -130,7 +130,7 @@ class KInduction:
         return model
 
     def prove_non_reduced(self):
-        """ Prover using the original Petri Net.
+        """ Prover for non-reduced Petri Net.
         """
         log.info("> Initialization")
         log.info("\t>> Declaration of the places from the Petri Net (order: 0)")
@@ -160,10 +160,10 @@ class KInduction:
         return k
 
     def prove_reduced(self):
-        """ Prover using the reduced Petri Net.
+        """ Prover for reduced Petri Net.
         """
         log.info("> Initialization")
-        log.info("\t>> Declaration of the places from the original Petri Net")
+        log.info("\t>> Declaration of the places from the initial Petri Net")
         self.solver.write(self.pn.smtlib_declare_places())
         log.info("\t>> Formula to check the satisfiability")
         self.solver.write(self.formula.smtlib())

@@ -15,7 +15,7 @@ import sys
 class System:
     """
     Equation system defined by:
-    - a set of places from the original Petri Net
+    - a set of places from the initial Petri Net
     - a set of places from the reduced Petri Net
     - a set of additional variables
     - a set of (in)equations
@@ -49,38 +49,38 @@ class System:
             smt_input += eq.smtlib() + '\n'
         return smt_input
 
-    def smtlib_only_non_reduced_places(self, k_original=None):
+    def smtlib_only_non_reduced_places(self, k_initial=None):
         """ Equations not involving places in the reduced net,
             Declarations of the additional variables,
-            k_original: used by IC3.
+            k_initial: used by IC3.
             SMT-LIB format
         """
         smt_input = ""
         for var in self.additional_vars:
             if var not in self.places_reduced:
-                var_name = var if k_original is None else "{}@{}".format(var, k_original) 
+                var_name = var if k_initial is None else "{}@{}".format(var, k_initial) 
                 smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var_name, var_name)
         for eq in self.system:
             if not eq.contain_reduced:
-                smt_input += eq.smtlib(k_original, [*self.places] + self.additional_vars) + '\n'
+                smt_input += eq.smtlib(k_initial, [*self.places] + self.additional_vars) + '\n'
         return smt_input
         
-    def smtlib_ordered(self, k, k_original=None):
+    def smtlib_ordered(self, k, k_initial=None):
         """ Equations involving places in the reduced net,
             k:          used by k-induction and IC3,
-            k_original: used by IC3.
+            k_initial: used by IC3.
             SMR-LIB format
         """
         smt_input = ""
         for eq in self.system:
             if eq.contain_reduced:
-                smt_input += eq.smtlib_ordered(k, k_original, self.places_reduced, [*self.places] + self.additional_vars) + '\n'
+                smt_input += eq.smtlib_ordered(k, k_initial, self.places_reduced, [*self.places] + self.additional_vars) + '\n'
         for pl in self.places_reduced:
             if pl in self.places:
-                if k_original is None:
+                if k_initial is None:
                     smt_input += "(assert (= {}@{} {}))\n".format(pl, k, pl)
                 else:
-                    smt_input += "(assert (= {}@{} {}@{}))\n".format(pl, k, pl, k_original)
+                    smt_input += "(assert (= {}@{} {}@{}))\n".format(pl, k, pl, k_initial)
         return smt_input
 
     def parser(self, filename):
@@ -129,16 +129,16 @@ class Equation:
                 text += '+ '
         return text
 
-    def smtlib(self, k_original=None, other_vars=[]):
+    def smtlib(self, k_initial=None, other_vars=[]):
         """ Equation.
             SMT-LIB format
         """
         return "(assert ({}".format(self.operator)                      \
-               + self.member_smtlib(self.left, k_original, other_vars)  \
-               + self.member_smtlib(self.right, k_original, other_vars) \
+               + self.member_smtlib(self.left, k_initial, other_vars)  \
+               + self.member_smtlib(self.right, k_initial, other_vars) \
                + "))"
 
-    def member_smtlib(self, member, k_original, other_vars):
+    def member_smtlib(self, member, k_initial, other_vars):
         """ Member.
             SMT-LIB format
         """
@@ -146,33 +146,33 @@ class Equation:
         if len(member) > 1:
             smt_input += " (+"
         for elem in member:
-            if k_original is None or elem not in other_vars:
+            if k_initial is None or elem not in other_vars:
                 smt_input += " {}".format(elem)
             else:
-                smt_input += " {}@{}".format(elem, k_original)
+                smt_input += " {}@{}".format(elem, k_initial)
         if len(member) > 1:
             smt_input += ")"
         return smt_input
 
-    def smtlib_ordered(self, k, k_original, places_reduced, other_vars=[]):
+    def smtlib_ordered(self, k, k_initial, places_reduced, other_vars=[]):
         """ Equation with orders.
             k:              used by k-induction and IC3
-            k_original:     used by IC3
+            k_initial:     used by IC3
             places_reduced: place identifiers from the reduced net
-            other_vars:     other identifiers from equations and original net
+            other_vars:     other identifiers from equations and initial net
             SMTLIB format
         """
         return "(assert ({}".format(self.operator)                                                 \
-               + self.member_smtlib_ordered(self.left, k, k_original, places_reduced, other_vars)  \
-               + self.member_smtlib_ordered(self.right, k, k_original, places_reduced, other_vars) \
+               + self.member_smtlib_ordered(self.left, k, k_initial, places_reduced, other_vars)  \
+               + self.member_smtlib_ordered(self.right, k, k_initial, places_reduced, other_vars) \
                + "))"
 
-    def member_smtlib_ordered(self, member, k, k_original, places_reduced=[], other_vars = []):
+    def member_smtlib_ordered(self, member, k, k_initial, places_reduced=[], other_vars = []):
         """ Equation with orders.
             k:              used by k-induction and IC3
-            k_original:     used by IC3
+            k_initial:     used by IC3
             places_reduced: place identifiers from the reduced net
-            other_vars:     other identifiers from equations and original net
+            other_vars:     other identifiers from equations and initial net
             SMTLIB format
         """
         smt_input = ""
@@ -181,8 +181,8 @@ class Equation:
         for elem in member:
             if elem in places_reduced:
                 smt_input += " {}@{}".format(elem, k)
-            elif k_original is not None and elem in other_vars:
-                smt_input += " {}@{}".format(elem, k_original)
+            elif k_initial is not None and elem in other_vars:
+                smt_input += " {}@{}".format(elem, k_initial)
             else:
                 smt_input += " {}".format(elem)
         if len(member) > 1:
@@ -346,7 +346,7 @@ class Relation:
 
     def c_stable_matrix(self, var1_id, var2_id):
         """ Given two concurrent places from the reduced net
-            return associated c-stables in the original net.
+            return associated c-stables in the initial net.
         """
         var1 = self.get_variable(var1_id)
         var2 = self.get_variable(var2_id)

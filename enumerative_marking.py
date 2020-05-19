@@ -104,7 +104,7 @@ class EnumerativeMarking:
         self.solver.exit()
 
     def prove_non_reduced(self):
-        """ Prover the original Petri Net.
+        """ Prover for non-reduced Petri net.
         """
         log.info("> Variable Definitions")
         self.solver.write(self.pn.smtlib_declare_places())
@@ -114,7 +114,7 @@ class EnumerativeMarking:
         self.solver.write(self.smtlib())
 
     def prove_reduced(self):
-        """ Prover the reduced Petri Net.
+        """ Prover for reduced Petri net.
         """
         log.info("> Variable Definitions")
         self.solver.write(self.pn.smtlib_declare_places())
