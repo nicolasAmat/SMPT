@@ -193,6 +193,13 @@ class Formula:
                 print("Deadlock.")
             else:
                 print("Deadlockless")
+        
+        if self.prop == 'reachability':
+            if sat:
+                print("Reachable.")
+            else:
+                print("Unreachable.")
+        
         if self.prop == "fireability":
             if sat:
                 print("Fireable.")
