@@ -20,7 +20,7 @@ class KInduction:
     """
     K-induction method
     """
-    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False):
+    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False, stop_concurrent=None):
         """ K-induction initializer.
         """
         self.pn = pn
@@ -28,6 +28,8 @@ class KInduction:
         self.pn_reduced = pn_reduced
         self.eq = eq
         self.solver = Solver(debug)
+
+        self.stop_concurrent = stop_concurrent
 
     def smtlib(self, k):
         """ Return SMT-LIB format for understanding.
@@ -94,7 +96,7 @@ class KInduction:
 
         return text
 
-    def prove(self, display=True):
+    def prove(self, display=True, result=None):
         """ Prover.
         """
         log.info("---K-INDUCTION RUNNING---")
@@ -120,6 +122,11 @@ class KInduction:
 
         self.solver.exit()
         
+        if self.stop_concurrent:
+            self.stop_concurrent.set()
+        if result is not None:
+            result.append(model)
+
         return model
 
     def prove_non_reduced(self):
@@ -196,7 +203,7 @@ if __name__ == '__main__':
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
     pn = PetriNet(sys.argv[1])
-    formula = Formula(pn)
+    formula = Formula(pn, prop='deadlock')
     
     if len(sys.argv) == 3:
         pn_reduced = PetriNet(sys.argv[2])
