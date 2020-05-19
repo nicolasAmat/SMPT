@@ -51,7 +51,7 @@ def about():
            + "          \::/    /                \::/    /                                                        \n" \
            + "           \/____/                  \/____/                                                         \n"
     print(logo)
-    print("\tSatisfiability Modulo PeTri Net")
+    print("\tSatisfiability Modulo Petri Net")
     print("\t-------------------------------\n")
     print("LAAS-CNRS")
     print("Author: Nicolas AMAT")
@@ -107,7 +107,7 @@ def main():
 
     parser.add_argument('--debug',
                         action='store_true',
-                        help="display the SMT-LIB input/ouput")
+                        help="print the SMT-LIB input/ouput")
 
     parser.add_argument('path_pn',
                         metavar='pn',
@@ -134,7 +134,7 @@ def main():
 
     parser.add_argument('--compressed-matrix',
                         action='store_true',
-                        help="concurrent places matrix compressed")
+                        help="compress the concurrent places matrix")
 
     parser.add_argument('--complete-matrix',
                         action='store_true',
@@ -162,14 +162,14 @@ def main():
                                    action='store',
                                    dest='path_markings',
                                    type=str,
-                                   help='Path to markings  (.aut format)')
+                                   help='path to the state-space (.aut format)')
 
     parser.add_argument('--timeout',
                         action='store',
                         dest='timeout',
                         type=int,
                         default=60,
-                        help='configure the timeout')
+                        help='set the timeout')
 
     results = parser.parse_args()
 
