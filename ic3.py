@@ -39,7 +39,7 @@ class IC3:
     """
     IC3 Method
     """
-    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False, unsat_core=True):
+    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False, unsat_core=True, stop_concurrent=None):
         """ IC3 initializer.
 
             By default the IC3 method uses the unsat core of the solver.
@@ -61,6 +61,8 @@ class IC3:
             self.sub_clause_finder = self.sub_clause_finder_unsat_core
         else:
             self.sub_clause_finder = self.sub_clause_finder_mic
+
+        self.stop_concurrent = stop_concurrent
 
     def declare_places(self, init=False):
         """ Declare places.
@@ -285,7 +287,7 @@ class IC3:
                 non_zero.append(Inequality(eq.left_member, eq.right_member, ">="))
         return Clause(non_zero, "and")
 
-    def prove(self):
+    def prove(self, result=None):
         """ Prover.
         """
         log.info("---IC3 RUNNING---\n")
@@ -308,6 +310,10 @@ class IC3:
 
             for i in range(1, k + 1):
                 if set(self.oars[i]) == set(self.oars[i + 1]):
+                    if self.stop_concurrent:
+                        self.stop_concurrent.set()
+                    if result is not None:
+                        result.append(True)
                     return True
             k += 1
 
@@ -398,19 +404,20 @@ class IC3:
 if __name__ == '__main__':
     
     if len(sys.argv) < 2:
-        exit("File missing: ./ic3.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
+        exit("File missing: ./ic3.py <place_to_reach> <path_to_initial_petri_net> [<path_to_reduce_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
-    pn = PetriNet(sys.argv[1])
-    formula = Formula(pn, 'reachability')
+    pn = PetriNet(sys.argv[2])
+    marking = {pn.places[sys.argv[1]] : 1}
+    formula = Formula(pn, prop='reachability', marking=marking)
     
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         pn_reduced = None
         eq = None
     else:
-        pn_reduced = PetriNet(sys.argv[2])
-        eq = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
+        pn_reduced = PetriNet(sys.argv[3])
+        eq = System(sys.argv[3], pn.places.keys(), pn_reduced.places.keys())
 
     ic3 = IC3(pn, formula, pn_reduced, eq)
     
