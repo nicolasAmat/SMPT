@@ -151,9 +151,9 @@ class IC3:
         return self.solver.check_sat()
 
     def init_tr_reach_bad_state(self):
-        """ sat (I and T and -P)
+        """ sat (I and T and -P')
         """
-        log.info("> INIT and T => P")
+        log.info("> INIT and T => P'")
 
         self.solver.reset()
 
@@ -166,7 +166,7 @@ class IC3:
         return self.solver.check_sat()
 
     def formula_reach_bad_state(self, k):
-        """ sat (Fk and T and -P)
+        """ sat (Fk and T and -P')
         """
         self.solver.reset()
 
@@ -179,7 +179,7 @@ class IC3:
         return self.solver.check_sat()
 
     def formula_reach_clause(self, i, c):
-        """ sat (Fi and T and -c)
+        """ sat (Fi and T and -c')
         """
         self.solver.reset()
 
