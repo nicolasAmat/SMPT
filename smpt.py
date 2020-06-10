@@ -122,6 +122,16 @@ def main():
                                type=str,
                                help='use xml format for properties')
 
+    group_formula.add_argument('--deadlock',
+                               action='store_true',
+                               help='deadlock analysis')
+
+    group_formula.add_argument('--liveness',
+                               action='store',
+                               dest='live_transitions',
+                               type=str,
+                               help='liveness analysis (seperate tranisitions by commas)')
+
     group_formula.add_argument('--reachability',
                                action='store',
                                dest='reach_places',
@@ -210,6 +220,23 @@ def main():
             else:
                 k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
 
+    if results.deadlock:
+        print("---Deadlock---")
+        formula = Formula(pn, 'deadlock')
+        if results.path_markings is not None:
+            enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
+        else:
+            k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
+
+    if results.live_transitions is not None:
+        print("---Liveness: {}---".format(results.live_transitions))
+        transitions = results.live_transitions.replace('#', '').replace('{', '').replace('}', '').split(',')
+        formula = Formula(pn, 'fireability', transitions=transitions)
+        if results.path_markings is not None:
+            enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
+        else:
+            k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
+
     if results.reach_places is not None:
         print("---Reachability: {}---".format(results.reach_places))
         places = results.reach_places.replace('#', '').replace('{', '').replace('}', '').split(',')
@@ -217,8 +244,11 @@ def main():
         for pl in places:
             marking[pn.places[pl]] = 1
         formula = Formula(pn, 'reachability', marking=marking)
-        parallelizer = Parallelizer(pn, formula, pn_reduced, eq, results.debug)
-        model = parallelizer.run()
+        if results.path_markings is not None:
+            enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
+        else:
+            parallelizer = Parallelizer(pn, formula, pn_reduced, eq, results.debug)
+            model = parallelizer.run()
 
     if results.concurrent_places:
         concurrent_places = ConcurrentPlaces(pn, pn_reduced, eq, results.debug)
