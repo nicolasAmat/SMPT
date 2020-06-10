@@ -330,10 +330,10 @@ class Relation:
                 c_stables.append([var.id, var.children[1].id])
 
         # constant places and agglomerations (assumption: No dead place)
-        if len(self.constant_vars) > 0:
-            for var in self.constant_vars:
-                for pl1 in var.propagated_places:
-                    for pl2 in self.eq.places:
+        for var in self.constant_vars:
+            for pl1 in var.propagated_places:
+                for pl2 in self.eq.places:
+                    if pl2 not in var.propagated_places:
                         c_stables.append([pl1.id, pl2])
 
         # equals variables
