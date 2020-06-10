@@ -230,7 +230,7 @@ def main():
 
     if results.live_transitions is not None:
         print("---Liveness: {}---".format(results.live_transitions))
-        transitions = results.live_transitions.replace('#', '').replace('{', '').replace('}', '').split(',')
+        transitions = results.live_transitions.split(',')
         formula = Formula(pn, 'fireability', transitions=transitions)
         if results.path_markings is not None:
             enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
