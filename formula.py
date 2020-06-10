@@ -198,7 +198,7 @@ class Formula:
             if sat:
                 print("Deadlock.")
             else:
-                print("Deadlockless")
+                print("Deadlock free")
 
         if self.prop == 'reachability':
             if sat:
