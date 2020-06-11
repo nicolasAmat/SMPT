@@ -110,7 +110,7 @@ class KInduction:
         
         model = None
         
-        if k < 100 and not stop_k_induction.is_set():
+        if not stop_k_induction.is_set():
             self.formula.result(True)
             if display:
                 self.solver.display_model(self.pn, order)
