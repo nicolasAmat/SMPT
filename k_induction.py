@@ -143,7 +143,7 @@ class KInduction:
         self.solver.write(self.formula.smtlib(0))
         
         k = 0
-        while k < 100 and not self.solver.check_sat() and not stop_k_induction.is_set():
+        while not self.solver.check_sat() and not stop_k_induction.is_set():
             log.info("> k = {}".format(k))
             log.info("\t>> Pop")
             self.solver.pop()
@@ -179,7 +179,7 @@ class KInduction:
         self.solver.write(self.eq.smtlib_ordered(0))
         
         k = 0
-        while k < 100 and not self.solver.check_sat() and not stop_k_induction.is_set():
+        while not self.solver.check_sat() and not stop_k_induction.is_set():
             log.info("> k = {}".format(k))
             log.info("\t>> Pop")
             self.solver.pop()
