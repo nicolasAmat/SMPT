@@ -180,7 +180,7 @@ class Formula:
         """ `reachability` formula generator.
         """
         for pl, counter in marking.items():
-            self.clauses.append(Inequality(pl, counter, '='))
+            self.clauses.append(Inequality(pl, counter, '>='))
 
     def generate_concurrent_places(self):
         """ `concurrent places` formula generator.
