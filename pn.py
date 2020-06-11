@@ -63,6 +63,8 @@ class PetriNet:
         """ Transition relations from places at order k to order k + 1.
             SMT-LIB format
         """
+        if not self.places:
+            return ""
         smt_input = "(assert (or \n"
         for tr in self.transitions.values():
             smt_input += tr.smtlib(k)
