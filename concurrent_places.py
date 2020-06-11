@@ -84,8 +84,8 @@ class ConcurrentPlaces:
             self.fill_matrix(self.place_translator(c_stable), self.matrix)
 
         for i, line in enumerate(self.matrix_reduced):
-            for j, concurrent in enumerate(line):
-                if i != j and concurrent:
+            for j, concurrency in enumerate(line):
+                if i != j and concurrency == 1:
                     var1 = self.pn_reduced.ordered_places[i].id
                     var2 = self.pn_reduced.ordered_places[j].id
                     if var1 not in self.pn.places.values() or var2 not in self.pn.places.values():
