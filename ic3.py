@@ -327,7 +327,7 @@ class IC3:
         """
         if self.stop_concurrent is not None:
             self.stop_concurrent.set()
-        if result_output is not None:
+        if result and result_output is not None:
             result_output.append(result)
 
     def strengthen(self, k):
