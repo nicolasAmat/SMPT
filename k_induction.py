@@ -122,7 +122,7 @@ class KInduction:
         self.solver.exit()
         
         if self.stop_concurrent:
-            stop_k_induction.set()
+            self.stop_concurrent.set()
         
         if result is not None:
             result.append(model)
