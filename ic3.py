@@ -297,6 +297,7 @@ class IC3:
         log.info("---IC3 RUNNING---\n")
 
         if self.init_marking_reach_bad_state() or self.init_tr_reach_bad_state():
+            self.exit_helper(False, result)
             return False
 
         self.oars_initialization()
@@ -308,21 +309,26 @@ class IC3:
 
             self.oars.append([self.P])
             if not self.strengthen(k):
+                self.exit_helper(False, result)
                 return False
 
             self.propagate_clauses(k)
 
             for i in range(1, k + 1):
                 if set(self.oars[i]) == set(self.oars[i + 1]):
-                    if self.stop_concurrent is not None:
-                        self.stop_concurrent.set()
-
-                    if result is not None:
-                        result.append(True)
-
+                    self.exit_helper(True, result)
                     return True
 
             k += 1
+
+    def exit_helper(self, result, result_output):
+        """ Helper function to add the result to the output list,
+            and stop the concurrent method if there is one.
+        """
+        if self.stop_concurrent is not None:
+            self.stop_concurrent.set()
+        if result_output is not None:
+            result_output.append(result)
 
     def strengthen(self, k):
         """ Iterate until Fk excludes all states
