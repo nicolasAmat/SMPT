@@ -1,0 +1,110 @@
+# from 89 place(s), 88 transition(s), 333 arc(s)
+# R1  |- removed 32 constant or duplicated place(s)
+# R4  |- agglomerated 44 place(s)
+# .   |- removed 44 identity transition(s)
+# R1  |- removed 1 constant or duplicated place(s)
+# R2  |- removed 34 identity or duplicated transition(s)
+# R4  |- agglomerated 1 place(s)
+# .   |- removed 1 identity transition(s)
+# R1b |- removed 1 redundant place(s)
+# left 10 place(s), 9 transition(s), 26 arc(s)
+# 0.016s
+
+# prefix = a
+
+# generated equations
+# R |- AltitudePossibleVal_1 = 1
+# R |- AltitudePossibleVal_10 = 1
+# R |- AltitudePossibleVal_11 = 1
+# R |- AltitudePossibleVal_12 = 1
+# R |- AltitudePossibleVal_13 = 1
+# R |- AltitudePossibleVal_14 = 1
+# R |- AltitudePossibleVal_15 = 1
+# R |- AltitudePossibleVal_16 = 1
+# R |- AltitudePossibleVal_17 = 1
+# R |- AltitudePossibleVal_18 = 1
+# R |- AltitudePossibleVal_19 = 1
+# R |- AltitudePossibleVal_2 = 1
+# R |- AltitudePossibleVal_20 = 1
+# R |- AltitudePossibleVal_3 = 1
+# R |- AltitudePossibleVal_4 = 1
+# R |- AltitudePossibleVal_5 = 1
+# R |- AltitudePossibleVal_6 = 1
+# R |- AltitudePossibleVal_7 = 1
+# R |- AltitudePossibleVal_8 = 1
+# R |- AltitudePossibleVal_9 = 1
+# R |- SpeedPossibleVal_1 = 1
+# R |- SpeedPossibleVal_10 = 1
+# R |- SpeedPossibleVal_2 = 1
+# R |- SpeedPossibleVal_3 = 1
+# R |- SpeedPossibleVal_4 = 1
+# R |- SpeedPossibleVal_5 = 1
+# R |- SpeedPossibleVal_6 = 1
+# R |- SpeedPossibleVal_7 = 1
+# R |- SpeedPossibleVal_8 = 1
+# R |- SpeedPossibleVal_9 = 1
+# R |- WeightPossibleVal_off = 1
+# R |- WeightPossibleVal_on = 1
+# A |- a1 = Weight_Left_Wheel_off + stp1
+# A |- a2 = Weight_Left_Wheel_on + a1
+# A |- a3 = Weight_Right_Wheel_off + stp2
+# A |- a4 = Weight_Right_Wheel_on + a3
+# A |- a5 = TheAltitude_1 + stp3
+# A |- a6 = TheAltitude_10 + a5
+# A |- a7 = TheAltitude_11 + a6
+# A |- a8 = TheAltitude_12 + a7
+# A |- a9 = TheAltitude_13 + a8
+# A |- a10 = TheAltitude_14 + a9
+# A |- a11 = TheAltitude_15 + a10
+# A |- a12 = TheAltitude_16 + a11
+# A |- a13 = TheAltitude_17 + a12
+# A |- a14 = TheAltitude_18 + a13
+# A |- a15 = TheAltitude_19 + a14
+# A |- a16 = TheAltitude_2 + a15
+# A |- a17 = TheAltitude_20 + a16
+# A |- a18 = TheAltitude_3 + a17
+# A |- a19 = TheAltitude_4 + a18
+# A |- a20 = TheAltitude_5 + a19
+# A |- a21 = TheAltitude_6 + a20
+# A |- a22 = TheAltitude_7 + a21
+# A |- a23 = TheAltitude_8 + a22
+# A |- a24 = TheAltitude_9 + a23
+# A |- a25 = Speed_Left_Wheel_1 + stp4
+# A |- a26 = Speed_Left_Wheel_10 + a25
+# A |- a27 = Speed_Left_Wheel_2 + a26
+# A |- a28 = Speed_Left_Wheel_3 + a27
+# A |- a29 = Speed_Left_Wheel_4 + a28
+# A |- a30 = Speed_Left_Wheel_5 + a29
+# A |- a31 = Speed_Left_Wheel_6 + a30
+# A |- a32 = Speed_Left_Wheel_7 + a31
+# A |- a33 = Speed_Left_Wheel_8 + a32
+# A |- a34 = Speed_Left_Wheel_9 + a33
+# A |- a35 = Speed_Right_Wheel_1 + stp5
+# A |- a36 = Speed_Right_Wheel_10 + a35
+# A |- a37 = Speed_Right_Wheel_2 + a36
+# A |- a38 = Speed_Right_Wheel_3 + a37
+# A |- a39 = Speed_Right_Wheel_4 + a38
+# A |- a40 = Speed_Right_Wheel_5 + a39
+# A |- a41 = Speed_Right_Wheel_6 + a40
+# A |- a42 = Speed_Right_Wheel_7 + a41
+# A |- a43 = Speed_Right_Wheel_8 + a42
+# A |- a44 = Speed_Right_Wheel_9 + a43
+# R |- a2 = P1
+# A |- a45 = P2 + P1
+# R |- P6 = Plane_On_Ground_Signal_no_F + Plane_On_Ground_Signal_no_T
+
+net {AirplaneLD-PT-0010}
+tr t1_1_on a45  -> Plane_On_Ground_Signal_no_T 
+tr t2_1_on a45 a4  -> Plane_On_Ground_Signal_no_T 
+tr t2_2_off a45 a4  -> P3 
+tr t3_1_1 P3 a24  -> Plane_On_Ground_Signal_no_T 
+tr t3_2_10 P3 a24  -> P4 
+tr t4_1_6 P4 a34  -> Plane_On_Ground_Signal_no_T 
+tr t4_2_1 P4 a34  -> P5 
+tr t5_1_6 P5 a44  -> Plane_On_Ground_Signal_no_T 
+tr t5_2_1 P5 a44  -> Plane_On_Ground_Signal_no_F 
+pl a45 (1)
+pl a4 (1)
+pl a24 (1)
+pl a34 (1)
+pl a44 (1)

@@ -1,0 +1,39 @@
+# from 16 place(s), 16 transition(s), 40 arc(s)
+# R1  |- removed 1 constant or duplicated place(s)
+# R4  |- agglomerated 8 place(s)
+# .   |- removed 8 identity transition(s)
+# R2  |- removed 4 identity or duplicated transition(s)
+# R4  |- agglomerated 1 place(s)
+# .   |- removed 1 identity transition(s)
+# R1  |- removed 2 constant or duplicated place(s)
+# R4  |- agglomerated 1 place(s)
+# .   |- removed 1 identity transition(s)
+# R1  |- removed 1 constant or duplicated place(s)
+# R4  |- agglomerated 1 place(s)
+# .   |- removed 1 identity transition(s)
+# R1  |- removed 1 constant or duplicated place(s)
+# R2  |- removed 1 identity or duplicated transition(s)
+# left 0 place(s), 0 transition(s), 0 arc(s)
+# 0.000s
+
+# prefix = a
+
+# generated equations
+# R |- P3 = P2
+# A |- a1 = Pout1 + Pm1
+# A |- a2 = Pback1 + a1
+# A |- a3 = Pout2 + Pm2
+# A |- a4 = Pback2 + a3
+# A |- a5 = Pout3 + Pm3
+# A |- a6 = Pback3 + a5
+# A |- a7 = Pout4 + Pm4
+# A |- a8 = Pback4 + a7
+# A |- a9 = a8 + P4
+# R |- a9 = 50
+# R |- a6 = a4
+# A |- a10 = a4 + P2
+# R |- a10 = 50
+# A |- a11 = a2 + P1
+# R |- a11 = 50
+
+net {Kanban-PT-00050}
