@@ -9,8 +9,29 @@ Standard: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.p
 Dependency: https://github.com/Z3Prover/z3
 
 This module can easily be hacked to replace Z3
-by an other SMT solver supporting the SMT-LIB format.
+by another SMT solver supporting the SMT-LIB format.
+
+This file is part of SMPT.
+
+SMPT is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+SMPT is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
+
+__author__ = "Nicolas AMAT, LAAS-CNRS"
+__contact__ = "namat@laas.fr"
+__license__ = "GPLv3"
+__version__ = "1.0.0"
+
 from formula import Clause, Inequality
 
 from subprocess import PIPE, Popen
