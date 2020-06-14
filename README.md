@@ -1,82 +1,101 @@
-# SMPT (Satisfiability Modulo PeTri Net)
+<br />
+<p align="center">
+  <p align="center" style="color:#0000ff; font-weight:bold">
+    <font size="7">SMPT</font>
+  </p>
+  <p align="center">
+    Satisfiability Modulo Petri Net, an SMT-based model-checker!
+  </p>
+</p>
 
-## Install a Compatible Python Environment
+## About
 
-The project requires python3. On Windows, you can use ```conda``` to simplify
-setting up a new python environment. The project was developped under a Linux
-environment but also works with Windows System on Linux (WSL).
+## Overview
+
+## Requirements
+
+* Python >= 3.5
+* [Z3](https://github.com/Z3Prover/z3)
+
+## Running the model-checker
+
+The tool reads Petri nets at the `.net` format.
 
 ```bash
-$ conda create -n smpn python=3
+$> python smpt.py nets/Kanban/Kanban-00002.net PROPERTY-OPTION
 ```
 
-To activate this environment, use
+The tool permits the verification of several properties:
+* Deadlock: `--deadlock`,
+* Liveness: `--liveness <transitions>`,
+* Reachability: `--reachability <places>`.
+
+For example: `$> python smpt.py nets/Kanban/Kanban-00002.net --deadlock`.
+
+The tool also permits the computation of the *concurrency matrix* using `--concurrency-matrix`.
+
+To take advantage of the reductions, you can use the option `--reduce <path_to_reduced_net>`.  
+Example: `$> python smpt.py ./nets/Kanban/Kanban-00002.net --reduced ./nets/Kanban/Kanban-00002_reduced.net --deadlock`
+
+Option `--auto-reduce` requires an installation of the `reduce` tool. The regular distribution of [TINA](http://projects.laas.fr/tina/) does not contain this tool yet.
+
+You can otain all the tool options by using the *help* option:
 ```bash
-$ conda activate smpn
-```
-
-## Download a SMT Solver
-
-We work with Z3 and use the supported release for the last Ubuntu LTS version,
-namely Z3 4.4.1. The executable ```z3.exe``` should be on the PATH environment
-variable. The tool is also compatible with the latest stable version 4.8.7 of Z3.
-
-## Basic Usage for the Tool
-
-```bash
-$ python smpt.py -h
+$> python smpt.py --help
 usage: smpt.py [-h] [--version] [-v] [--debug]
+               (--xml PATH_PROPERTIES | --deadlock | --liveness LIVE_TRANSITIONS | --reachability REACH_PLACES | --concurrent-places)
+               [--compressed-matrix] [--complete-matrix]
                [--auto-reduce | --reduced PATH_PN_REDUCED]
                [--auto-enumerative | --enumerative PATH_MARKINGS]
                [--timeout TIMEOUT]
-               pn properties
+               pn
 
 Satisfiability Modulo Petri Net
 
 positional arguments:
   pn                    path to Petri Net (.net format)
-  properties            path to Properties (.xml format)
 
 optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   -v, --verbose         increase output verbosity
-  --debug               display the SMT-LIB input/ouput
+  --debug               print the SMT-LIB input/ouput
+  --xml PATH_PROPERTIES
+                        use xml format for properties
+  --deadlock            deadlock analysis
+  --liveness LIVE_TRANSITIONS
+                        liveness analysis (seperate tranisitions by commas)
+  --reachability REACH_PLACES
+                        reachibility analysis (seperate places by commas)
+  --concurrent-places   concurrent places analysis
+  --compressed-matrix   compress the concurrent places matrix
+  --complete-matrix     run an analysis on the compleness of the matrix
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PN_REDUCED
                         path to reduced Petri Net (.net format)
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
-                        Path to markings (.aut format)
-  --timeout TIMEOUT     configure the timeout
+                        path to the state-space (.aut format)
+  --timeout TIMEOUT     set the timeout
 ```
 
-By default it uses a Bounded-Model Checking approach and try to check a
-reachability formula, ```properties```, from a Petri net model written in Tina's
-.net syntax.
+## Features
 
-```bash
-$ python smpt.py nets/airplane/airplane.net nets/airplane/GlobalProperties.xml
-```
+## Dependencies
 
-It is also possible to give a reduced version of the net, with option
-```--reduced```, obtained with the reduce tool or use ```--auto-reduce``` to automatically generate the reduced net (**requirement**: ```reduce``` on the PATH environment).
+The code repository includes models from the [MCC Petri Nets Repository]
+(https://pnrepository.lip6.fr/) located inside the ```./nets```
+folder. These files are included in the
+repository to be used for benchmarking and continuous testing.
 
-```bash
-$ python smpt.py --reduced nets/airplane nets/airplane/airplane.net nets/airplane/GlobalProperties.xml
-```
+## License
 
-```bash
-$ python smpt.py --auto-reduce nets/airplane/airplane.net nets/airplane/GlobalProperties.xml
-```
+This software is distributed under the
+[GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html) license.
+A copy of the license agreement is found in the [LICENSE](./LICENSE) file.
 
-## GitHub
+## Authors
 
-To solve a problem when pushing on Github I needed to change my user.email
-property just for the repo. My Github 'noreply' email address is
-2209941+dalzilio@users.noreply.github.com.
+* **Nicolas AMAT** -  [LAAS/CNRS](https://www.laas.fr/)
 
-```bash
-$ git config  user.email "2209941+dalzilio@users.noreply.github.com"
-```
 
