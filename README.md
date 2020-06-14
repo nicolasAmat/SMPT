@@ -26,7 +26,7 @@
 
 ## About
 
-SMPT is an SMT-base model-checker, which takes advantage of nets reduction.
+SMPT is an SMT-based model-checker that takes advantage of nets reduction.
 
 ## Overview
 
@@ -37,27 +37,34 @@ SMPT is an SMT-base model-checker, which takes advantage of nets reduction.
 
 ## Running the model-checker
 
-The tool reads Petri nets at the `.net` format.
+The tool takes as input descriptions in the `.net` format, a textual format for Petri nets described in [the Tina man pages](http://projects.laas.fr/tina/manuals/formats.html).
+
+SMPT supports the verification of several kind of reachability properties on Petri net. For instance, the following call can be used to check for the existence of deadlocked states on model `Kanban-00002.net`.
 
 ```bash
-$> python smpt.py nets/Kanban/Kanban-00002.net PROPERTY-OPTION
+$> python smpt.py --deadlock nets/Kanban/Kanban-00002.net
 ```
 
-The tool permits the verification of several properties:
-* Deadlock: `--deadlock`,
-* Liveness: `--liveness <transitions>`,
-* Reachability: `--reachability <places>`.
+You can list all the available options with option `--help` (see below). The
+tool support three main kind of properties:
 
-For example: `$> python smpt.py nets/Kanban/Kanban-00002.net --deadlock`.
+* Detection of deadlocks, `--deadlock`: is there a reachable marking with no outgoing transitions
+* Liveness, `--liveness t`: is there a marking where transition `t` can fire. A property often referred to as *quasi-liveness* in the litterature. You can check the liveness of several transitions at the same time by passing a comma-separated list of transition names: `--liveness t1, ..., tn`
+* Reachability: `--reachability p`: is there a reachable marking where place `p` is marked (it has at least one token). You can check the reachability of several places at once by passing a comma-separated list of place names: `--reachability p1, ..., pn`
 
-The tool also permits the computation of the *concurrency matrix* using `--concurrency-matrix`.
+The tool also support the computation of the *concurrency matrix* using option `--concurrency-matrix`.
 
-To take advantage of the reductions, you can use the option `--reduce <path_to_reduced_net>`.  
-Example: `$> python smpt.py ./nets/Kanban/Kanban-00002.net --reduced ./nets/Kanban/Kanban-00002_reduced.net --deadlock`
+To take advantage of possible reductions in the Petri net, you can use option `--reduce <path_to_reduced_net>`. For example:
 
-Option `--auto-reduce` requires an installation of the `reduce` tool. The regular distribution of [TINA](http://projects.laas.fr/tina/) does not contain this tool yet.
+```bash
+$> python smpt.py Kanban-00002.net --reduced Kanban-00002_reduced.net --deadlock
+```
 
-You can otain all the tool options by using the *help* option:
+Option `--auto-reduce` requires the installation of the `reduce` tool, that is
+currently developped by the Vertics team at LAAS-CNRS. The regular distribution
+of [TINA](http://projects.laas.fr/tina/) does not contain this tool yet.
+
+You can list all the options by using the *help* option:
 ```bash
 $> python smpt.py --help
 usage: smpt.py [-h] [--version] [-v] [--debug]
@@ -75,36 +82,36 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --version             show program's version number and exit
+  --version             show the version number and exit
   -v, --verbose         increase output verbosity
   --debug               print the SMT-LIB input/ouput
   --xml PATH_PROPERTIES
-                        use xml format for properties
+                        use XML format for properties
   --deadlock            deadlock analysis
   --liveness LIVE_TRANSITIONS
-                        liveness analysis (seperate tranisitions by commas)
+                        liveness analysis (comma separated list of transition names)
   --reachability REACH_PLACES
-                        reachibility analysis (seperate places by commas)
+                        reachibility analysis (comma separated list of place names)
   --concurrent-places   concurrent places analysis
   --compressed-matrix   compress the concurrent places matrix
-  --complete-matrix     run an analysis on the compleness of the matrix
+  --complete-matrix     run an analysis on the completeness of the matrix
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PN_REDUCED
                         path to reduced Petri Net (.net format)
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
-  --timeout TIMEOUT     set the timeout
+  --timeout TIMEOUT     set a limit on execution time
 ```
 
 ## Features
 
 ## Dependencies
 
-The code repository includes models from the [MCC Petri Nets Repository]
-(https://pnrepository.lip6.fr/) located inside the ```./nets```
-folder. These files are included in the
-repository to be used for benchmarking and continuous testing.
+The code repository includes copies of models taken from the [MCC Petri Nets
+Repository](https://pnrepository.lip6.fr/) located inside folder  ```./nets```.
+These files are included in the repository to be used for benchmarking and
+continuous testing.
 
 ## License
 
@@ -115,5 +122,4 @@ A copy of the license agreement is found in the [LICENSE](./LICENSE) file.
 ## Authors
 
 * **Nicolas AMAT** -  [LAAS/CNRS](https://www.laas.fr/)
-
 
