@@ -211,7 +211,7 @@ class ConcurrentPlaces:
         return marking_vector
 
     def update_formula(self):
-        """ Update formula
+        """ Update formula.
         """
         # Keep only the first clause: at least 2 marked places
         clauses = [self.formula.clauses[0]]

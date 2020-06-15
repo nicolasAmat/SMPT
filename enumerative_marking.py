@@ -40,8 +40,8 @@ import logging as log
 class EnumerativeMarking:
     """
     Marking defined by:
-    - a Petri Net
-    - a set of reachable markings
+    - a Petri Net,
+    - a set of reachable markings.
     """
     def __init__(self, filename, pn, formula, pn_reduced, eq, debug=False):
         self.pn = pn

@@ -75,14 +75,14 @@ def about():
 
 
 def enumerative_marking(path_markings, pn, formula, pn_reduced, eq, debug):
-    """ Enumerative method caller
+    """ Enumerative method caller.
     """
     markings = EnumerativeMarking(path_markings, pn, formula, pn_reduced, eq, debug)
     markings.prove()
 
 
 def k_induction(pn, formula, pn_reduced, eq, debug, timeout):
-    """ K-induction method caller
+    """ K-induction method caller.
     """
     k_induction = KInduction(pn, formula, pn_reduced, eq, debug)
 
@@ -94,7 +94,7 @@ def k_induction(pn, formula, pn_reduced, eq, debug, timeout):
 
 
 def ic3(pn, formula, pn_reduced, eq, debug, timeout):
-    """ IC3 method caller
+    """ IC3 method caller.
     """
     ic3 = IC3(pn, formula, pn_reduced, eq, debug)
 
@@ -106,7 +106,7 @@ def ic3(pn, formula, pn_reduced, eq, debug, timeout):
 
 
 def main():
-    """ Main Function
+    """ Main Function.
     """
     if len(sys.argv) == 2 and sys.argv[1] == '--about':
         about()

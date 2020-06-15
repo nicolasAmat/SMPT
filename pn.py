@@ -34,9 +34,9 @@ import re
 class PetriNet:
     """
     Petri Net defined by:
-    - an identifier
-    - a finite set of places (identified by names)
-    - a finite set of transitions (identified by names)
+    - an identifier,
+    - a finite set of places (identified by names),
+    - a finite set of transitions (identified by names).
     """
 
     def __init__(self, filename):
@@ -151,9 +151,9 @@ class PetriNet:
     def parse_arc(self, arc, arcs, opposite_arcs=[]):
         """ Arc parser.
             Can handle:
-                - Normal Arc
-                - Test Arc
-                - Inhibitor Arc
+                - Normal Arc,
+                - Test Arc,
+                - Inhibitor Arc.
             Input format: .net
         """
         arc = arc.replace('{', '').replace('}', '')  # '{' and '}' are forbidden in SMT-LIB
@@ -240,9 +240,9 @@ class PetriNet:
 class Place:
     """
     Place defined by:
-    - an identifier
-    - an initial marking
-    - an order
+    - an identifier,
+    - an initial marking,
+    - an order.
     """
 
     def __init__(self, pl_id, marking=0):

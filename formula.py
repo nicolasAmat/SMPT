@@ -34,8 +34,8 @@ import xml.etree.ElementTree as ET
 class Properties:
     """
     Properties parsed from .xml file defined by:
-    - an associated Petri Net
-    - a set of Formulas
+    - an associated Petri Net,
+    - a set of Formulas.
     """
 
     def __init__(self, pn, xml_filename):
@@ -104,10 +104,10 @@ class Properties:
 class Formula:
     """
     Formula defined by:
-    - an associated Petri Net
-    - a set of clauses
-    - an operator ('or', 'and') applied between the clauses
-    - a property ('deadlock', 'fireability', 'reachability', 'concurrent places')
+    - an associated Petri Net,
+    - a set of clauses,
+    - an operator ('or', 'and') applied between the clauses,
+    - a property ('deadlock', 'fireability', 'reachability', 'concurrent places').
     """
 
     def __init__(self, pn, prop='deadlock', transitions=[], marking=[]):
@@ -218,7 +218,7 @@ class Formula:
             if sat:
                 print("Deadlock.")
             else:
-                print("Deadlock free")
+                print("Deadlock-free")
 
         if self.prop == 'reachability':
             if sat:
@@ -276,9 +276,9 @@ class Clause:
 class Inequality:
     """
     Inequality defined by:
-    - a left member
-    - a right member
-    - an operator (=, <=, >=, <, >, distinct)
+    - a left member,
+    - a right member,
+    - an operator (=, <=, >=, <, >, distinct).
     """
 
     def __init__(self, left_member, right_member, operator):
@@ -307,8 +307,8 @@ class Inequality:
 class AtLeast:
     """
     At Least defined by:
-    - a minimum k
-    - a list of inequalities
+    - a minimum k,
+    - a list of inequalities.
     """
 
     def __init__(self, k, inequalities):

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 """
-k-induction
+k-induction (Bounded Model Checking)
+We abuse language by refering the BMC method as k-induction.
 
 This file is part of SMPT.
 

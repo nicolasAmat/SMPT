@@ -60,7 +60,7 @@ class Counterexample(Exception):
 
 class IC3:
     """
-    IC3 Method
+    IC3 Method.
     """
 
     def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False, unsat_core=True, stop_concurrent=None):

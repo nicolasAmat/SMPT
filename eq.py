@@ -3,7 +3,7 @@
 """
 Reduction Equations Module
 
-Equations provided by the tool `reduce`
+Equations provided by the `reduce` tool.
 Input file format: .net
 
 This file is part of SMPT.
@@ -36,10 +36,10 @@ import sys
 class System:
     """
     Equation system defined by:
-    - a set of places from the initial Petri Net
-    - a set of places from the reduced Petri Net
-    - a set of additional variables
-    - a set of (in)equations
+    - a set of places from the initial Petri Net,
+    - a set of places from the reduced Petri Net,
+    - a set of additional variables,
+    - a set of (in)equations.
     """
 
     def __init__(self, filename, places=[], places_reduced=[]):
@@ -52,7 +52,7 @@ class System:
         self.parser(filename)
 
     def __str__(self):
-        """ Equations to `reduce` tool format
+        """ Equations to `reduce` tool format.
         """
         text = ""
         for eq in self.system:
@@ -126,9 +126,9 @@ class System:
 class Equation:
     """
     Equation defined by:
-    - Left member
-    - Right member
-    - Operator
+    - Left member,
+    - Right member,
+    - Operator.
     """
 
     def __init__(self, eq, system):
@@ -241,9 +241,9 @@ class Relation:
     Graph relation between a net and its reduced net.
     
     A relation is composed of:
-    - Agglomerations of Variables
-    - Constant Variables
-    - Equalities between Variables
+    - Agglomerations of Variables,
+    - Constant Variables,
+    - Equalities between Variables.
 
     Used for the Concurrent Places Problem.
     See: `concurrent_places.py`
@@ -263,9 +263,9 @@ class Relation:
 
     def __str__(self):
         """ Relation to String:
-            - Agglomerations
-            - Constant Variables
-            - Equal Variables
+            - Agglomerations,
+            - Constant Variables,
+            - Equal Variables.
         """
         text = "Agglomerations\n--------------\n"
         for agglo in self.agglomerations:
@@ -400,11 +400,11 @@ class Variable:
     Place or additional variable.
     Used by the Concurrency Matrix Constructor.
     A variable defined by:
-    - an ID
-    - a value
-    - a list of equals variables
-    - a list of children
-    - after propagation, a set of places associated
+    - an ID,
+    - a value,
+    - a list of equals variables,
+    - a list of children,
+    - after propagation, a set of places associated.
 
     Used for the Concurrent Places Problem.
     See: `concurrent_places.py`

@@ -40,7 +40,7 @@ from subprocess import PIPE, Popen
 class Solver:
     """
     Solver defined by:
-    - a Z3 process
+    - a Z3 process.
     """
 
     def __init__(self, debug=False):
