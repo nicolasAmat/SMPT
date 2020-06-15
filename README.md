@@ -28,8 +28,6 @@
 
 SMPT is an SMT-based model-checker that takes advantage of nets reduction.
 
-## Overview
-
 ## Requirements
 
 * Python >= 3.5
@@ -65,7 +63,7 @@ currently developped by the Vertics team at LAAS-CNRS. The regular distribution
 of [TINA](http://projects.laas.fr/tina/) does not contain this tool yet.
 
 You can list all the options by using the *help* option:
-```bash
+```
 $> python smpt.py --help
 usage: smpt.py [-h] [--version] [-v] [--debug]
                (--xml PATH_PROPERTIES | --deadlock | --liveness LIVE_TRANSITIONS | --reachability REACH_PLACES | --concurrent-places)
@@ -103,8 +101,6 @@ optional arguments:
                         path to the state-space (.aut format)
   --timeout TIMEOUT     set a limit on execution time
 ```
-
-## Features
 
 ## Dependencies
 
