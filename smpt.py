@@ -115,7 +115,8 @@ def main():
 
     parser.add_argument('--version',
                         action='version',
-                        version='%(prog)s 1.0.0')
+                        version='%(prog)s 1.0.0',
+                        help="show the version number and exit")
 
     parser.add_argument('-v', '--verbose',
                         action='store_true',
@@ -136,7 +137,7 @@ def main():
                                action='store',
                                dest='path_properties',
                                type=str,
-                               help='use xml format for properties')
+                               help='use XML format for properties')
 
     group_formula.add_argument('--deadlock',
                                action='store_true',
@@ -146,13 +147,13 @@ def main():
                                action='store',
                                dest='live_transitions',
                                type=str,
-                               help='liveness analysis (seperate tranisitions by commas)')
+                               help='liveness analysis (comma separated list of transition names)')
 
     group_formula.add_argument('--reachability',
                                action='store',
                                dest='reach_places',
                                type=str,
-                               help='reachibility analysis (seperate places by commas)')
+                               help='reachibility analysis (comma separated list of place names)')
 
     group_formula.add_argument('--concurrent-places',
                                action='store_true',
@@ -164,7 +165,7 @@ def main():
 
     parser.add_argument('--complete-matrix',
                         action='store_true',
-                        help="run an analysis on the compleness of the matrix")
+                        help="run an analysis on the completeness of the matrix")
 
     group_reduce = parser.add_mutually_exclusive_group()
 
@@ -195,7 +196,7 @@ def main():
                         dest='timeout',
                         type=int,
                         default=60,
-                        help='set the timeout')
+                        help='a limit on execution time')
 
     results = parser.parse_args()
 
