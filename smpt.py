@@ -56,12 +56,12 @@ def about():
            + "    ___\:::\   \:::\    \    /:::/  |::|___|______    /::::::\   \:::\    \        /::::::\    \    \n" \
            + "   /\   \:::\   \:::\    \  /:::/   |::::::::\    \  /:::/\:::\   \:::\____\      /:::/\:::\    \   \n" \
            + "  /::\   \:::\   \:::\____\/:::/    |:::::::::\____\/:::/  \:::\   \:::|    |    /:::/  \:::\____\  \n" \
-           + "  \:::\   \:::\   \::/    /\::/    / ~~~~~/:::/    /\::/    \:::\  /:::|____|   /:::/    \::/    /  \n" \
+           + "  \:::\   \:::\   \::/    /\::/    / -----/:::/    /\::/    \:::\  /:::|____|   /:::/    \::/    /  \n" \
            + "   \:::\   \:::\   \/____/  \/____/      /:::/    /  \/_____/\:::\/:::/    /   /:::/    / \/____/   \n" \
            + "    \:::\   \:::\    \                  /:::/    /            \::::::/    /   /:::/    /            \n" \
            + "     \:::\   \:::\____\                /:::/    /              \::::/    /   /:::/    /             \n" \
            + "      \:::\  /:::/    /               /:::/    /                \::/____/    \::/    /              \n" \
-           + "       \:::\/:::/    /               /:::/    /                  ~~           \/____/               \n" \
+           + "       \:::\/:::/    /               /:::/    /                  --           \/____/               \n" \
            + "        \::::::/    /               /:::/    /                                                      \n" \
            + "         \::::/    /               /:::/    /                                                       \n" \
            + "          \::/    /                \::/    /                                                        \n" \
@@ -247,7 +247,7 @@ def main():
 
     if results.live_transitions is not None:
         print("---Liveness: {}---".format(results.live_transitions))
-        transitions = results.live_transitions.replace('#', '').split(',')
+        transitions = results.live_transitions.replace('#', '').replace('{', '').replace('}', '').split(',')
         formula = Formula(pn, 'fireability', transitions=transitions)
         if results.path_markings is not None:
             enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)

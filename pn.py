@@ -128,7 +128,7 @@ class PetriNet:
         """ Transition parser.
             Input format: .net
         """
-        tr_id = content.pop(0)
+        tr_id = content.pop(0).replace('{', '').replace('}', '') # '{' and '}' are forbidden in SMT-LIB
 
         if tr_id in self.transitions:
             tr = self.transitions[tr.id]
