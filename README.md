@@ -47,8 +47,8 @@ You can list all the available options with option `--help` (see below). The
 tool support three main kind of properties:
 
 * Detection of deadlocks, `--deadlock`: is there a reachable marking with no outgoing transitions
-* Liveness, `--liveness t`: is there a marking where transition `t` can fire. A property often referred to as *quasi-liveness* in the litterature. You can check the liveness of several transitions at the same time by passing a comma-separated list of transition names: `--liveness t1, ..., tn`
-* Reachability: `--reachability p`: is there a reachable marking where place `p` is marked (it has at least one token). You can check the reachability of several places at once by passing a comma-separated list of place names: `--reachability p1, ..., pn`
+* Liveness, `--liveness t`: is there a marking where transition `t` can fire. A property often referred to as *quasi-liveness* in the litterature. You can check the liveness of several transitions at the same time by passing a comma-separated list of transition names: `--liveness t1,...,tn`
+* Reachability: `--reachability p`: is there a reachable marking where place `p` is marked (it has at least one token). You can check the reachability of several places at once by passing a comma-separated list of place names: `--reachability p1,...,pn`
 
 The tool also support the computation of the *concurrency matrix* using option `--concurrency-matrix`.
 
