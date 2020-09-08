@@ -32,9 +32,9 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "1.0.0"
 
-from formula import Clause, Inequality
-
 from subprocess import PIPE, Popen
+
+from formula import Clause, Inequality
 
 
 class Solver:

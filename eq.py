@@ -27,10 +27,10 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "1.0.0"
 
-from pn import PetriNet
-
 import re
 import sys
+
+from pn import PetriNet
 
 
 class System:

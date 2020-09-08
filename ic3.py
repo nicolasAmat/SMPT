@@ -38,16 +38,16 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "1.0.0"
 
-from pn import PetriNet
-from formula import Formula, Clause, Inequality
-from eq import System
-from solver import Solver
-
 import copy
 import logging as log
-from subprocess import PIPE, Popen
 import sys
+from subprocess import PIPE, Popen
 from threading import Event
+
+from eq import System
+from formula import Clause, Formula, Inequality
+from pn import PetriNet
+from solver import Solver
 
 stop_ic3 = Event()
 

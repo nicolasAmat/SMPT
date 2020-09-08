@@ -25,14 +25,14 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "1.0.0"
 
-from pn import PetriNet
+import logging as log
+import sys
+from threading import Event, Thread
+
 from eq import System
 from formula import Formula
+from pn import PetriNet
 from solver import Solver
-
-import sys
-import logging as log
-from threading import Thread, Event
 
 stop_k_induction = Event()
 

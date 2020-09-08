@@ -50,8 +50,6 @@ tool support three main kind of properties:
 * Liveness, `--liveness t`: is there a marking where transition `t` can fire. A property often referred to as *quasi-liveness* in the litterature. You can check the liveness of several transitions at the same time by passing a comma-separated list of transition names: `--liveness t1,...,tn`
 * Reachability: `--reachability p`: is there a reachable marking where place `p` is marked (it has at least one token). You can check the reachability of several places at once by passing a comma-separated list of place names: `--reachability p1,...,pn`
 
-The tool also support the computation of the *concurrency matrix* using option `--concurrency-matrix`.
-
 To take advantage of possible reductions in the Petri net, you can use option `--reduce <path_to_reduced_net>`. For example:
 
 ```bash
@@ -90,9 +88,6 @@ optional arguments:
                         liveness analysis (comma separated list of transition names)
   --reachability REACH_PLACES
                         reachibility analysis (comma separated list of place names)
-  --concurrent-places   concurrent places analysis
-  --compressed-matrix   compress the concurrent places matrix
-  --complete-matrix     run an analysis on the completeness of the matrix
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PN_REDUCED
                         path to reduced Petri Net (.net format)

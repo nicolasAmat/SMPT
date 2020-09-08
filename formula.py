@@ -24,11 +24,11 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "1.0.0"
 
-from pn import PetriNet
-
 import re
 import sys
 import xml.etree.ElementTree as ET
+
+from pn import PetriNet
 
 
 class Properties:

@@ -24,54 +24,20 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "1.0.0"
 
-from pn import PetriNet
-from formula import Properties, Formula
-from eq import System
-from enumerative_marking import EnumerativeMarking
-from k_induction import KInduction, stop_k_induction
-from ic3 import IC3, stop_ic3
-from concurrent_places import ConcurrentPlaces
-from parallelizer import Parallelizer
-
 import argparse
 import logging as log
 import os
 import subprocess
-import sys
 import tempfile
-from threading import Thread, Event
+from threading import Event, Thread
 
-
-def about():
-    """ About printer.
-    """
-    logo = "            _____                    _____                    _____                _____            \n" \
-           + "           /\    \                  /\    \                  /\    \              /\    \           \n" \
-           + "          /::\    \                /::\____\                /::\    \            /::\    \          \n" \
-           + "         /::::\    \              /::::|   |               /::::\    \           \:::\    \         \n" \
-           + "        /::::::\    \            /:::::|   |              /::::::\    \           \:::\    \        \n" \
-           + "       /:::/\:::\    \          /::::::|   |             /:::/\:::\    \           \:::\    \       \n" \
-           + "      /:::/__\:::\    \        /:::/|::|   |            /:::/__\:::\    \           \:::\    \      \n" \
-           + "      \:::\   \:::\    \      /:::/ |::|   |           /::::\   \:::\    \          /::::\    \     \n" \
-           + "    ___\:::\   \:::\    \    /:::/  |::|___|______    /::::::\   \:::\    \        /::::::\    \    \n" \
-           + "   /\   \:::\   \:::\    \  /:::/   |::::::::\    \  /:::/\:::\   \:::\____\      /:::/\:::\    \   \n" \
-           + "  /::\   \:::\   \:::\____\/:::/    |:::::::::\____\/:::/  \:::\   \:::|    |    /:::/  \:::\____\  \n" \
-           + "  \:::\   \:::\   \::/    /\::/    / -----/:::/    /\::/    \:::\  /:::|____|   /:::/    \::/    /  \n" \
-           + "   \:::\   \:::\   \/____/  \/____/      /:::/    /  \/_____/\:::\/:::/    /   /:::/    / \/____/   \n" \
-           + "    \:::\   \:::\    \                  /:::/    /            \::::::/    /   /:::/    /            \n" \
-           + "     \:::\   \:::\____\                /:::/    /              \::::/    /   /:::/    /             \n" \
-           + "      \:::\  /:::/    /               /:::/    /                \::/____/    \::/    /              \n" \
-           + "       \:::\/:::/    /               /:::/    /                  --           \/____/               \n" \
-           + "        \::::::/    /               /:::/    /                                                      \n" \
-           + "         \::::/    /               /:::/    /                                                       \n" \
-           + "          \::/    /                \::/    /                                                        \n" \
-           + "           \/____/                  \/____/                                                         \n"
-    print(logo)
-    print("\tSatisfiability Modulo Petri Net")
-    print("\t-------------------------------\n")
-    print("LAAS-CNRS")
-    print("Author: Nicolas AMAT")
-    exit(0)
+from enumerative_marking import EnumerativeMarking
+from eq import System
+from formula import Formula, Properties
+from ic3 import IC3, stop_ic3
+from k_induction import KInduction, stop_k_induction
+from parallelizer import Parallelizer
+from pn import PetriNet
 
 
 def enumerative_marking(path_markings, pn, formula, pn_reduced, eq, debug):
@@ -108,9 +74,6 @@ def ic3(pn, formula, pn_reduced, eq, debug, timeout):
 def main():
     """ Main Function.
     """
-    if len(sys.argv) == 2 and sys.argv[1] == '--about':
-        about()
-
     parser = argparse.ArgumentParser(description='Satisfiability Modulo Petri Net')
 
     parser.add_argument('--version',
@@ -154,18 +117,6 @@ def main():
                                dest='reach_places',
                                type=str,
                                help='reachibility analysis (comma separated list of place names)')
-
-    group_formula.add_argument('--concurrent-places',
-                               action='store_true',
-                               help="concurrent places analysis")
-
-    parser.add_argument('--compressed-matrix',
-                        action='store_true',
-                        help="compress the concurrent places matrix")
-
-    parser.add_argument('--complete-matrix',
-                        action='store_true',
-                        help="run an analysis on the completeness of the matrix")
 
     group_reduce = parser.add_mutually_exclusive_group()
 
@@ -266,11 +217,6 @@ def main():
         else:
             parallelizer = Parallelizer(pn, formula, pn_reduced, eq, results.debug)
             model = parallelizer.run()
-
-    if results.concurrent_places:
-        concurrent_places = ConcurrentPlaces(pn, pn_reduced, eq, results.debug)
-        concurrent_places.analyze(results.timeout, results.complete_matrix)
-        concurrent_places.display(results.compressed_matrix)
 
     if results.auto_reduce:
         fp_pn_reduced.close()

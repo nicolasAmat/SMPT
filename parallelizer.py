@@ -24,14 +24,14 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "1.0.0"
 
-from pn import PetriNet
-from formula import Formula
+import sys
+from threading import Event, Thread
+
 from eq import System
+from formula import Formula
 from ic3 import IC3, stop_ic3
 from k_induction import KInduction, stop_k_induction
-
-import sys
-from threading import Thread, Event
+from pn import PetriNet
 
 
 class Parallelizer:

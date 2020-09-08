@@ -27,14 +27,14 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "1.0.0"
 
-from pn import PetriNet
-from formula import Properties
-from eq import System
-from solver import Solver
-
+import logging as log
 import re
 import sys
-import logging as log
+
+from eq import System
+from formula import Properties
+from pn import PetriNet
+from solver import Solver
 
 
 class EnumerativeMarking:
