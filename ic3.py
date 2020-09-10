@@ -143,7 +143,7 @@ class IC3:
         """ Initialization of the OARS.
             F0 = I and F1 = P.
         """
-        log.info("> F0 = I and F1 = P")
+        log.info("[IC3] > F0 = I and F1 = P")
 
         # F0 = I
         inequalities = []
@@ -161,7 +161,7 @@ class IC3:
     def init_marking_reach_bad_state(self):
         """ sat (I and -P)
         """
-        log.info("> INIT => P")
+        log.info("[IC3] > INIT => P")
 
         self.solver.write(self.declare_places(init=True))
         self.solver.write(self.assert_equations(init=True))
@@ -173,7 +173,7 @@ class IC3:
     def init_tr_reach_bad_state(self):
         """ sat (I and T and -P')
         """
-        log.info("> INIT and T => P'")
+        log.info("[IC3] > INIT and T => P'")
 
         self.solver.reset()
 
@@ -264,7 +264,7 @@ class IC3:
                     inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
         cl = Clause(inequalities, "or")
 
-        log.info("\t\t\t>> Clause learned: {}".format(cl))
+        log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
         return cl
 
     def sub_clause_finder_mic(self, i, s):
@@ -291,14 +291,14 @@ class IC3:
                     if int(eq.right_member) == 0:
                         inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
                 cl = Clause(inequalities, "or")
-                log.info("\t\t\t>> Clause learned: {}".format(cl))
+                log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
                 return cl
 
         inequalities = []
         for eq in s.inequalities:
             inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
         cl = Clause(inequalities, "or")
-        log.info("\t\t\t>> Clause learned: {}".format(cl))
+        log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
         return cl
 
     def cuber_filter(self, s):
@@ -314,7 +314,7 @@ class IC3:
     def prove(self, result=None):
         """ Prover.
         """
-        log.info("---IC3 RUNNING---\n")
+        log.info("---IC3 RUNNING---")
 
         if self.init_marking_reach_bad_state() or self.init_tr_reach_bad_state():
             self.exit_helper(False, result)
@@ -325,7 +325,7 @@ class IC3:
         k = 1
 
         while not stop_ic3.is_set():
-            log.info("> F{} = P".format(k + 1))
+            log.info("[IC3] > F{} = P".format(k + 1))
 
             self.oars.append([self.P])
             if not self.strengthen(k):
@@ -354,15 +354,15 @@ class IC3:
         """ Iterate until Fk excludes all states
             that lead to a dangerous state in one step.
         """
-        log.info("> Strengthen (k = {})".format(k))
+        log.info("[IC3] > Strengthen (k = {})".format(k))
 
         try:
             while self.formula_reach_bad_state(k) and not stop_ic3.is_set():
                 s = self.cuber_filter(self.solver.get_model(self.pn_current, 0))
                 n = self.inductively_generalize(s, k - 2, k)
 
-                log.info("\t\t>> s: {}".format(s))
-                log.info("\t\t>> n: {}".format(n))
+                log.info("[IC3] \t\t>> s: {}".format(s))
+                log.info("[IC3] \t\t>> n: {}".format(n))
 
                 self.push_generalization([(n + 1, s)], k)
             return True
@@ -377,7 +377,7 @@ class IC3:
             When this is the case, propagate the clause forward,
             i.e. add c to CL(Fi+1)
         """
-        log.info("> Propagate Clauses (k = {})".format(k))
+        log.info("[IC3] > Propagate Clauses (k = {})".format(k))
 
         for i in range(1, k + 1):
             for c in self.oars[i][1:]:  # we do not look at the first clause that corresponds to I or P
@@ -388,7 +388,7 @@ class IC3:
         """ Strengthen the invariants in F,
             by adding cubes generated during the `push_generalization`.
         """
-        log.info("\t> Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
+        log.info("[IC3] \t> Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
 
         if minimum < 0 and self.state_reachable(0, s):
             raise Counterexample
@@ -405,7 +405,7 @@ class IC3:
         """ Find a minimal inductive cube `c` that is inductive relative to Fi.
             Add c to CL(Fi) for all 1 <= j <= i.
         """
-        log.info("\t\t\t> Generate Clause (i = {}, k = {})".format(i, k))
+        log.info("[IC3] \t\t\t> Generate Clause (i = {}, k = {})".format(i, k))
 
         c = self.sub_clause_finder(i, s)
         for j in range(1, i + 2):
@@ -415,7 +415,7 @@ class IC3:
         """ Apply inductive generalization of a dangerous state s 
             to its Fi state predecessors.
         """
-        log.info("\t> Push generalization (k = {})".format(k))
+        log.info("[IC3] \t> Push generalization (k = {})".format(k))
 
         while not stop_ic3.is_set():
             state = min(states, key=lambda t: t[0])

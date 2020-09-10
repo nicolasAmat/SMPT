@@ -35,7 +35,7 @@ from enumerative_marking import EnumerativeMarking
 from eq import System
 from formula import Formula, Properties
 from ic3 import IC3, stop_ic3
-from k_induction import KInduction, stop_k_induction
+from bmc import BMC, stop_bmc
 from parallelizer import Parallelizer
 from pn import PetriNet
 
@@ -47,16 +47,16 @@ def enumerative_marking(path_markings, pn, formula, pn_reduced, eq, debug):
     markings.prove()
 
 
-def k_induction(pn, formula, pn_reduced, eq, debug, timeout):
-    """ K-induction method caller.
+def bmc(pn, formula, pn_reduced, eq, debug, timeout):
+    """ BMC method caller.
     """
-    k_induction = KInduction(pn, formula, pn_reduced, eq, debug)
+    bmc = BMC(pn, formula, pn_reduced, eq, debug)
 
     # Run analysis method with timeout
-    proc = Thread(target=k_induction.prove)
+    proc = Thread(target=bmc.prove)
     proc.start()
     proc.join(timeout)
-    stop_k_induction.set()
+    stop_bmc.set()
 
 
 def ic3(pn, formula, pn_reduced, eq, debug, timeout):
@@ -186,7 +186,7 @@ def main():
             if results.path_markings is not None:
                 enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
             else:
-                k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
+                bmc(pn, formula, pn_reduced, eq, results.debug, results.timeout)
 
     if results.deadlock:
         print("---Deadlock---")
@@ -194,7 +194,7 @@ def main():
         if results.path_markings is not None:
             enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
         else:
-            k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
+            bmc(pn, formula, pn_reduced, eq, results.debug, results.timeout)
 
     if results.live_transitions is not None:
         print("---Liveness: {}---".format(results.live_transitions))
@@ -203,7 +203,7 @@ def main():
         if results.path_markings is not None:
             enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
         else:
-            k_induction(pn, formula, pn_reduced, eq, results.debug, results.timeout)
+            bmc(pn, formula, pn_reduced, eq, results.debug, results.timeout)
 
     if results.reach_places is not None:
         print("---Reachability: {}---".format(results.reach_places))

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 """
-k-induction (Bounded Model Checking)
-We abuse language by refering the BMC method as k-induction.
+BMC (Bounded Model Checking)
 
 This file is part of SMPT.
 
@@ -34,15 +33,15 @@ from formula import Formula
 from pn import PetriNet
 from solver import Solver
 
-stop_k_induction = Event()
+stop_bmc = Event()
 
 
-class KInduction:
+class BMC:
     """
-    K-induction method
+    Bounded Model Checking method
     """
     def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False, stop_concurrent=None):
-        """ K-induction initializer.
+        """ BMC initializer.
         """
         self.pn = pn
         self.formula = formula
@@ -120,7 +119,7 @@ class KInduction:
     def prove(self, display=True, result=None):
         """ Prover.
         """
-        log.info("---K-INDUCTION RUNNING---")
+        log.info("---BMC RUNNING---")
         
         if self.pn_reduced is None:
             k = self.prove_non_reduced()
@@ -131,7 +130,7 @@ class KInduction:
         
         model = None
         
-        if not stop_k_induction.is_set():
+        if not stop_bmc.is_set():
             self.formula.result(True)
             if display:
                 self.solver.display_model(self.pn, order)
@@ -153,28 +152,28 @@ class KInduction:
     def prove_non_reduced(self):
         """ Prover for non-reduced Petri Net.
         """
-        log.info("> Initialization")
-        log.info("\t>> Declaration of the places from the Petri Net (order: 0)")
+        log.info("[BMC] > Initialization")
+        log.info("[BMC] \t>> Declaration of the places from the Petri Net (order: 0)")
         self.solver.write(self.pn.smtlib_declare_places(0))
-        log.info("\t>> Inital Marking of the Petri Net")
+        log.info("[BMC] \t>> Inital Marking of the Petri Net")
         self.solver.write(self.pn.smtlib_set_marking(0))
-        log.info("\t>> Push")
+        log.info("[BMC] \t>> Push")
         self.solver.push()
-        log.info("\t>> Formula to check the satisfiability (order: 0)")
+        log.info("[BMC] \t>> Formula to check the satisfiability (order: 0)")
         self.solver.write(self.formula.smtlib(0))
         
         k = 0
-        while not self.solver.check_sat() and not stop_k_induction.is_set():
-            log.info("> k = {}".format(k))
-            log.info("\t>> Pop")
+        while not self.solver.check_sat() and not stop_bmc.is_set():
+            log.info("[BMC] > k = {}".format(k))
+            log.info("[BMC] \t>> Pop")
             self.solver.pop()
-            log.info("\t>> Declaration of the places from the Petri Net (order: {})".format(k + 1))
+            log.info("[BMC] \t>> Declaration of the places from the Petri Net (order: {})".format(k + 1))
             self.solver.write(self.pn.smtlib_declare_places(k + 1))
-            log.info("\t>> Transition Relation: {} -> {}".format(k, k + 1))
+            log.info("[BMC] \t>> Transition Relation: {} -> {}".format(k, k + 1))
             self.solver.write(self.pn.smtlib_transitions(k))
-            log.info("\t>> Push")
+            log.info("[BMC] \t>> Push")
             self.solver.push()
-            log.info("\t>> Formula to check the satisfiability (order: {})".format(k + 1))
+            log.info("[BMC] \t>> Formula to check the satisfiability (order: {})".format(k + 1))
             self.solver.write(self.formula.smtlib(k + 1))
             k += 1
 
@@ -183,32 +182,32 @@ class KInduction:
     def prove_reduced(self):
         """ Prover for reduced Petri Net.
         """
-        log.info("> Initialization")
-        log.info("\t>> Declaration of the places from the initial Petri Net")
+        log.info("[BMC] > Initialization")
+        log.info("[BMC] \t>> Declaration of the places from the initial Petri Net")
         self.solver.write(self.pn.smtlib_declare_places())
-        log.info("\t>> Formula to check the satisfiability")
+        log.info("[BMC] \t>> Formula to check the satisfiability")
         self.solver.write(self.formula.smtlib())
-        log.info("\t>> Reduction Equations (not involving places from the reduced Petri Net)")
+        log.info("[BMC] \t>> Reduction Equations (not involving places from the reduced Petri Net)")
         self.solver.write(self.eq.smtlib_only_non_reduced_places())
-        log.info("\t>> Declaration of the places from the reduced Petri Net (order: 0)")
+        log.info("[BMC] \t>> Declaration of the places from the reduced Petri Net (order: 0)")
         self.solver.write(self.pn_reduced.smtlib_declare_places(0))
-        log.info("\t>> Inital Marking of the reduced Petri Net")
+        log.info("[BMC] \t>> Inital Marking of the reduced Petri Net")
         self.solver.write(self.pn_reduced.smtlib_set_marking(0))
-        log.info("\t>> Push")
+        log.info("[BMC] \t>> Push")
         self.solver.push()
-        log.info("\t>> Reduction Equations")
+        log.info("[BMC] \t>> Reduction Equations")
         self.solver.write(self.eq.smtlib_ordered(0))
         
         k = 0
-        while not self.solver.check_sat() and not stop_k_induction.is_set():
-            log.info("> k = {}".format(k))
-            log.info("\t>> Pop")
+        while not self.solver.check_sat() and not stop_bmc.is_set():
+            log.info("[BMC] > k = {}".format(k))
+            log.info("[BMC] \t>> Pop")
             self.solver.pop()
-            log.info("\t>> Declaration of the places from the reduced Petri Net (order: {})".format(k + 1))
+            log.info("[BMC] \t>> Declaration of the places from the reduced Petri Net (order: {})".format(k + 1))
             self.solver.write(self.pn_reduced.smtlib_declare_places(k + 1))
-            log.info("\t>> Transition Relation: {} -> {}".format(k, k + 1))
+            log.info("[BMC] \t>> Transition Relation: {} -> {}".format(k, k + 1))
             self.solver.write(self.pn_reduced.smtlib_transitions(k))
-            log.info("\t>> Push")
+            log.info("[BMC] \t>> Push")
             self.solver.push()
             self.solver.write(self.eq.smtlib_ordered(k + 1))
             k += 1
@@ -219,7 +218,7 @@ class KInduction:
 if __name__ == '__main__':
     
     if len(sys.argv) < 2:
-        exit("File missing: ./k_induction.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
+        exit("File missing: ./bmc.py <path_to_initial_petri_net> [<path_to_reduce_net>]")
     
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
@@ -233,15 +232,15 @@ if __name__ == '__main__':
         pn_reduced = None
         eq = None
 
-    k_induction = KInduction(pn, formula, pn_reduced, eq)
+    bmc = BMC(pn, formula, pn_reduced, eq)
 
     print("Input into the SMT Solver")
     print("-------------------------")
-    print(k_induction.smtlib(1))
+    print(bmc.smtlib(1))
 
     print("Result computed using z3")
     print("------------------------")
-    proc = Thread(target= k_induction.prove)
+    proc = Thread(target= bmc.prove)
     proc.start()
     proc.join(timeout = 600)
-    stop_k_induction.set()
+    stop_bmc.set()

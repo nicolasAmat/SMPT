@@ -40,11 +40,12 @@ from formula import Clause, Inequality
 class Solver:
     """
     Solver defined by:
-    - a Z3 process.
+    - a z3 process,
+    - a debug option.
     """
 
     def __init__(self, debug=False):
-        """ Execute z3 in a new process.
+        """ Start a z3 process.
         """
         self.solver = Popen(["z3", "-in"], stdin=PIPE, stdout=PIPE)
         self.debug = debug
@@ -54,6 +55,7 @@ class Solver:
         """
         if self.debug or debug:
             print(smt_input)
+        
         if smt_input != "":
             self.solver.stdin.write(bytes(smt_input, 'utf-8'))
 
@@ -66,8 +68,10 @@ class Solver:
         """ Read a line from the standard output of z3.
         """
         smt_output = self.solver.stdout.readline().decode('utf-8').strip()
+        
         if self.debug or debug:
             print(smt_output)
+        
         return smt_output
 
     def reset(self):
@@ -146,10 +150,10 @@ class Solver:
     def display_model(self, pn, order=None):
         """ Display the obtained model.
         """
-        model = ''
+        model = ""
         for eq in self.get_model(pn, order).inequalities:
             if int(eq.right_member) > 0:
                 model += ' ' + eq.left_member.id
-        if model == '':
+        if model == "":
             model = " empty marking"
         print("Model:", model, sep='')

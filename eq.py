@@ -89,7 +89,7 @@ class System:
 
     def smtlib_ordered(self, k, k_initial=None):
         """ Equations involving places in the reduced net,
-            k:          used by k-induction and IC3,
+            k:          used by BMC and IC3,
             k_initial: used by IC3.
             SMR-LIB format
         """
@@ -180,8 +180,8 @@ class Equation:
 
     def smtlib_ordered(self, k, k_initial, places_reduced, other_vars=[]):
         """ Equation with orders.
-            k:              used by k-induction and IC3
-            k_initial:     used by IC3
+            k:              used by BMC and IC3
+            k_initial:      used by IC3
             places_reduced: place identifiers from the reduced net
             other_vars:     other identifiers from equations and initial net
             SMTLIB format
@@ -193,8 +193,8 @@ class Equation:
 
     def member_smtlib_ordered(self, member, k, k_initial, places_reduced=[], other_vars=[]):
         """ Equation with orders.
-            k:              used by k-induction and IC3
-            k_initial:     used by IC3
+            k:              used by BMC and IC3
+            k_initial:      used by IC3
             places_reduced: place identifiers from the reduced net
             other_vars:     other identifiers from equations and initial net
             SMTLIB format
