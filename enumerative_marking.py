@@ -31,10 +31,10 @@ import logging as log
 import re
 import sys
 
-from eq import System
 from formula import Properties
 from pn import PetriNet
 from solver import Solver
+from system import System
 
 
 class EnumerativeMarking:

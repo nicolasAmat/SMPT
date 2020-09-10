@@ -44,10 +44,10 @@ import sys
 from subprocess import PIPE, Popen
 from threading import Event
 
-from eq import System
 from formula import Clause, Formula, Inequality
 from pn import PetriNet
 from solver import Solver
+from system import System
 
 stop_ic3 = Event()
 
@@ -341,15 +341,6 @@ class IC3:
 
             k += 1
 
-    def exit_helper(self, result, result_output):
-        """ Helper function to add the result to the output list,
-            and stop the concurrent method if there is one.
-        """
-        if self.stop_concurrent is not None:
-            self.stop_concurrent.set()
-        if result and result_output is not None:
-            result_output.append(result)
-
     def strengthen(self, k):
         """ Iterate until Fk excludes all states
             that lead to a dangerous state in one step.
@@ -432,6 +423,15 @@ class IC3:
                 m = self.inductively_generalize(s, n, k)
                 states.remove((n, s))
                 states.append((m + 1, s))
+
+    def exit_helper(self, result, result_output):
+        """ Helper function to add the result to the output list,
+            and stop the concurrent method if there is one.
+        """
+        if self.stop_concurrent is not None:
+            self.stop_concurrent.set()
+        if result and result_output is not None:
+            result_output.append(result)
 
 
 if __name__ == '__main__':

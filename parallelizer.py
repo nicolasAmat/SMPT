@@ -27,11 +27,11 @@ __version__ = "1.0.0"
 import sys
 from threading import Event, Thread
 
-from eq import System
+from bmc import BMC, stop_bmc
 from formula import Formula
 from ic3 import IC3, stop_ic3
-from bmc import BMC, stop_bmc
 from pn import PetriNet
+from system import System
 
 
 class Parallelizer:

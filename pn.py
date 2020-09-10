@@ -294,6 +294,8 @@ class Transition:
     """
 
     def __init__(self, tr_id, pn):
+        """ Initializer.
+        """
         self.id = tr_id
         self.pn = pn
         self.input = {}
@@ -326,7 +328,7 @@ class Transition:
 
     def smtlib(self, k):
         """ Transition relation from places at order k to order k + 1.
-            Textbook version not used.
+            
             SMT-LIB format
         """
         smt_input = "\t(and\n\t\t"
@@ -355,6 +357,7 @@ class Transition:
     def smtlib_textbook(self, k):
         """ Transition relation from places at order k to order k + 1.
             Textbook version not used.
+            
             SMT-LIB format
         """
         smt_input = "\t(and\n\t\t(=>\n\t\t\t(and "

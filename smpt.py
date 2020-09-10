@@ -31,13 +31,13 @@ import subprocess
 import tempfile
 from threading import Event, Thread
 
+from bmc import BMC, stop_bmc
 from enumerative_marking import EnumerativeMarking
-from eq import System
 from formula import Formula, Properties
 from ic3 import IC3, stop_ic3
-from bmc import BMC, stop_bmc
 from parallelizer import Parallelizer
 from pn import PetriNet
+from system import System
 
 
 def enumerative_marking(path_markings, pn, formula, pn_reduced, eq, debug):

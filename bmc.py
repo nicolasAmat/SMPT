@@ -28,10 +28,10 @@ import logging as log
 import sys
 from threading import Event, Thread
 
-from eq import System
 from formula import Formula
 from pn import PetriNet
 from solver import Solver
+from system import System
 
 stop_bmc = Event()
 
