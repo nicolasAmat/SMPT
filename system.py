@@ -236,7 +236,6 @@ class Equation:
             if element != '+':
                 if element in ['=', '<=', '>=', '<', '>']:
                     self.operator = element
-                    left = False
                 else:
                     element = element.replace('{', '').replace('}', '').replace('#', '')
                     self.check_variable(element, system)
