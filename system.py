@@ -97,7 +97,7 @@ class System:
             SMT-LIB format
         """
         smt_input = ""
-        for eq in self.system:
+        for eq in self.equations:
             if eq.contain_reduced:
                 smt_input += eq.smtlib_ordered(k, k_initial, self.places_reduced,
                                                [*self.places] + self.additional_vars) + '\n'
@@ -232,11 +232,11 @@ class Equation:
             
             Input format: .net (output of the `reduced` tool)
         """
+        self.left.append(eq.pop(0))
         for element in eq:
             if element != '+':
                 if element in ['=', '<=', '>=', '<', '>']:
                     self.operator = element
-                    left = False
                 else:
                     element = element.replace('{', '').replace('}', '').replace('#', '')
                     if not element.isnumeric():
@@ -244,10 +244,7 @@ class Equation:
                             system.additional_vars.append(element)
                         if element in system.places_reduced:
                             self.contain_reduced = True
-                    if left:
-                        self.left.append(element)
-                    else:
-                        self.right.append(element)
+                    self.right.append(element)
 
 
 if __name__ == "__main__":
