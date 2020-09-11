@@ -97,7 +97,7 @@ class System:
             SMT-LIB format
         """
         smt_input = ""
-        for eq in self.system:
+        for eq in self.equations:
             if eq.contain_reduced:
                 smt_input += eq.smtlib_ordered(k, k_initial, self.places_reduced,
                                                [*self.places] + self.additional_vars) + '\n'
@@ -232,22 +232,27 @@ class Equation:
             
             Input format: .net (output of the `reduced` tool)
         """
-        for element in eq:
+        for index, element in enumerate(eq):
             if element != '+':
                 if element in ['=', '<=', '>=', '<', '>']:
                     self.operator = element
                     left = False
                 else:
                     element = element.replace('{', '').replace('}', '').replace('#', '')
-                    if not element.isnumeric():
-                        if element not in system.places and element not in system.additional_vars:
-                            system.additional_vars.append(element)
-                        if element in system.places_reduced:
-                            self.contain_reduced = True
-                    if left:
+                    self.check_variable(element, system)
+                    if index == 0:
                         self.left.append(element)
                     else:
                         self.right.append(element)
+
+    def check_variable(self, element, system):
+        """ Check if a given element is an additional variable and a place from the reduced net.
+        """
+        if not element.isnumeric():
+            if element not in system.places and element not in system.additional_vars:
+                system.additional_vars.append(element)
+            if element in system.places_reduced:
+                self.contain_reduced = True
 
 
 if __name__ == "__main__":
