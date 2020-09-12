@@ -3,7 +3,7 @@
 """
 Z3 interface
 
-Using SMT-LIB v2 format
+Uses SMT-LIB v2 format
 Standard: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf
 
 Dependency: https://github.com/Z3Prover/z3
@@ -34,7 +34,7 @@ __version__ = "1.0.0"
 
 from subprocess import PIPE, Popen
 
-from formula import Clause, Inequality
+from properties import Clause, Inequality
 
 
 class Solver:
@@ -45,13 +45,20 @@ class Solver:
     """
 
     def __init__(self, debug=False):
-        """ Start a z3 process.
+        """ Initializer.
         """
         self.solver = Popen(["z3", "-in"], stdin=PIPE, stdout=PIPE)
         self.debug = debug
 
+    def exit(self):
+        """" Exit.
+        """
+        self.write("(exit)\n")
+        self.solver.stdin.close()
+        self.solver.stdout.close()
+
     def write(self, smt_input, debug=False):
-        """ Write instructions into the standard input of z3.
+        """ Write instructions into the standard input.
         """
         if self.debug or debug:
             print(smt_input)
@@ -65,7 +72,7 @@ class Solver:
         self.solver.stdin.flush()
 
     def readline(self, debug=False):
-        """ Read a line from the standard output of z3.
+        """ Read a line from the standard output.
         """
         smt_output = self.solver.stdout.readline().decode('utf-8').strip()
         
@@ -75,16 +82,10 @@ class Solver:
         return smt_output
 
     def reset(self):
-        """ Reset z3.
+        """ Reset.
+            Erase all assertions and declarations.
         """
         self.write("(reset)\n")
-
-    def exit(self):
-        """" Exit z3.
-        """
-        self.write("(exit)\n")
-        self.solver.stdin.close()
-        self.solver.stdout.close()
 
     def push(self):
         """ Push.
@@ -106,20 +107,23 @@ class Solver:
         return self.readline() == 'sat'
 
     def get_model(self, pn, order=None):
-        """ Get a model.
-            From the current SAT stack.
-            Return a cube.
+        """ Get a model from the current SAT stack.
+            Return a cube (conjunction of equalities).
         """
         self.write("(get-model)\n")
         self.flush()
+        
         model = []
-        # Read the model
+        # Read '(model '
         self.readline()
+
         # Parse the model
         while True:
             place_content = self.readline().split(' ')
+            
             if len(place_content) < 2 or self.solver.poll() is not None:
                 break
+            
             place_marking = self.readline().replace(' ', '').replace(')', '')
             place = ""
             if order is None:
@@ -130,9 +134,10 @@ class Solver:
                     place = place_content[0]
             if place_marking and place in pn.places:
                 model.append(Inequality(pn.places[place], int(place_marking), '='))
+
         return Clause(model, 'and')
 
-    def produce_unsat_core(self):
+    def enable_unsat_core(self):
         """ Enable generation of unsat cores.
         """
         self.write("(set-option :produce-unsat-cores true)\n")
@@ -143,17 +148,21 @@ class Solver:
             Return a clause (disjunctive).
         """
         assert (not self.check_sat())
+        
         self.write("(get-unsat-core)\n")
         self.flush()
         return self.readline().replace('(', '').replace(')', '').split(' ')
 
     def display_model(self, pn, order=None):
-        """ Display the obtained model.
+        """ Display the resulting model.
         """
         model = ""
-        for eq in self.get_model(pn, order).inequalities:
-            if int(eq.right_member) > 0:
-                model += ' ' + eq.left_member.id
+        
+        for place_marking in self.get_model(pn, order).operands:
+            if int(place_marking.right_operand) > 0:
+                model += " {}({})".format(place_marking.left_operand.id, place_marking.right_operand)
+        
         if model == "":
             model = " empty marking"
+        
         print("Model:", model, sep='')

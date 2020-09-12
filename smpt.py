@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 """
-Satisfiability Modulo Petri Net
+SMPT: Satisfiability Modulo Petri Net
+
+SMT-based model-checker that takes advantage of nets reduction.
 
 This file is part of SMPT.
 
@@ -33,10 +35,10 @@ from threading import Event, Thread
 
 from bmc import BMC, stop_bmc
 from enumerative_marking import EnumerativeMarking
-from formula import Formula, Properties
 from ic3 import IC3, stop_ic3
 from parallelizer import Parallelizer
 from pn import PetriNet
+from properties import Properties
 from system import System
 
 
@@ -52,7 +54,7 @@ def bmc(pn, formula, pn_reduced, eq, debug, timeout):
     """
     bmc = BMC(pn, formula, pn_reduced, eq, debug)
 
-    # Run analysis method with timeout
+    # Run analysis with a timeout
     proc = Thread(target=bmc.prove)
     proc.start()
     proc.join(timeout)
@@ -64,7 +66,7 @@ def ic3(pn, formula, pn_reduced, eq, debug, timeout):
     """
     ic3 = IC3(pn, formula, pn_reduced, eq, debug)
 
-    # Run analysis method with timeout
+    # Run analysis with a timeout
     proc = Thread(target=ic3.prove)
     proc.start()
     proc.join(timeout)
@@ -74,6 +76,7 @@ def ic3(pn, formula, pn_reduced, eq, debug, timeout):
 def main():
     """ Main Function.
     """
+    # Arguments parser
     parser = argparse.ArgumentParser(description='Satisfiability Modulo Petri Net')
 
     parser.add_argument('--version',
@@ -106,15 +109,15 @@ def main():
                                action='store_true',
                                help='deadlock analysis')
 
-    group_formula.add_argument('--liveness',
+    group_formula.add_argument('--quasi-liveness',
                                action='store',
-                               dest='live_transitions',
+                               dest='quasi_live_transitions',
                                type=str,
                                help='liveness analysis (comma separated list of transition names)')
 
     group_formula.add_argument('--reachability',
                                action='store',
-                               dest='reach_places',
+                               dest='reachable_places',
                                type=str,
                                help='reachibility analysis (comma separated list of place names)')
 
@@ -151,25 +154,30 @@ def main():
 
     results = parser.parse_args()
 
+    # Set the verbose level
     if results.verbose:
         log.basicConfig(format="%(message)s", level=log.DEBUG)
     else:
         log.basicConfig(format="%(message)s")
 
+    # Read the Petri net
     pn = PetriNet(results.path_pn)
 
     pn_reduced = None
     eq = None
 
+    # Reduce the Petri net if '--auto-reduce' enabled
     if results.auto_reduce:
         fp_pn_reduced = tempfile.NamedTemporaryFile(suffix='.net')
         subprocess.run(["reduce", "-rg,redundant,compact,convert,transitions", results.path_pn, fp_pn_reduced.name])
         results.path_pn_reduced = fp_pn_reduced.name
 
+    # Read the reduced Petri net and the system of equations linking both nets 
     if results.path_pn_reduced is not None:
         pn_reduced = PetriNet(results.path_pn_reduced)
         eq = System(results.path_pn_reduced, pn.places.keys(), pn_reduced.places.keys())
 
+    # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
         fp_markings = tempfile.NamedTemporaryFile(suffix='.aut')
         if results.path_pn_reduced is not None:
@@ -179,48 +187,42 @@ def main():
         subprocess.run(["tina", "-aut", "-sp", "1", path_pn, fp_markings.name])
         results.path_markings = fp_markings.name
 
-    if results.path_properties is not None:
-        props = Properties(pn, results.path_properties)
-        for formula_id, formula in props.formulas.items():
-            print("---{}---".format(formula_id))
-            if results.path_markings is not None:
-                enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
-            else:
-                bmc(pn, formula, pn_reduced, eq, results.debug, results.timeout)
+    # Read the properties
+    properties = Properties(pn, results.path_properties)
 
+    # Generate a deadlock property if '--deadlock' enabled
     if results.deadlock:
-        print("---Deadlock---")
-        formula = Formula(pn, 'deadlock')
-        if results.path_markings is not None:
-            enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
-        else:
-            bmc(pn, formula, pn_reduced, eq, results.debug, results.timeout)
+        property_id = "Deadlock"
+        properties.generate_deadlock(property_id)
 
-    if results.live_transitions is not None:
-        print("---Liveness: {}---".format(results.live_transitions))
-        transitions = results.live_transitions.replace('#', '').replace('{', '').replace('}', '').split(',')
-        formula = Formula(pn, 'fireability', transitions=transitions)
-        if results.path_markings is not None:
-            enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
-        else:
-            bmc(pn, formula, pn_reduced, eq, results.debug, results.timeout)
+    # Generate a quasi-liveness property if '--quasi-liveness' enabled
+    if results.quasi_live_transitions is not None:
+        property_id = "Quasi-liveness: {}".format(results.quasi_live_transitions)
+        transitions = results.quasi_live_transitions.replace('#', '').replace('{', '').replace('}', '').split(',')
+        properties.generate_fireability(transitions, property_id)
 
-    if results.reach_places is not None:
-        print("---Reachability: {}---".format(results.reach_places))
-        places = results.reach_places.replace('#', '').replace('{', '').replace('}', '').split(',')
-        marking = {}
-        for pl in places:
-            marking[pn.places[pl]] = 1
-        formula = Formula(pn, 'reachability', marking=marking)
+    # Generate a reachability property if '--reachability' enabled
+    if results.reachable_places is not None:
+        property_id = "Reachability: {}".format(results.reachable_places)
+        places = results.reachable_places.replace('#', '').replace('{', '').replace('}', '').split(',')
+        marking = {pn.places[pl] : 1 for pl in places}
+        properties.generate_reachability(places, property_id)
+    
+    # Iterate over the properties to study
+    for property_id, formula in properties.formulas.items():
+        print("---{}---".format(property_id))
+
         if results.path_markings is not None:
+            # Use the enumerative method
             enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
         else:
+            # Use the BMC and IC3 methods in parallel
             parallelizer = Parallelizer(pn, formula, pn_reduced, eq, results.debug)
             model = parallelizer.run()
 
+    # Close temporary files
     if results.auto_reduce:
         fp_pn_reduced.close()
-
     if results.auto_enumerative:
         fp_markings.close()
 

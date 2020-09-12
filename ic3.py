@@ -7,7 +7,7 @@ Inductive Clauses for Indubitable Correctness
 
 Based on "SAT-Based Model Checking without Unrolling"
 Aaron Bradley, VMCAI 2011
-Adapted for Petri Net
+Adapted for Petri nets
 
 Indications for orders:
 - Case non-reduced:
@@ -44,8 +44,8 @@ import sys
 from subprocess import PIPE, Popen
 from threading import Event
 
-from formula import Clause, Formula, Inequality
 from pn import PetriNet
+from properties import Clause, Inequality, Properties
 from solver import Solver
 from system import System
 
@@ -70,17 +70,20 @@ class IC3:
             Option to use the MIC algorithm: unsat_core=False
         """
         self.pn = pn
-        self.formula = formula
         self.pn_reduced = pn_reduced
+        
         self.eq = eq
+        
+        self.formula = formula
+        self.R = formula.R
+        self.P = formula.P
 
         self.reduced = pn_reduced is not None
         self.pn_current = self.pn_reduced if self.reduced else self.pn
 
-        self.P = None
         self.oars = []  # list of CNF
-        self.solver = Solver(debug)
 
+        self.solver = Solver(debug)
         if unsat_core:
             self.sub_clause_finder = self.sub_clause_finder_unsat_core
         else:
@@ -120,23 +123,23 @@ class IC3:
             return ""
 
         if init:
-            return self.eq.smtlib_only_non_reduced_places(10) \
+            return self.eq.smtlib_non_reduced(10) \
                    + self.eq.smtlib_ordered(0, 10)
         else:
-            return self.eq.smtlib_only_non_reduced_places(10) \
+            return self.eq.smtlib_non_reduced(10) \
                    + self.eq.smtlib_ordered(0, 10) \
-                   + self.eq.smtlib_only_non_reduced_places(11) \
+                   + self.eq.smtlib_non_reduced(11) \
                    + self.eq.smtlib_ordered(1, 11)
 
     def assert_formula(self, i):
         """ F_i
         """
         if i == 0:
-            smt_input = self.oars[i][0].smtlib(0, write_assert=True)
+            smt_input = self.oars[i][0].smtlib(0, assertion=True)
         else:
-            smt_input = self.oars[i][0].smtlib(self.reduced * 10, write_assert=True)
+            smt_input = self.oars[i][0].smtlib(self.reduced * 10, assertion=True)
         for clause in self.oars[i][1:]:
-            smt_input += clause.smtlib(0, write_assert=True)
+            smt_input += clause.smtlib(0, assertion=True)
         return smt_input
 
     def oars_initialization(self):
@@ -152,10 +155,7 @@ class IC3:
         self.oars.append([Clause(inequalities, 'and')])
 
         # F1 = P
-        inequalities = []
-        for ineq in self.formula.clauses:
-            inequalities.append(Inequality(ineq.left_member, ineq.right_member, '<'))
-        self.P = Clause(inequalities, 'or')
+
         self.oars.append([self.P])
 
     def init_marking_reach_bad_state(self):
@@ -166,7 +166,7 @@ class IC3:
         self.solver.write(self.declare_places(init=True))
         self.solver.write(self.assert_equations(init=True))
         self.solver.write(self.pn_current.smtlib_set_marking(0))
-        self.solver.write(self.formula.smtlib(self.reduced * 10))
+        self.solver.write(self.R.smtlib(self.reduced * 10, assertion=True))
 
         return self.solver.check_sat()
 
@@ -181,7 +181,7 @@ class IC3:
         self.solver.write(self.pn_current.smtlib_set_marking(0))
         self.solver.write(self.pn_current.smtlib_transitions(0))
         self.solver.write(self.assert_equations())
-        self.solver.write(self.formula.smtlib(self.reduced * 10 + 1))
+        self.solver.write(self.R.smtlib(self.reduced * 10 + 1, assertion=True))
 
         return self.solver.check_sat()
 
@@ -194,7 +194,7 @@ class IC3:
         self.solver.write(self.assert_formula(k))
         self.solver.write(self.pn_current.smtlib_transitions(0))
         self.solver.write(self.assert_equations())
-        self.solver.write(self.formula.smtlib(self.reduced * 10 + 1))
+        self.solver.write(self.R.smtlib(self.reduced * 10 + 1, assertion=True))
 
         return self.solver.check_sat()
 
@@ -206,7 +206,7 @@ class IC3:
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
         self.solver.write(self.pn_current.smtlib_transitions(0))
-        self.solver.write(c.smtlib(1, write_assert=True, neg=True))
+        self.solver.write(c.smtlib(1, assertion=True, negation=True))
 
         return self.solver.check_sat()
 
@@ -216,11 +216,11 @@ class IC3:
         self.solver.reset()
 
         self.solver.write(self.declare_places())
-        self.solver.write(s.smtlib(0, write_assert=True, neg=True))
+        self.solver.write(s.smtlib(0, assertion=True, negation=True))
         self.solver.write(self.assert_formula(i))
         self.solver.write(self.pn_current.smtlib_transitions(0))
         self.solver.write(self.assert_equations())
-        self.solver.write(s.smtlib(1, write_assert=True))
+        self.solver.write(s.smtlib(1, assertion=True))
 
         return self.solver.check_sat()
 
@@ -233,7 +233,7 @@ class IC3:
         self.solver.write(self.assert_formula(i))
         self.solver.write(self.pn_current.smtlib_transitions(0))
         self.solver.write(self.assert_equations())
-        self.solver.write(s.smtlib(k=1, write_assert=True))
+        self.solver.write(s.smtlib(k=1, assertion=True))
 
         return self.solver.check_sat()
 
@@ -242,26 +242,26 @@ class IC3:
         """
         self.solver.reset()
 
-        self.solver.produce_unsat_core()
+        self.solver.enable_unsat_core()
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
         self.solver.write(self.pn_current.smtlib_transitions(0))
-        self.solver.write(s.smtlib(0, write_assert=True, neg=True))
+        self.solver.write(s.smtlib(0, assertion=True, negation=True))
         self.solver.write(self.assert_equations())
-        for eq in s.inequalities:
-            self.solver.write("(assert (! {} :named {}))\n".format(eq.smtlib(1), eq.left_member.id))
+        for eq in s.operands:
+            self.solver.write("(assert (! {} :named {}))\n".format(eq.smtlib(1), eq.left_operand.id))
 
         # Read Unsatisfiable Core
         unsat_core = self.solver.get_unsat_core()
 
         inequalities = []
-        for eq in s.inequalities:
-            if eq.left_member.id in unsat_core:
-                if int(eq.right_member) == 0:
-                    inequalities.append(Inequality(eq.left_member, eq.right_member, ">"))
+        for eq in s.operands:
+            if eq.left_operand.id in unsat_core:
+                if int(eq.right_operand) == 0:
+                    inequalities.append(Inequality(eq.left_operand, eq.right_operand, ">"))
                 else:
-                    inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
+                    inequalities.append(Inequality(eq.left_operand, eq.right_operand, "<"))
         cl = Clause(inequalities, "or")
 
         log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
@@ -272,31 +272,31 @@ class IC3:
         """
         c = copy.deepcopy(s)
 
-        while len(c.inequalities) > 1:
+        while len(c.operands) > 1:
 
-            lit = c.inequalities.pop()
+            lit = c.operands.pop()
 
             self.solver.reset()
             self.solver.write(self.declare_places())
             self.solver.write(self.assert_formula(i))
             self.solver.write(self.pn_current.smtlib_transitions(0))
             self.solver.write(self.assert_equations())
-            self.solver.write(c.smtlib(0, write_assert=True, neg=True))
-            self.solver.write(c.smtlib(1, write_assert=True))
+            self.solver.write(c.smtlib(0, assertion=True, negation=True))
+            self.solver.write(c.smtlib(1, assertion=True))
 
             if self.solver.check_sat():
-                c.inequalities.append(lit)
+                c.operands.append(lit)
                 inequalities = []
-                for eq in c.inequalities:
-                    if int(eq.right_member) == 0:
-                        inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
+                for eq in c.operands:
+                    if int(eq.right_operand) == 0:
+                        inequalities.append(Inequality(eq.left_operand, eq.right_operand, "<"))
                 cl = Clause(inequalities, "or")
                 log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
                 return cl
 
         inequalities = []
-        for eq in s.inequalities:
-            inequalities.append(Inequality(eq.left_member, eq.right_member, "<"))
+        for eq in s.operands:
+            inequalities.append(Inequality(eq.left_operand, eq.right_operand, "<"))
         cl = Clause(inequalities, "or")
         log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
         return cl
@@ -306,9 +306,9 @@ class IC3:
             replace equalities by "greater or equal than".
         """
         non_zero = []
-        for eq in s.inequalities:
-            if eq.right_member != 0:
-                non_zero.append(Inequality(eq.left_member, eq.right_member, ">="))
+        for eq in s.operands:
+            if eq.right_operand != 0:
+                non_zero.append(Inequality(eq.left_operand, eq.right_operand, ">="))
         return Clause(non_zero, "and")
 
     def prove(self, result=None):
@@ -437,13 +437,16 @@ class IC3:
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        exit("File missing: ./ic3.py <place_to_reach> <path_to_initial_petri_net> [<path_to_reduce_net>]")
+        exit("File missing: ./ic3.py <places_to_reach> <path_to_initial_petri_net> [<path_to_reduce_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
     pn = PetriNet(sys.argv[2])
-    marking = {pn.places[sys.argv[1]]: 1}
-    formula = Formula(pn, prop='reachability', marking=marking)
+    marking = {pn.places[pl]: 1 for pl in sys.argv[1].split(',')}
+
+    properties = Properties(pn)
+    properties.generate_reachability(marking)
+    formula = list(properties.formulas.values())[0]
 
     if len(sys.argv) == 3:
         pn_reduced = None

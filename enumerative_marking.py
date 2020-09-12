@@ -31,8 +31,8 @@ import logging as log
 import re
 import sys
 
-from formula import Properties
 from pn import PetriNet
+from properties import Properties
 from solver import Solver
 from system import System
 
@@ -45,9 +45,13 @@ class EnumerativeMarking:
     """
     def __init__(self, filename, pn, formula, pn_reduced, eq, debug=False):
         self.pn = pn
-        self.formula = formula
         self.pn_reduced = pn_reduced
+        
         self.eq = eq
+        
+        self.formula = formula
+        self.R = formula.R
+
         self.markings = []
         self.parse_markings(filename)
         self.solver = Solver(debug)
@@ -129,7 +133,7 @@ class EnumerativeMarking:
         log.info("> Variable Definitions")
         self.solver.write(self.pn.smtlib_declare_places())
         log.info("> Property Formula")
-        self.solver.write(self.formula.smtlib())
+        self.solver.write(self.R.smtlib(assertion=True))
         log.info("> Net Markings")
         self.solver.write(self.smtlib())
 
@@ -141,7 +145,7 @@ class EnumerativeMarking:
         log.info("> Reduction Equations")
         self.solver.write(self.eq.smtlib())
         log.info("> Property Formula")
-        self.solver.write(self.formula.smtlib())
+        self.solver.write(self.R.smtlib(assertion=True))
         log.info("> Reduced Net Markings")
         self.solver.write(self.smtlib())
 

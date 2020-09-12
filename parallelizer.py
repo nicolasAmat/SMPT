@@ -28,9 +28,9 @@ import sys
 from threading import Event, Thread
 
 from bmc import BMC, stop_bmc
-from formula import Formula
 from ic3 import IC3, stop_ic3
 from pn import PetriNet
+from properties import Properties
 from system import System
 
 
@@ -77,8 +77,11 @@ if __name__ == '__main__':
         exit("File missing: ./parallelizer.py <place_to_reach> <path_to_petri_net> [<path_to_reduced_petri_net>]")
 
     pn = PetriNet(sys.argv[2])
-    marking = {pn.places[sys.argv[1]]: 1}
-    formula = Formula(pn, prop='reachability', marking=marking)
+    marking = {pn.places[pl]: 1 for pl in sys.argv[1].split(',')}
+
+    properties = Properties(pn)
+    properties.generate_reachability(marking)
+    formula = list(properties.formulas.values())[0]
 
     if len(sys.argv) == 4:
         pn_reduced = PetriNet(sys.argv[3])
@@ -91,4 +94,4 @@ if __name__ == '__main__':
 
     print("Result of the parallelized analysis")
     print("-----------------------------------")
-    print(parallelizer.run())
+    parallelizer.run()

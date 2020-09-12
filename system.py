@@ -3,8 +3,8 @@
 """
 Reduction Equations Module
 
-Equations provided by the `reduce` tool.
-Input file format: .net
+Equations provided by the `reduce` tool from the TINA toolbox.
+TINA toolbox: http://projects.laas.fr/tina/
 
 This file is part of SMPT.
 
@@ -36,8 +36,8 @@ from pn import PetriNet
 class System:
     """
     Equation system defined by:
-    - a list of places from the initial Petri Net,
-    - a list of places from the reduced Petri Net,
+    - a list of places from the initial Petri net,
+    - a list of places from the reduced Petri net,
     - a list of additional variables,
     - a list of (in)equations.
     """
@@ -48,8 +48,8 @@ class System:
         self.places = places
         self.places_reduced = places_reduced
         self.additional_vars = []
-
         self.equations = []
+
         self.parser(filename)
 
     def __str__(self):
@@ -58,21 +58,23 @@ class System:
         return '\n'.join(map(str, self.equations))
 
     def smtlib(self):
-        """ Decalare additional variables
-            and assert equations.
+        """ Decalare additional variables and assert equations.
             
             SMT-LIB format
         """
         smt_input = ""
+        
         for var in self.additional_vars:
             smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var, var)
+        
         for eq in self.equations:
             smt_input += eq.smtlib() + '\n'
+        
         return smt_input
 
-    def smtlib_only_non_reduced_places(self, k_initial=None):
-        """ Declare additional variables
-            and assert equations not involving places in the reduced net.
+    def smtlib_non_reduced(self, k_initial=None):
+        """ Declare additional variables and assert equations
+            not involving places in the reduced net.
             
             k_initial: used by IC3.
             
@@ -97,6 +99,7 @@ class System:
             SMT-LIB format
         """
         smt_input = ""
+
         for eq in self.equations:
             if eq.contain_reduced:
                 smt_input += eq.smtlib_ordered(k, k_initial, self.places_reduced,
@@ -257,17 +260,17 @@ class Equation:
 if __name__ == "__main__":
 
     if len(sys.argv) < 3:
-        exit("File missing: ./eq <path_to_initial_net> <path_to_reduced_net>")
+        exit("File missing: ./system.py <path_to_initial_net> <path_to_reduced_net>")
 
     pn = PetriNet(sys.argv[1])
     pn_reduced = PetriNet(sys.argv[2])
 
-    eq = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
+    system = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
 
-    print("Equations")
-    print("---------")
-    print(eq)
+    print("> Textual Equations")
+    print("-------------------")
+    print(system)
 
-    print("\nSMTlib2 Format")
-    print("--------------")
-    print(eq.smtlib())
+    print("> SMTlib2 Format")
+    print("----------------")
+    print(system.smtlib())

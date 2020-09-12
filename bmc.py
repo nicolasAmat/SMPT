@@ -28,8 +28,8 @@ import logging as log
 import sys
 from threading import Event, Thread
 
-from formula import Formula
 from pn import PetriNet
+from properties import Properties
 from solver import Solver
 from system import System
 
@@ -44,9 +44,13 @@ class BMC:
         """ BMC initializer.
         """
         self.pn = pn
-        self.formula = formula
         self.pn_reduced = pn_reduced
+        
         self.eq = eq
+        
+        self.formula = formula
+        self.R = formula.R
+        
         self.solver = Solver(debug)
 
         self.stop_concurrent = stop_concurrent
@@ -80,7 +84,7 @@ class BMC:
             text += self.pn.smtlib_transitions(i)
 
         text += "; Formula to check the satisfiability\n"
-        text += self.formula.smtlib(k + 1)
+        text += self.R.smtlib(k + 1, assertion=True)
 
         return text
 
@@ -93,10 +97,10 @@ class BMC:
         text += self.pn.smtlib_declare_places()
 
         text += "; Formula to check the satisfiability\n"
-        text += self.formula.smtlib()
+        text += self.R.smtlib(assertion=True)
 
         text += "; Reduction Equations (not involving places from the reduced Petri Net)"
-        text += self.eq.smtlib_only_non_reduced_places()
+        text += self.eq.smtlib_non_reduced()
 
         text += "; Declaration of the places from the reduced Petri Net (order: {})\n".format(0)
         text += self.pn_reduced.smtlib_declare_places(0)
@@ -160,7 +164,7 @@ class BMC:
         log.info("[BMC] \t>> Push")
         self.solver.push()
         log.info("[BMC] \t>> Formula to check the satisfiability (order: 0)")
-        self.solver.write(self.formula.smtlib(0))
+        self.solver.write(self.R.smtlib(0, assertion=True))
         
         k = 0
         while not self.solver.check_sat() and not stop_bmc.is_set():
@@ -174,7 +178,7 @@ class BMC:
             log.info("[BMC] \t>> Push")
             self.solver.push()
             log.info("[BMC] \t>> Formula to check the satisfiability (order: {})".format(k + 1))
-            self.solver.write(self.formula.smtlib(k + 1))
+            self.solver.write(self.R.smtlib(k + 1, assertion=True))
             k += 1
 
         return k
@@ -186,9 +190,9 @@ class BMC:
         log.info("[BMC] \t>> Declaration of the places from the initial Petri Net")
         self.solver.write(self.pn.smtlib_declare_places())
         log.info("[BMC] \t>> Formula to check the satisfiability")
-        self.solver.write(self.formula.smtlib())
+        self.solver.write(self.R.smtlib(assertion=True))
         log.info("[BMC] \t>> Reduction Equations (not involving places from the reduced Petri Net)")
-        self.solver.write(self.eq.smtlib_only_non_reduced_places())
+        self.solver.write(self.eq.smtlib_non_reduced())
         log.info("[BMC] \t>> Declaration of the places from the reduced Petri Net (order: 0)")
         self.solver.write(self.pn_reduced.smtlib_declare_places(0))
         log.info("[BMC] \t>> Inital Marking of the reduced Petri Net")
@@ -223,23 +227,26 @@ if __name__ == '__main__':
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
     pn = PetriNet(sys.argv[1])
-    formula = Formula(pn, prop='deadlock')
     
+    properties = Properties(pn)
+    properties.generate_deadlock()
+    formula = list(properties.formulas.values())[0]
+
     if len(sys.argv) == 3:
         pn_reduced = PetriNet(sys.argv[2])
-        eq = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
+        system = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
     else:
         pn_reduced = None
-        eq = None
+        system = None
 
-    bmc = BMC(pn, formula, pn_reduced, eq)
+    bmc = BMC(pn, formula, pn_reduced, system)
 
-    print("Input into the SMT Solver")
-    print("-------------------------")
+    print("> Input into the SMT Solver")
+    print("---------------------------")
     print(bmc.smtlib(1))
 
-    print("Result computed using z3")
-    print("------------------------")
+    print("> Result computed using z3")
+    print("--------------------------")
     proc = Thread(target= bmc.prove)
     proc.start()
     proc.join(timeout = 600)
