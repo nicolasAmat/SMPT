@@ -59,13 +59,13 @@ class BMC:
         """ Return SMT-LIB format for understanding.
         """
         if self.pn_reduced is None:
-            text = self.smtlib_non_reduced(k)
+            text = self.smtlib_without_reduction(k)
         else:
-            text = self.smtlib_reduced(k)
+            text = self.smtlib_with_reduction(k)
         text += "(check-sat)\n(get-model)\n"
         return text
 
-    def smtlib_non_reduced(self, k):
+    def smtlib_without_reduction(self, k):
         """ Return SMT-LIB format for understanding.
         """
         text = ""
@@ -88,7 +88,7 @@ class BMC:
 
         return text
 
-    def smtlib_reduced(self, k):
+    def smtlib_with_reduction(self, k):
         """ Return SMT-LIB format for understanding.
         """
         text = ""
@@ -96,11 +96,14 @@ class BMC:
         text += "; Declaration of the places from the initial Petri Net\n"
         text += self.pn.smtlib_declare_places()
 
+        text += "; Declaration of the additional variables\n"
+        text += self.eq.smtlib_declare_additional_variables()
+
         text += "; Formula to check the satisfiability\n"
         text += self.R.smtlib(assertion=True)
 
         text += "; Reduction Equations (not involving places from the reduced Petri Net)"
-        text += self.eq.smtlib_non_reduced()
+        text += self.eq.smtlib_equations_without_places_from_reduced_net()
 
         text += "; Declaration of the places from the reduced Petri Net (order: {})\n".format(0)
         text += self.pn_reduced.smtlib_declare_places(0)
@@ -116,7 +119,10 @@ class BMC:
             text += self.pn_reduced.smtlib_transitions(i)
 
         text += "; Reduction Equations\n"
-        text += self.eq.smtlib_ordered(k)
+        text += self.eq.smtlib_equations_with_places_from_reduced_net(k)
+
+        text == "; Link initial and reduced nets\n"
+        text += self.eq.smtlib_link_nets(k)
 
         return text
 
@@ -126,10 +132,10 @@ class BMC:
         log.info("---BMC RUNNING---")
         
         if self.pn_reduced is None:
-            k = self.prove_non_reduced()
+            k = self.prove_without_reduction()
             order = k
         else:
-            k = self.prove_reduced()
+            k = self.prove_with_reduction()
             order = None
         
         model = None
@@ -153,7 +159,7 @@ class BMC:
 
         return model
 
-    def prove_non_reduced(self):
+    def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.
         """
         log.info("[BMC] > Initialization")
@@ -183,16 +189,18 @@ class BMC:
 
         return k
 
-    def prove_reduced(self):
+    def prove_with_reduction(self):
         """ Prover for reduced Petri Net.
         """
         log.info("[BMC] > Initialization")
         log.info("[BMC] \t>> Declaration of the places from the initial Petri Net")
         self.solver.write(self.pn.smtlib_declare_places())
+        log.info("[BMC] \t>> Declaration of the additional variables")
+        self.solver.write(self.eq.smtlib_declare_additional_variables())
         log.info("[BMC] \t>> Formula to check the satisfiability")
         self.solver.write(self.R.smtlib(assertion=True))
         log.info("[BMC] \t>> Reduction Equations (not involving places from the reduced Petri Net)")
-        self.solver.write(self.eq.smtlib_non_reduced())
+        self.solver.write(self.eq.smtlib_equations_without_places_from_reduced_net())
         log.info("[BMC] \t>> Declaration of the places from the reduced Petri Net (order: 0)")
         self.solver.write(self.pn_reduced.smtlib_declare_places(0))
         log.info("[BMC] \t>> Inital Marking of the reduced Petri Net")
@@ -200,7 +208,9 @@ class BMC:
         log.info("[BMC] \t>> Push")
         self.solver.push()
         log.info("[BMC] \t>> Reduction Equations")
-        self.solver.write(self.eq.smtlib_ordered(0))
+        self.solver.write(self.eq.smtlib_equations_with_places_from_reduced_net(0))
+        log.info("[BMC] \t>> Link initial and reduced nets")
+        self.solver.write(self.eq.smtlib_link_nets(0))
         
         k = 0
         while not self.solver.check_sat() and not stop_bmc.is_set():
@@ -213,7 +223,10 @@ class BMC:
             self.solver.write(self.pn_reduced.smtlib_transitions(k))
             log.info("[BMC] \t>> Push")
             self.solver.push()
-            self.solver.write(self.eq.smtlib_ordered(k + 1))
+            log.info("[BMC] \t>> Reduction Equations")
+            self.solver.write(self.eq.smtlib_equations_with_places_from_reduced_net(k + 1))
+            log.info("[BMC] \t>> Link initial and reduced nets")
+            self.solver.write(self.eq.smtlib_link_nets(k + 1))
             k += 1
 
         return k

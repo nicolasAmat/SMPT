@@ -123,13 +123,19 @@ class IC3:
             return ""
 
         if init:
-            return self.eq.smtlib_non_reduced(10) \
-                   + self.eq.smtlib_ordered(0, 10)
+            return self.eq.smtlib_declare_additional_variables(10) \
+                   + self.eq.smtlib_equations_without_places_from_reduced_net(10) \
+                   + self.eq.smtlib_equations_with_places_from_reduced_net(0, 10) \
+                   + self.eq.smtlib_link_nets(0, 10)
         else:
-            return self.eq.smtlib_non_reduced(10) \
-                   + self.eq.smtlib_ordered(0, 10) \
-                   + self.eq.smtlib_non_reduced(11) \
-                   + self.eq.smtlib_ordered(1, 11)
+            return self.eq.smtlib_declare_additional_variables(10) \
+                   + self.eq.smtlib_equations_without_places_from_reduced_net(10) \
+                   + self.eq.smtlib_equations_with_places_from_reduced_net(0, 10) \
+                   + self.eq.smtlib_link_nets(0, 10) \
+                   + self.eq.smtlib_declare_additional_variables(11) \
+                   + self.eq.smtlib_equations_without_places_from_reduced_net(11) \
+                   + self.eq.smtlib_equations_with_places_from_reduced_net(1, 11) \
+                   + self.eq.smtlib_link_nets(1, 11)
 
     def assert_formula(self, i):
         """ F_i
