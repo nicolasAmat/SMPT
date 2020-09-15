@@ -22,7 +22,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 import re
 import sys
@@ -115,11 +115,11 @@ class Properties:
                 inequalities_R.append(ineq_R)
                 inequalities_P.append(ineq_P)
             
-            clauses_R.append(Clause(inequalities_R, "or"))
-            clauses_P.append(Clause(inequalities_P, "and"))
+            clauses_R.append(Clause(inequalities_R, 'or'))
+            clauses_P.append(Clause(inequalities_P, 'and'))
         
-        R, P = Clause(clauses_R, "and"), Clause(clauses_P, "or")
-        self.add_formula(Formula(R, P, "deadlock"), property_id)
+        R, P = Clause(clauses_R, 'and'), Clause(clauses_P, 'or')
+        self.add_formula(Formula(R, P, 'deadlock'), property_id)
 
     def generate_fireability(self, transitions, property_id=None):
         """ `fireability` formula generator.
@@ -153,8 +153,8 @@ class Properties:
             clauses_R.append(Inequality(pl, tokens, '>='))
             clauses_P.append(Inequality(pl, tokens, '<'))
 
-        R, P = Clause(clauses_R, "and"), Clause(clauses_P, "or")
-        self.add_formula(Formula(R, P, "reachability"), property_id)
+        R, P = Clause(clauses_R, 'and'), Clause(clauses_P, 'or')
+        self.add_formula(Formula(R, P, 'reachability'), property_id)
 
     def add_formula(self, formula, property_id):
         """ Add formulas.
@@ -175,7 +175,7 @@ class Formula:
     def __init__(self, R, P, property_def):
         """ Initializer.
         """
-        if property_def not in ["deadlock", "reachability", "quasi_liveness"]:
+        if property_def not in ['deadlock', 'reachability', 'quasi_liveness']:
             raise ValueError("Invalid property definition")
 
         self.R = R
@@ -198,7 +198,7 @@ class Formula:
     def result(self, sat):
         """ Display the result.
         """
-        if self.property_def == "deadlock":
+        if self.property_def == 'deadlock':
             if sat:
                 print("Deadlock.")
             else:
@@ -210,7 +210,7 @@ class Formula:
             else:
                 print("Unreachable.")
 
-        if self.property_def == "quasi_liveness":
+        if self.property_def == 'quasi_liveness':
             if sat:
                 print("Fireable.")
             else:
@@ -227,7 +227,7 @@ class Clause:
     def __init__(self, operands, operator):
         """ Initializer.
         """
-        if operator not in ["and", "or"]:
+        if operator not in ['and', 'or']:
             raise ValueError("Invalid operator for a clause")
 
         self.operands = operands
@@ -248,7 +248,7 @@ class Clause:
 
             SMT-LIB format
         """
-        smt_input = "".join(map(lambda operand: operand.smtlib(k), self.operands))
+        smt_input = ''.join(map(lambda operand: operand.smtlib(k), self.operands))
         
         if len(self.operands) > 1:
             smt_input = "({} {})".format(self.operator, smt_input)
@@ -273,7 +273,7 @@ class Inequality:
     def __init__(self, left_operand, right_operand, operator):
         """ Initializer.
         """
-        if operator not in ["=", "<=", ">=", "<", ">", "distinct"]:
+        if operator not in ['=', '<=', '>=', '<', '>', 'distinct']:
             raise ValueError("Invalid operator for an inequality")
 
         self.left_operand = left_operand
@@ -300,7 +300,7 @@ class Inequality:
 if __name__ == '__main__':
 
     if len(sys.argv) == 1:
-        exit("File missing: ./formula <path_to_net> <path_to_xml>")
+        exit("File missing: ./properties.py <path_to_Petri_net> <path_to_xml_properties>")
 
     pn = PetriNet(sys.argv[1])
     properties = Properties(pn, sys.argv[2])
