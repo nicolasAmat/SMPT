@@ -29,7 +29,7 @@ import sys
 import uuid
 import xml.etree.ElementTree as ET
 
-from pn import PetriNet
+from ptnet import PetriNet
 
 
 class Properties:
@@ -39,10 +39,10 @@ class Properties:
     - a set of Formulas.
     """
 
-    def __init__(self, pn, xml_filename=None):
+    def __init__(self, ptnet, xml_filename=None):
         """ Initializer.
         """
-        self.pn = pn
+        self.ptnet = ptnet
         self.formulas = {}
 
         if xml_filename is not None:
@@ -103,7 +103,7 @@ class Properties:
         """
         clauses_R, clauses_P = [], []
 
-        for tr in self.pn.transitions.values():
+        for tr in self.ptnet.transitions.values():
             inequalities_R, inequalities_P = [], []
             
             for pl, weight in tr.inputs.items():
@@ -129,7 +129,7 @@ class Properties:
         for tr_id in transitions:
             inequalities_R, inequalities_P = [], []
 
-            for pl, weight in self.pn.transitions[tr_id].inputs.items():
+            for pl, weight in self.ptnet.transitions[tr_id].inputs.items():
                 if weight > 0:
                     ineq_R, ineq_P = Inequality(pl, weight, '>='), Inequality(pl, weight, '<')
                 else:
@@ -302,8 +302,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         exit("File missing: ./properties.py <path_to_Petri_net> <path_to_xml_properties>")
 
-    pn = PetriNet(sys.argv[1])
-    properties = Properties(pn, sys.argv[2])
+    ptnet = PetriNet(sys.argv[1])
+    properties = Properties(ptnet, sys.argv[2])
 
     print("> Textual Formula")
     print("-----------------")

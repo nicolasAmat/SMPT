@@ -274,7 +274,7 @@ class Transition:
 
     """
 
-    def __init__(self, transition_id, pn):
+    def __init__(self, transition_id, ptnet):
         """ Initializer.
         """
         self.id = transition_id
@@ -282,7 +282,7 @@ class Transition:
         self.outputs = {}
 
         self.connected_places = []
-        self.pn = pn
+        self.ptnet = ptnet
 
     def __str__(self):
         """ Transition to .net format.
@@ -343,7 +343,7 @@ class Transition:
         smt_input += "\n\t\t"
         
         # Unconnected places must not be changed
-        for pl in self.pn.places.values():
+        for pl in self.ptnet.places.values():
             if pl not in self.connected_places:
                 smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += "\n\t)\n"
@@ -380,7 +380,7 @@ class Transition:
                 smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
         
         # Unconnected places must not be changed
-        for pl in self.pn.places.values():
+        for pl in self.ptnet.places.values():
             if pl not in self.connected_places:
                 smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += ")\n\t\t)\n\t\t(=>\n\t\t\t(or "
@@ -394,7 +394,7 @@ class Transition:
         smt_input += ")\n\t\t\t(and "
         
         # Places must not change
-        for pl in self.pn.places.values():
+        for pl in self.ptnet.places.values():
             smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += ")\n\t\t)\n\t)\n"
         
@@ -404,7 +404,7 @@ class Transition:
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        exit("File missing: ./pn.py <path_to_file>")
+        exit("File missing: ./ptnet.py <path_to_file>")
 
     ptnet = PetriNet(sys.argv[1])
 

@@ -107,7 +107,7 @@ class Solver:
 
         return self.readline() == 'sat'
 
-    def get_model(self, pn, order=None):
+    def get_model(self, ptnet, order=None):
         """ Get a model from the current SAT stack.
             Return a cube (conjunction of equalities).
         """
@@ -133,8 +133,8 @@ class Solver:
                 place_content = place_content[1].split('@')
                 if int(place_content[1]) == order:
                     place = place_content[0]
-            if place_marking and place in pn.places:
-                model.append(Inequality(pn.places[place], int(place_marking), '='))
+            if place_marking and place in ptnet.places:
+                model.append(Inequality(ptnet.places[place], int(place_marking), '='))
 
         return Clause(model, 'and')
 
@@ -155,12 +155,12 @@ class Solver:
 
         return self.readline().replace('(', '').replace(')', '').split(' ')
 
-    def display_model(self, pn, order=None):
+    def display_model(self, ptnet, order=None):
         """ Display the resulting model.
         """
         model = ""
         
-        for place_marking in self.get_model(pn, order).operands:
+        for place_marking in self.get_model(ptnet, order).operands:
             if int(place_marking.right_operand) > 0:
                 model += " {}({})".format(place_marking.left_operand.id, place_marking.right_operand)
         

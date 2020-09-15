@@ -11,11 +11,11 @@ Adapted for Petri nets
 
 Indications for orders:
 - Case non-reduced:
-    pn : 0
-    pn': 1
+    ptnet : 0
+    ptnet': 1
 - Case reduced:
-    pn : 10     pn_reduced : 0
-    pn': 11     pn_reduced': 1   
+    ptnet : 10     ptnet_reduced : 0
+    ptnet': 11     ptnet_reduced': 1   
 
 This file is part of SMPT.
 
@@ -44,7 +44,7 @@ import sys
 from subprocess import PIPE, Popen
 from threading import Event
 
-from pn import PetriNet
+from ptnet import PetriNet
 from properties import Clause, Inequality, Properties
 from solver import Solver
 from system import System
@@ -63,14 +63,14 @@ class IC3:
     IC3 Method.
     """
 
-    def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False, unsat_core=True, stop_concurrent=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, eq=None, debug=False, unsat_core=True, stop_concurrent=None):
         """ IC3 initializer.
 
             By default the IC3 method uses the unsat core of the solver.
             Option to use the MIC algorithm: unsat_core=False
         """
-        self.pn = pn
-        self.pn_reduced = pn_reduced
+        self.ptnet = ptnet
+        self.ptnet_reduced = ptnet_reduced
         
         self.eq = eq
         
@@ -78,8 +78,8 @@ class IC3:
         self.R = formula.R
         self.P = formula.P
 
-        self.reduced = pn_reduced is not None
-        self.pn_current = self.pn_reduced if self.reduced else self.pn
+        self.reduced = ptnet_reduced is not None
+        self.ptnet_current = self.ptnet_reduced if self.reduced else self.ptnet
 
         self.oars = []  # list of CNF
 
@@ -99,19 +99,19 @@ class IC3:
         """
         if init:
             if self.reduced:
-                return self.pn.smtlib_declare_places(10) \
-                       + self.pn_reduced.smtlib_declare_places(0)
+                return self.ptnet.smtlib_declare_places(10) \
+                       + self.ptnet_reduced.smtlib_declare_places(0)
             else:
-                return self.pn.smtlib_declare_places(0)
+                return self.ptnet.smtlib_declare_places(0)
         else:
             if self.reduced:
-                return self.pn.smtlib_declare_places(10) \
-                       + self.pn.smtlib_declare_places(11) \
-                       + self.pn_reduced.smtlib_declare_places(0) \
-                       + self.pn_reduced.smtlib_declare_places(1)
+                return self.ptnet.smtlib_declare_places(10) \
+                       + self.ptnet.smtlib_declare_places(11) \
+                       + self.ptnet_reduced.smtlib_declare_places(0) \
+                       + self.ptnet_reduced.smtlib_declare_places(1)
             else:
-                return self.pn.smtlib_declare_places(0) \
-                       + self.pn.smtlib_declare_places(1)
+                return self.ptnet.smtlib_declare_places(0) \
+                       + self.ptnet.smtlib_declare_places(1)
 
     def assert_equations(self, init=False):
         """ Reduction equations.
@@ -156,7 +156,7 @@ class IC3:
 
         # F0 = I
         inequalities = []
-        for pl in self.pn_current.places.values():
+        for pl in self.ptnet_current.places.values():
             inequalities.append(Inequality(pl, pl.initial_marking, '='))
         self.oars.append([Clause(inequalities, 'and')])
 
@@ -171,7 +171,7 @@ class IC3:
 
         self.solver.write(self.declare_places(init=True))
         self.solver.write(self.assert_equations(init=True))
-        self.solver.write(self.pn_current.smtlib_initial_marking(0))
+        self.solver.write(self.ptnet_current.smtlib_initial_marking(0))
         self.solver.write(self.R.smtlib(self.reduced * 10, assertion=True))
 
         return self.solver.check_sat()
@@ -184,8 +184,8 @@ class IC3:
         self.solver.reset()
 
         self.solver.write(self.declare_places())
-        self.solver.write(self.pn_current.smtlib_initial_marking(0))
-        self.solver.write(self.pn_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_initial_marking(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
         self.solver.write(self.R.smtlib(self.reduced * 10 + 1, assertion=True))
 
@@ -198,7 +198,7 @@ class IC3:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(k))
-        self.solver.write(self.pn_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
         self.solver.write(self.R.smtlib(self.reduced * 10 + 1, assertion=True))
 
@@ -211,7 +211,7 @@ class IC3:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.pn_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(c.smtlib(1, assertion=True, negation=True))
 
         return self.solver.check_sat()
@@ -224,7 +224,7 @@ class IC3:
         self.solver.write(self.declare_places())
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.pn_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
         self.solver.write(s.smtlib(1, assertion=True))
 
@@ -237,7 +237,7 @@ class IC3:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.pn_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
         self.solver.write(s.smtlib(k=1, assertion=True))
 
@@ -252,7 +252,7 @@ class IC3:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.pn_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
         self.solver.write(self.assert_equations())
         for eq in s.operands:
@@ -285,7 +285,7 @@ class IC3:
             self.solver.reset()
             self.solver.write(self.declare_places())
             self.solver.write(self.assert_formula(i))
-            self.solver.write(self.pn_current.smtlib_transition_relation(0))
+            self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
             self.solver.write(self.assert_equations())
             self.solver.write(c.smtlib(0, assertion=True, negation=True))
             self.solver.write(c.smtlib(1, assertion=True))
@@ -355,7 +355,7 @@ class IC3:
 
         try:
             while self.formula_reach_bad_state(k) and not stop_ic3.is_set():
-                s = self.cuber_filter(self.solver.get_model(self.pn_current, 0))
+                s = self.cuber_filter(self.solver.get_model(self.ptnet_current, 0))
                 n = self.inductively_generalize(s, k - 2, k)
 
                 log.info("[IC3] \t\t>> s: {}".format(s))
@@ -422,7 +422,7 @@ class IC3:
                 return
 
             if self.formula_reach_state(n, s):
-                p = self.cuber_filter(self.solver.get_model(self.pn_current, order=0))
+                p = self.cuber_filter(self.solver.get_model(self.ptnet_current, order=0))
                 m = self.inductively_generalize(p, n - 2, k)
                 states.append((m + 1, p))
             else:
@@ -447,21 +447,21 @@ if __name__ == '__main__':
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
-    pn = PetriNet(sys.argv[2])
-    marking = {pn.places[pl]: 1 for pl in sys.argv[1].split(',')}
+    ptnet = PetriNet(sys.argv[2])
+    marking = {ptnet.places[pl]: 1 for pl in sys.argv[1].split(',')}
 
-    properties = Properties(pn)
+    properties = Properties(ptnet)
     properties.generate_reachability(marking)
     formula = list(properties.formulas.values())[0]
 
     if len(sys.argv) == 3:
-        pn_reduced = None
+        ptnet_reduced = None
         eq = None
     else:
-        pn_reduced = PetriNet(sys.argv[3])
-        eq = System(sys.argv[3], pn.places.keys(), pn_reduced.places.keys())
+        ptnet_reduced = PetriNet(sys.argv[3])
+        eq = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
 
-    ic3 = IC3(pn, formula, pn_reduced, eq)
+    ic3 = IC3(ptnet, formula, ptnet_reduced, eq)
 
     if ic3.prove():
         print("Proved")

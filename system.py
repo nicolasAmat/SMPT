@@ -30,7 +30,7 @@ __version__ = "2.0.0"
 import re
 import sys
 
-from pn import PetriNet
+from ptnet import PetriNet
 
 
 class System:
@@ -290,10 +290,10 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
         exit("File missing: ./system.py <path_to_initial_Petri_net> <path_to_reduced_Petri_net>")
 
-    pn = PetriNet(sys.argv[1])
-    pn_reduced = PetriNet(sys.argv[2])
+    ptnet = PetriNet(sys.argv[1])
+    ptnet_reduced = PetriNet(sys.argv[2])
 
-    system = System(sys.argv[2], pn.places.keys(), pn_reduced.places.keys())
+    system = System(sys.argv[2], ptnet.places.keys(), ptnet_reduced.places.keys())
 
     print("> Textual Equations")
     print("-------------------")

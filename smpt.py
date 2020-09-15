@@ -37,22 +37,22 @@ from bmc import BMC, stop_bmc
 from enumerative import Enumerative
 from ic3 import IC3, stop_ic3
 from parallelizer import Parallelizer
-from pn import PetriNet
+from ptnet import PetriNet
 from properties import Properties
 from system import System
 
 
-def enumerative(path_markings, pn, formula, pn_reduced, eq, debug):
+def enumerative(path_markings, ptnet, formula, ptnet_reduced, eq, debug):
     """ Enumerative method caller.
     """
-    enumerative = Enumerative(path_markings, pn, formula, pn_reduced, eq, debug)
+    enumerative = Enumerative(path_markings, ptnet, formula, ptnet_reduced, eq, debug)
     enumerative.prove()
 
 
-def bmc(pn, formula, pn_reduced, eq, debug, timeout):
+def bmc(ptnet, formula, ptnet_reduced, eq, debug, timeout):
     """ BMC method caller.
     """
-    bmc = BMC(pn, formula, pn_reduced, eq, debug)
+    bmc = BMC(ptnet, formula, ptnet_reduced, eq, debug)
 
     # Run analysis with a timeout
     proc = Thread(target=bmc.prove)
@@ -61,10 +61,10 @@ def bmc(pn, formula, pn_reduced, eq, debug, timeout):
     stop_bmc.set()
 
 
-def ic3(pn, formula, pn_reduced, eq, debug, timeout):
+def ic3(ptnet, formula, ptnet_reduced, eq, debug, timeout):
     """ IC3 method caller.
     """
-    ic3 = IC3(pn, formula, pn_reduced, eq, debug)
+    ic3 = IC3(ptnet, formula, ptnet_reduced, eq, debug)
 
     # Run analysis with a timeout
     proc = Thread(target=ic3.prove)
@@ -92,8 +92,8 @@ def main():
                         action='store_true',
                         help="print the SMT-LIB input/ouput")
 
-    parser.add_argument('path_pn',
-                        metavar='pn',
+    parser.add_argument('path_ptnet',
+                        metavar='ptnet',
                         type=str,
                         help='path to Petri Net (.net format)')
 
@@ -129,7 +129,7 @@ def main():
 
     group_reduce.add_argument('--reduced',
                               action='store',
-                              dest='path_pn_reduced',
+                              dest='path_ptnet_reduced',
                               type=str,
                               help='path to reduced Petri Net (.net format)')
 
@@ -161,34 +161,34 @@ def main():
         log.basicConfig(format="%(message)s")
 
     # Read the input Petri net
-    pn = PetriNet(results.path_pn)
+    ptnet = PetriNet(results.path_ptnet)
 
-    pn_reduced = None
+    ptnet_reduced = None
     eq = None
 
     # Reduce the Petri net if '--auto-reduce' enabled
     if results.auto_reduce:
-        fp_pn_reduced = tempfile.NamedTemporaryFile(suffix='.net')
-        subprocess.run(["reduce", "-rg,redundant,compact,convert,transitions", results.path_pn, fp_pn_reduced.name])
-        results.path_pn_reduced = fp_pn_reduced.name
+        fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
+        subprocess.run(["reduce", "-rg,redundant,compact,convert,transitions", results.path_ptnet, fp_ptnet_reduced.name])
+        results.path_ptnet_reduced = fp_ptnet_reduced.name
 
     # Read the reduced Petri net and the system of equations linking both nets 
-    if results.path_pn_reduced is not None:
-        pn_reduced = PetriNet(results.path_pn_reduced)
-        eq = System(results.path_pn_reduced, pn.places.keys(), pn_reduced.places.keys())
+    if results.path_ptnet_reduced is not None:
+        ptnet_reduced = PetriNet(results.path_ptnet_reduced)
+        eq = System(results.path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
 
     # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
         fp_markings = tempfile.NamedTemporaryFile(suffix='.aut')
-        if results.path_pn_reduced is not None:
-            path_pn = results.path_pn_reduced
+        if results.path_ptnet_reduced is not None:
+            path_ptnet = results.path_ptnet_reduced
         else:
-            path_pn = results.path_pn
-        subprocess.run(["tina", "-aut", "-sp", "1", path_pn, fp_markings.name])
+            path_ptnet = results.path_ptnet
+        subprocess.run(["tina", "-aut", "-sp", "1", path_ptnet, fp_markings.name])
         results.path_markings = fp_markings.name
 
     # Read properties
-    properties = Properties(pn, results.path_properties)
+    properties = Properties(ptnet, results.path_properties)
 
     # Generate a deadlock property if '--deadlock' enabled
     if results.deadlock:
@@ -205,7 +205,7 @@ def main():
     if results.reachable_places is not None:
         property_id = "Reachability: {}".format(results.reachable_places)
         places = results.reachable_places.replace('#', '').replace('{', '').replace('}', '').split(',')
-        marking = {pn.places[pl]:1 for pl in places}
+        marking = {ptnet.places[pl]:1 for pl in places}
         properties.generate_reachability(marking, property_id)
     
     # Iterate over properties
@@ -214,15 +214,15 @@ def main():
 
         if results.path_markings is not None:
             # Use enumerative method
-            enumerative(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
+            enumerative(results.path_markings, ptnet, formula, ptnet_reduced, eq, results.debug)
         else:
             # Use BMC and IC3 methods in parallel
-            parallelizer = Parallelizer(pn, formula, pn_reduced, eq, results.debug)
+            parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, eq, results.debug)
             model = parallelizer.run()
 
     # Close temporary files
     if results.auto_reduce:
-        fp_pn_reduced.close()
+        fp_ptnet_reduced.close()
     if results.auto_enumerative:
         fp_markings.close()
 

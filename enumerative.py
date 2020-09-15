@@ -31,7 +31,7 @@ import logging as log
 import re
 import sys
 
-from pn import PetriNet
+from ptnet import PetriNet
 from properties import Properties
 from solver import Solver
 from system import System
@@ -43,9 +43,9 @@ class Enumerative:
     - a Petri Net,
     - a set of reachable markings.
     """
-    def __init__(self, filename, pn, formula, pn_reduced, eq, debug=False):
-        self.pn = pn
-        self.pn_reduced = pn_reduced
+    def __init__(self, filename, ptnet, formula, ptnet_reduced, eq, debug=False):
+        self.ptnet = ptnet
+        self.ptnet_reduced = ptnet_reduced
         
         self.eq = eq
         
@@ -71,10 +71,10 @@ class Enumerative:
         """ Return SMT-LIB assertions for markings (DNF).
         """
         text = ""
-        if self.pn_reduced is None:
-            places = self.pn.places
+        if self.ptnet_reduced is None:
+            places = self.ptnet.places
         else:
-            places = self.pn_reduced.places
+            places = self.ptnet_reduced.places
         text += "(assert (or "
         for marking in self.markings:
             text += "(and "
@@ -114,14 +114,14 @@ class Enumerative:
         """
         print("---ENUMERATIVE MARKING RUNNING---")
 
-        if self.pn_reduced is None:
+        if self.ptnet_reduced is None:
             self.prove_without_reduction()
         else:
             self.prove_with_reduction()
 
         if self.solver.check_sat():
             self.formula.result(True)
-            self.solver.display_model(self.pn)
+            self.solver.display_model(self.ptnet)
         else:
             self.formula.result(False)
 
@@ -131,7 +131,7 @@ class Enumerative:
         """ Prover for non-reduced Petri net.
         """
         log.info("> Variable Definitions")
-        self.solver.write(self.pn.smtlib_declare_places())
+        self.solver.write(self.ptnet.smtlib_declare_places())
         log.info("> Property Formula")
         self.solver.write(self.R.smtlib(assertion=True))
         log.info("> Net Markings")
@@ -141,7 +141,7 @@ class Enumerative:
         """ Prover for reduced Petri net.
         """
         log.info("> Variable Definitions")
-        self.solver.write(self.pn.smtlib_declare_places())
+        self.solver.write(self.ptnet.smtlib_declare_places())
         log.info("> Reduction Equations")
         self.solver.write(self.eq.smtlib())
         log.info("> Property Formula")
@@ -155,8 +155,8 @@ if __name__ == '__main__':
     if len(sys.argv) != 3:
         exit("File missing: ./enumerative.py <path_to_net_file> <path_to_aut_file>")
 
-    net = PetriNet(sys.argv[1])
-    markings = Enumerative(sys.argv[2], net, None, None, None)
+    ptnet = PetriNet(sys.argv[1])
+    markings = Enumerative(sys.argv[2], ptnet, None, None, None)
 
     print("> Markings Enumeration")
     print("----------------------")
