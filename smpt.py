@@ -3,7 +3,7 @@
 """
 SMPT: Satisfiability Modulo Petri Net
 
-SMT-based model-checker that takes advantage of nets reduction.
+An SMT-based model-checker that takes advantage of nets reduction.
 
 This file is part of SMPT.
 
@@ -24,7 +24,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 import argparse
 import logging as log
@@ -77,7 +77,7 @@ def main():
     """ Main Function.
     """
     # Arguments parser
-    parser = argparse.ArgumentParser(description='Satisfiability Modulo Petri Net')
+    parser = argparse.ArgumentParser(description='SMPT: Satisfiability Modulo Petri Net')
 
     parser.add_argument('--version',
                         action='version',
@@ -160,7 +160,7 @@ def main():
     else:
         log.basicConfig(format="%(message)s")
 
-    # Read the Petri net
+    # Read the input Petri net
     pn = PetriNet(results.path_pn)
 
     pn_reduced = None
@@ -187,7 +187,7 @@ def main():
         subprocess.run(["tina", "-aut", "-sp", "1", path_pn, fp_markings.name])
         results.path_markings = fp_markings.name
 
-    # Read the properties
+    # Read properties
     properties = Properties(pn, results.path_properties)
 
     # Generate a deadlock property if '--deadlock' enabled
@@ -205,18 +205,18 @@ def main():
     if results.reachable_places is not None:
         property_id = "Reachability: {}".format(results.reachable_places)
         places = results.reachable_places.replace('#', '').replace('{', '').replace('}', '').split(',')
-        marking = {pn.places[pl] : 1 for pl in places}
-        properties.generate_reachability(places, property_id)
+        marking = {pn.places[pl]:1 for pl in places}
+        properties.generate_reachability(marking, property_id)
     
-    # Iterate over the properties to study
+    # Iterate over properties
     for property_id, formula in properties.formulas.items():
         print("---{}---".format(property_id))
 
         if results.path_markings is not None:
-            # Use the enumerative method
-            enumerative_marking(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
+            # Use enumerative method
+            enumerative(results.path_markings, pn, formula, pn_reduced, eq, results.debug)
         else:
-            # Use the BMC and IC3 methods in parallel
+            # Use BMC and IC3 methods in parallel
             parallelizer = Parallelizer(pn, formula, pn_reduced, eq, results.debug)
             model = parallelizer.run()
 
