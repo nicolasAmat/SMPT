@@ -64,17 +64,16 @@ You can list all the options by using the *help* option:
 ```
 $> python smpt.py --help
 usage: smpt.py [-h] [--version] [-v] [--debug]
-               (--xml PATH_PROPERTIES | --deadlock | --liveness LIVE_TRANSITIONS | --reachability REACH_PLACES | --concurrent-places)
-               [--compressed-matrix] [--complete-matrix]
-               [--auto-reduce | --reduced PATH_PN_REDUCED]
+               (--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES)
+               [--auto-reduce | --reduced PATH_PTNET_REDUCED]
                [--auto-enumerative | --enumerative PATH_MARKINGS]
                [--timeout TIMEOUT]
-               pn
+               ptnet
 
-Satisfiability Modulo Petri Net
+SMPT: Satisfiability Modulo Petri Net
 
 positional arguments:
-  pn                    path to Petri Net (.net format)
+  ptnet                 path to Petri Net (.net format)
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -84,17 +83,19 @@ optional arguments:
   --xml PATH_PROPERTIES
                         use XML format for properties
   --deadlock            deadlock analysis
-  --liveness LIVE_TRANSITIONS
-                        liveness analysis (comma separated list of transition names)
-  --reachability REACH_PLACES
-                        reachibility analysis (comma separated list of place names)
+  --quasi-liveness QUASI_LIVE_TRANSITIONS
+                        liveness analysis (comma separated list of transition
+                        names)
+  --reachability REACHABLE_PLACES
+                        reachibility analysis (comma separated list of place
+                        names)
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
-  --reduced PATH_PN_REDUCED
+  --reduced PATH_PTNET_REDUCED
                         path to reduced Petri Net (.net format)
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
-  --timeout TIMEOUT     set a limit on execution time
+  --timeout TIMEOUT     a limit on execution time
 ```
 
 ## Dependencies
