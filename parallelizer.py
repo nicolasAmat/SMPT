@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Parallelizer for IC3 and BMC analysis methods.
+Parallelizer for BMC and IC3 analysis methods.
 
 This file is part of SMPT.
 
@@ -22,7 +22,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 import sys
 from threading import Event, Thread
@@ -41,29 +41,29 @@ class Parallelizer:
     def __init__(self, pn, formula, pn_reduced=None, eq=None, debug=False):
         """ Initializer.
         """
-        self.ic3 = IC3(pn, formula, pn_reduced=pn_reduced, eq=eq, debug=debug, stop_concurrent=stop_bmc)
         self.bmc = BMC(pn, formula, pn_reduced=pn_reduced, eq=eq, debug=debug, stop_concurrent=stop_ic3)
+        self.ic3 = IC3(pn, formula, pn_reduced=pn_reduced, eq=eq, debug=debug, stop_concurrent=stop_bmc)
 
     def run(self):
-        """ Run IC3 and BMC analysis in parrallel.
+        """ Run BMC and IC3 analysis in parrallel.
 
             Return `True` is the property is verified,
             Return a counterexample otherwise.
         """
-        result_ic3 = []
         result_bmc = []
+        result_ic3 = []
 
-        proc_ic3 = Thread(target=self.ic3.prove, args=(result_ic3,))
         proc_bmc = Thread(target=self.bmc.prove, args=(False, result_bmc,))
+        proc_ic3 = Thread(target=self.ic3.prove, args=(result_ic3,))
 
-        stop_ic3.clear()
         stop_bmc.clear()
+        stop_ic3.clear()
 
-        proc_ic3.start()
         proc_bmc.start()
+        proc_ic3.start()
 
-        proc_ic3.join()
         proc_bmc.join()
+        proc_ic3.join()
 
         if len(result_ic3) == 1:
             return True
@@ -74,7 +74,7 @@ class Parallelizer:
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        exit("File missing: ./parallelizer.py <place_to_reach> <path_to_petri_net> [<path_to_reduced_petri_net>]")
+        exit("File missing: ./parallelizer.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
 
     pn = PetriNet(sys.argv[2])
     marking = {pn.places[pl]: 1 for pl in sys.argv[1].split(',')}
@@ -92,6 +92,6 @@ if __name__ == '__main__':
 
     parallelizer = Parallelizer(pn, formula, pn_reduced, eq)
 
-    print("Result of the parallelized analysis")
-    print("-----------------------------------")
+    print("> Result of the parallelized analysis")
+    print("-------------------------------------")
     parallelizer.run()
