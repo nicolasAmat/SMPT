@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Enumerative Marking Module
+Enumerative Marking Method
 
 Input file format: .aut
 Documentation: http://projects.laas.fr/tina//manuals/formats.html
@@ -37,7 +37,7 @@ from solver import Solver
 from system import System
 
 
-class EnumerativeMarking:
+class Enumerative:
     """
     Marking defined by:
     - a Petri Net,
@@ -115,9 +115,9 @@ class EnumerativeMarking:
         print("---ENUMERATIVE MARKING RUNNING---")
 
         if self.pn_reduced is None:
-            self.prove_non_reduced()
+            self.prove_without_reduction()
         else:
-            self.prove_reduced()
+            self.prove_with_reduction()
 
         if self.solver.check_sat():
             self.formula.result(True)
@@ -127,7 +127,7 @@ class EnumerativeMarking:
 
         self.solver.exit()
 
-    def prove_non_reduced(self):
+    def prove_without_reduction(self):
         """ Prover for non-reduced Petri net.
         """
         log.info("> Variable Definitions")
@@ -137,7 +137,7 @@ class EnumerativeMarking:
         log.info("> Net Markings")
         self.solver.write(self.smtlib())
 
-    def prove_reduced(self):
+    def prove_with_reduction(self):
         """ Prover for reduced Petri net.
         """
         log.info("> Variable Definitions")
@@ -153,15 +153,15 @@ class EnumerativeMarking:
 if __name__ == '__main__':
 
     if len(sys.argv) != 3:
-        exit("File missing: ./enumerative_marking <path_to_net_file> <path_to_aut_file>")
+        exit("File missing: ./enumerative.py <path_to_net_file> <path_to_aut_file>")
 
     net = PetriNet(sys.argv[1])
-    markings = EnumerativeMarking(sys.argv[2], net, None, None, None)
+    markings = Enumerative(sys.argv[2], net, None, None, None)
 
-    print("Markings Enumeration")
-    print("--------------------")
+    print("> Markings Enumeration")
+    print("----------------------")
     print(markings)
 
-    print("\nSMTlib2 Format")
-    print("--------------")
+    print("> SMTlib2 Format")
+    print("----------------")
     print(markings.smtlib())

@@ -34,7 +34,7 @@ import tempfile
 from threading import Event, Thread
 
 from bmc import BMC, stop_bmc
-from enumerative_marking import EnumerativeMarking
+from enumerative import Enumerative
 from ic3 import IC3, stop_ic3
 from parallelizer import Parallelizer
 from pn import PetriNet
@@ -42,11 +42,11 @@ from properties import Properties
 from system import System
 
 
-def enumerative_marking(path_markings, pn, formula, pn_reduced, eq, debug):
+def enumerative(path_markings, pn, formula, pn_reduced, eq, debug):
     """ Enumerative method caller.
     """
-    markings = EnumerativeMarking(path_markings, pn, formula, pn_reduced, eq, debug)
-    markings.prove()
+    enumerative = Enumerative(path_markings, pn, formula, pn_reduced, eq, debug)
+    enumerative.prove()
 
 
 def bmc(pn, formula, pn_reduced, eq, debug, timeout):
