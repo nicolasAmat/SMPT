@@ -30,7 +30,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 from subprocess import PIPE, Popen
 
@@ -39,7 +39,7 @@ from properties import Clause, Inequality
 
 class Solver:
     """
-    Solver defined by:
+    Solver interface defined by:
     - a z3 process,
     - a debug option.
     """
@@ -104,6 +104,7 @@ class Solver:
         """
         self.write("(check-sat)\n")
         self.flush()
+
         return self.readline() == 'sat'
 
     def get_model(self, pn, order=None):
@@ -113,11 +114,11 @@ class Solver:
         self.write("(get-model)\n")
         self.flush()
         
-        model = []
         # Read '(model '
         self.readline()
 
         # Parse the model
+        model = []
         while True:
             place_content = self.readline().split(' ')
             
@@ -151,6 +152,7 @@ class Solver:
         
         self.write("(get-unsat-core)\n")
         self.flush()
+
         return self.readline().replace('(', '').replace(')', '').split(' ')
 
     def display_model(self, pn, order=None):
