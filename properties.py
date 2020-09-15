@@ -89,14 +89,16 @@ class Properties:
             deadlock = prop_formula.find(
                 './' + namespace + 'exists-path/' + namespace + 'finally/' + namespace + 'deadlock')
             
-            fireability = prop_formula.find(
+            reachability = "TODO"
+
+            quasi_liveness = prop_formula.find(
                 './' + namespace + 'exists-path/' + namespace + 'finally/' + namespace + 'is-fireable')
 
             if deadlock is not None:
                 self.generate_deadlock(property_id)
 
-            if fireability is not None:
-               self.generate_fireability([tr.text for tr in fireability], property_id)
+            if quasi_liveness is not None:
+               self.generate_quasi_liveness([tr.text for tr in quasi_liveness], property_id)
     
     def generate_deadlock(self, property_id=None):
         """ `deadlock` formula generator.
@@ -121,8 +123,8 @@ class Properties:
         R, P = Clause(clauses_R, 'and'), Clause(clauses_P, 'or')
         self.add_formula(Formula(R, P, 'deadlock'), property_id)
 
-    def generate_fireability(self, transitions, property_id=None):
-        """ `fireability` formula generator.
+    def generate_quasi_liveness(self, transitions, property_id=None):
+        """ `quasi-liveness` formula generator.
         """
         clauses_R, clauses_P = [], []
 
@@ -202,7 +204,7 @@ class Formula:
             if sat:
                 print("Deadlock.")
             else:
-                print("Deadlock-free")
+                print("Deadlock-free.")
 
         if self.property_def == 'reachability':
             if sat:
@@ -212,9 +214,9 @@ class Formula:
 
         if self.property_def == 'quasi_liveness':
             if sat:
-                print("Fireable.")
+                print("Quasi-live.")
             else:
-                print("Unfireable.")
+                print("Dead.")
 
 
 class Clause:

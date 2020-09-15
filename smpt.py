@@ -199,7 +199,7 @@ def main():
     if results.quasi_live_transitions is not None:
         property_id = "Quasi-liveness: {}".format(results.quasi_live_transitions)
         transitions = results.quasi_live_transitions.replace('#', '').replace('{', '').replace('}', '').split(',')
-        properties.generate_fireability(transitions, property_id)
+        properties.generate_quasi_liveness(transitions, property_id)
 
     # Generate a reachability property if '--reachability' enabled
     if results.reachable_places is not None:
