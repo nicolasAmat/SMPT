@@ -38,11 +38,11 @@ class Parallelizer:
     """ Concurrent analyzer.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, eq=None, debug=False):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False):
         """ Initializer.
         """
-        self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, eq=eq, debug=debug, stop_concurrent=stop_ic3)
-        self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, eq=eq, debug=debug, stop_concurrent=stop_bmc)
+        self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, stop_concurrent=stop_ic3)
+        self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, stop_concurrent=stop_bmc)
 
     def run(self):
         """ Run BMC and IC3 analysis in parrallel.
@@ -85,12 +85,12 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 4:
         ptnet_reduced = PetriNet(sys.argv[3])
-        eq = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
+        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
     else:
         ptnet_reduced = None
-        eq = None
+        system = None
 
-    parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, eq)
+    parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system)
 
     print("> Result of the parallelized analysis")
     print("-------------------------------------")

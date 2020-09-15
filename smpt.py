@@ -42,17 +42,17 @@ from properties import Properties
 from system import System
 
 
-def enumerative(path_markings, ptnet, formula, ptnet_reduced, eq, debug):
+def enumerative(path_markings, ptnet, formula, ptnet_reduced, system, debug):
     """ Enumerative method caller.
     """
-    enumerative = Enumerative(path_markings, ptnet, formula, ptnet_reduced, eq, debug)
+    enumerative = Enumerative(path_markings, ptnet, formula, ptnet_reduced, system, debug)
     enumerative.prove()
 
 
-def bmc(ptnet, formula, ptnet_reduced, eq, debug, timeout):
+def bmc(ptnet, formula, ptnet_reduced, system, debug, timeout):
     """ BMC method caller.
     """
-    bmc = BMC(ptnet, formula, ptnet_reduced, eq, debug)
+    bmc = BMC(ptnet, formula, ptnet_reduced, system, debug)
 
     # Run analysis with a timeout
     proc = Thread(target=bmc.prove)
@@ -61,10 +61,10 @@ def bmc(ptnet, formula, ptnet_reduced, eq, debug, timeout):
     stop_bmc.set()
 
 
-def ic3(ptnet, formula, ptnet_reduced, eq, debug, timeout):
+def ic3(ptnet, formula, ptnet_reduced, system, debug, timeout):
     """ IC3 method caller.
     """
-    ic3 = IC3(ptnet, formula, ptnet_reduced, eq, debug)
+    ic3 = IC3(ptnet, formula, ptnet_reduced, system, debug)
 
     # Run analysis with a timeout
     proc = Thread(target=ic3.prove)
@@ -164,7 +164,7 @@ def main():
     ptnet = PetriNet(results.path_ptnet)
 
     ptnet_reduced = None
-    eq = None
+    system = None
 
     # Reduce the Petri net if '--auto-reduce' enabled
     if results.auto_reduce:
@@ -175,7 +175,7 @@ def main():
     # Read the reduced Petri net and the system of equations linking both nets 
     if results.path_ptnet_reduced is not None:
         ptnet_reduced = PetriNet(results.path_ptnet_reduced)
-        eq = System(results.path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
+        system = System(results.path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
 
     # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
@@ -214,10 +214,10 @@ def main():
 
         if results.path_markings is not None:
             # Use enumerative method
-            enumerative(results.path_markings, ptnet, formula, ptnet_reduced, eq, results.debug)
+            enumerative(results.path_markings, ptnet, formula, ptnet_reduced, system, results.debug)
         else:
             # Use BMC and IC3 methods in parallel
-            parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, eq, results.debug)
+            parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.debug)
             model = parallelizer.run()
 
     # Close temporary files

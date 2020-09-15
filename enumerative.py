@@ -43,11 +43,11 @@ class Enumerative:
     - a Petri Net,
     - a set of reachable markings.
     """
-    def __init__(self, filename, ptnet, formula, ptnet_reduced, eq, debug=False):
+    def __init__(self, filename, ptnet, formula, ptnet_reduced, system, debug=False):
         self.ptnet = ptnet
         self.ptnet_reduced = ptnet_reduced
         
-        self.eq = eq
+        self.system = system
         
         self.formula = formula
         self.R = formula.R
@@ -143,7 +143,7 @@ class Enumerative:
         log.info("> Variable Definitions")
         self.solver.write(self.ptnet.smtlib_declare_places())
         log.info("> Reduction Equations")
-        self.solver.write(self.eq.smtlib())
+        self.solver.write(self.system.smtlib())
         log.info("> Property Formula")
         self.solver.write(self.R.smtlib(assertion=True))
         log.info("> Reduced Net Markings")

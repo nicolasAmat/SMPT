@@ -63,7 +63,7 @@ class IC3:
     IC3 Method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, eq=None, debug=False, unsat_core=True, stop_concurrent=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, stop_concurrent=None):
         """ IC3 initializer.
 
             By default the IC3 method uses the unsat core of the solver.
@@ -72,7 +72,7 @@ class IC3:
         self.ptnet = ptnet
         self.ptnet_reduced = ptnet_reduced
         
-        self.eq = eq
+        self.system = system
         
         self.formula = formula
         self.R = formula.R
@@ -123,19 +123,19 @@ class IC3:
             return ""
 
         if init:
-            return self.eq.smtlib_declare_additional_variables(10) \
-                   + self.eq.smtlib_equations_without_places_from_reduced_net(10) \
-                   + self.eq.smtlib_equations_with_places_from_reduced_net(0, 10) \
-                   + self.eq.smtlib_link_nets(0, 10)
+            return self.system.smtlib_declare_additional_variables(10) \
+                   + self.system.smtlib_equations_without_places_from_reduced_net(10) \
+                   + self.system.smtlib_equations_with_places_from_reduced_net(0, 10) \
+                   + self.system.smtlib_link_nets(0, 10)
         else:
-            return self.eq.smtlib_declare_additional_variables(10) \
-                   + self.eq.smtlib_equations_without_places_from_reduced_net(10) \
-                   + self.eq.smtlib_equations_with_places_from_reduced_net(0, 10) \
-                   + self.eq.smtlib_link_nets(0, 10) \
-                   + self.eq.smtlib_declare_additional_variables(11) \
-                   + self.eq.smtlib_equations_without_places_from_reduced_net(11) \
-                   + self.eq.smtlib_equations_with_places_from_reduced_net(1, 11) \
-                   + self.eq.smtlib_link_nets(1, 11)
+            return self.system.smtlib_declare_additional_variables(10) \
+                   + self.system.smtlib_equations_without_places_from_reduced_net(10) \
+                   + self.system.smtlib_equations_with_places_from_reduced_net(0, 10) \
+                   + self.system.smtlib_link_nets(0, 10) \
+                   + self.system.smtlib_declare_additional_variables(11) \
+                   + self.system.smtlib_equations_without_places_from_reduced_net(11) \
+                   + self.system.smtlib_equations_with_places_from_reduced_net(1, 11) \
+                   + self.system.smtlib_link_nets(1, 11)
 
     def assert_formula(self, i):
         """ F_i
@@ -456,12 +456,12 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 3:
         ptnet_reduced = None
-        eq = None
+        system = None
     else:
         ptnet_reduced = PetriNet(sys.argv[3])
-        eq = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
+        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
 
-    ic3 = IC3(ptnet, formula, ptnet_reduced, eq)
+    ic3 = IC3(ptnet, formula, ptnet_reduced, system)
 
     if ic3.prove():
         print("Proved")

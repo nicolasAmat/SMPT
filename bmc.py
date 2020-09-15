@@ -40,13 +40,13 @@ class BMC:
     """
     Bounded Model Checking method
     """
-    def __init__(self, ptnet, formula, ptnet_reduced=None, eq=None, debug=False, stop_concurrent=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, stop_concurrent=None):
         """ BMC initializer.
         """
         self.ptnet = ptnet
         self.ptnet_reduced = ptnet_reduced
         
-        self.eq = eq
+        self.system = system
         
         self.formula = formula
         self.R = formula.R
@@ -97,13 +97,13 @@ class BMC:
         text += self.ptnet.smtlib_declare_places()
 
         text += "; Declaration of the additional variables\n"
-        text += self.eq.smtlib_declare_additional_variables()
+        text += self.system.smtlib_declare_additional_variables()
 
         text += "; Formula to check the satisfiability\n"
         text += self.R.smtlib(assertion=True)
 
         text += "; Reduction Equations (not involving places from the reduced Petri Net)"
-        text += self.eq.smtlib_equations_without_places_from_reduced_net()
+        text += self.system.smtlib_equations_without_places_from_reduced_net()
 
         text += "; Declaration of the places from the reduced Petri Net (order: {})\n".format(0)
         text += self.ptnet_reduced.smtlib_declare_places(0)
@@ -119,10 +119,10 @@ class BMC:
             text += self.ptnet_reduced.smtlib_transition_relation(i)
 
         text += "; Reduction Equations\n"
-        text += self.eq.smtlib_equations_with_places_from_reduced_net(k)
+        text += self.system.smtlib_equations_with_places_from_reduced_net(k)
 
         text == "; Link initial and reduced nets\n"
-        text += self.eq.smtlib_link_nets(k)
+        text += self.system.smtlib_link_nets(k)
 
         return text
 
@@ -196,11 +196,11 @@ class BMC:
         log.info("[BMC] \t>> Declaration of the places from the initial Petri Net")
         self.solver.write(self.ptnet.smtlib_declare_places())
         log.info("[BMC] \t>> Declaration of the additional variables")
-        self.solver.write(self.eq.smtlib_declare_additional_variables())
+        self.solver.write(self.system.smtlib_declare_additional_variables())
         log.info("[BMC] \t>> Formula to check the satisfiability")
         self.solver.write(self.R.smtlib(assertion=True))
         log.info("[BMC] \t>> Reduction Equations (not involving places from the reduced Petri Net)")
-        self.solver.write(self.eq.smtlib_equations_without_places_from_reduced_net())
+        self.solver.write(self.system.smtlib_equations_without_places_from_reduced_net())
         log.info("[BMC] \t>> Declaration of the places from the reduced Petri Net (order: 0)")
         self.solver.write(self.ptnet_reduced.smtlib_declare_places(0))
         log.info("[BMC] \t>> Inital Marking of the reduced Petri Net")
@@ -208,9 +208,9 @@ class BMC:
         log.info("[BMC] \t>> Push")
         self.solver.push()
         log.info("[BMC] \t>> Reduction Equations")
-        self.solver.write(self.eq.smtlib_equations_with_places_from_reduced_net(0))
+        self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(0))
         log.info("[BMC] \t>> Link initial and reduced nets")
-        self.solver.write(self.eq.smtlib_link_nets(0))
+        self.solver.write(self.system.smtlib_link_nets(0))
         
         k = 0
         while not self.solver.check_sat() and not stop_bmc.is_set():
@@ -224,9 +224,9 @@ class BMC:
             log.info("[BMC] \t>> Push")
             self.solver.push()
             log.info("[BMC] \t>> Reduction Equations")
-            self.solver.write(self.eq.smtlib_equations_with_places_from_reduced_net(k + 1))
+            self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(k + 1))
             log.info("[BMC] \t>> Link initial and reduced nets")
-            self.solver.write(self.eq.smtlib_link_nets(k + 1))
+            self.solver.write(self.system.smtlib_link_nets(k + 1))
             k += 1
 
         return k
