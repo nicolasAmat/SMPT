@@ -74,14 +74,14 @@ class BMC:
         text += self.pn.smtlib_declare_places(0)
 
         text += "; Inital Marking of the Petri Net\n"
-        text += self.pn.smtlib_set_marking(0)
+        text += self.pn.smtlib_initial_marking(0)
 
         for i in range(k):
             text += "; Declaration of the places from the Petri Net (order: {})\n".format(1)
             text += self.pn.smtlib_declare_places(i + 1)
 
             text += "; Transition Relation: {} -> {}\n".format(i, i + 1)
-            text += self.pn.smtlib_transitions(i)
+            text += self.pn.smtlib_transition_relation(i)
 
         text += "; Formula to check the satisfiability\n"
         text += self.R.smtlib(k + 1, assertion=True)
@@ -109,14 +109,14 @@ class BMC:
         text += self.pn_reduced.smtlib_declare_places(0)
 
         text += "; Inital Marking of the reduced Petri Net\n"
-        text += self.pn_reduced.smtlib_set_marking(0)
+        text += self.pn_reduced.smtlib_initial_marking(0)
 
         for i in range(k):
             text += "; Declaration of the places from the reduced Petri Net (order: {})\n".format(1)
             text += self.pn_reduced.smtlib_declare_places(i + 1)
 
             text += "; Transition Relation: {} -> {}\n".format(i, i + 1)
-            text += self.pn_reduced.smtlib_transitions(i)
+            text += self.pn_reduced.smtlib_transition_relation(i)
 
         text += "; Reduction Equations\n"
         text += self.eq.smtlib_equations_with_places_from_reduced_net(k)
@@ -166,7 +166,7 @@ class BMC:
         log.info("[BMC] \t>> Declaration of the places from the Petri Net (order: 0)")
         self.solver.write(self.pn.smtlib_declare_places(0))
         log.info("[BMC] \t>> Inital Marking of the Petri Net")
-        self.solver.write(self.pn.smtlib_set_marking(0))
+        self.solver.write(self.pn.smtlib_initial_marking(0))
         log.info("[BMC] \t>> Push")
         self.solver.push()
         log.info("[BMC] \t>> Formula to check the satisfiability (order: 0)")
@@ -180,7 +180,7 @@ class BMC:
             log.info("[BMC] \t>> Declaration of the places from the Petri Net (order: {})".format(k + 1))
             self.solver.write(self.pn.smtlib_declare_places(k + 1))
             log.info("[BMC] \t>> Transition Relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.pn.smtlib_transitions(k))
+            self.solver.write(self.pn.smtlib_transition_relation(k))
             log.info("[BMC] \t>> Push")
             self.solver.push()
             log.info("[BMC] \t>> Formula to check the satisfiability (order: {})".format(k + 1))
@@ -204,7 +204,7 @@ class BMC:
         log.info("[BMC] \t>> Declaration of the places from the reduced Petri Net (order: 0)")
         self.solver.write(self.pn_reduced.smtlib_declare_places(0))
         log.info("[BMC] \t>> Inital Marking of the reduced Petri Net")
-        self.solver.write(self.pn_reduced.smtlib_set_marking(0))
+        self.solver.write(self.pn_reduced.smtlib_initial_marking(0))
         log.info("[BMC] \t>> Push")
         self.solver.push()
         log.info("[BMC] \t>> Reduction Equations")
@@ -220,7 +220,7 @@ class BMC:
             log.info("[BMC] \t>> Declaration of the places from the reduced Petri Net (order: {})".format(k + 1))
             self.solver.write(self.pn_reduced.smtlib_declare_places(k + 1))
             log.info("[BMC] \t>> Transition Relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.pn_reduced.smtlib_transitions(k))
+            self.solver.write(self.pn_reduced.smtlib_transition_relation(k))
             log.info("[BMC] \t>> Push")
             self.solver.push()
             log.info("[BMC] \t>> Reduction Equations")

@@ -106,7 +106,7 @@ class Properties:
         for tr in self.pn.transitions.values():
             inequalities_R, inequalities_P = [], []
             
-            for pl, weight in tr.input.items():
+            for pl, weight in tr.inputs.items():
                 if weight > 0:
                     ineq_R, ineq_P = Inequality(pl, weight, '<'), Inequality(pl, weight, '>=')
                 else:
@@ -129,7 +129,7 @@ class Properties:
         for tr_id in transitions:
             inequalities_R, inequalities_P = [], []
 
-            for pl, weight in self.pn.transitions[tr_id].input.items():
+            for pl, weight in self.pn.transitions[tr_id].inputs.items():
                 if weight > 0:
                     ineq_R, ineq_P = Inequality(pl, weight, '>='), Inequality(pl, weight, '<')
                 else:

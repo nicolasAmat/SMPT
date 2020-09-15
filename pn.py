@@ -4,7 +4,7 @@
 Petri Net Module
 
 Input file format: .net
-Documentation: http://projects.laas.fr/tina//manuals/formats.html
+Standard: http://projects.laas.fr/tina//manuals/formats.html
 
 This file is part of SMPT.
 
@@ -25,7 +25,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 import re
 import sys
@@ -40,79 +40,73 @@ class PetriNet:
     """
 
     def __init__(self, filename):
+        """ Initializer.
+        """
         self.id = ""
         self.places = {}
         self.transitions = {}
 
-        self.counter_places = 0
-
         self.parse_net(filename)
 
-        self.ordered_places = []
-        self.order_places()
-
     def __str__(self):
-        """ Petri Net to .net format.
+        """ Petri net to .net format.
         """
         text = "net {}\n".format(self.id)
-        for pl in self.places.values():
-            text += str(pl)
-        for tr in self.transitions.values():
-            text += str(tr)
+        text += ''.join(map(str, self.places.values()))
+        text += ''.join(map(str, self.transitions.values()))
+
         return text
 
     def smtlib_declare_places(self, k=None):
         """ Declare places.
+
             SMT-LIB format
         """
-        smt_input = ""
-        for place in self.places.values():
-            smt_input += place.smtlib_declare(k)
-        return smt_input
+        return ''.join(map(lambda pl: pl.smtlib_declare(k), self.places.values()))
 
-    def smtlib_set_marking(self, k=None):
-        """ Assertions to set the initial marking on places.
+    def smtlib_initial_marking(self, k=None):
+        """ Assert the initial marking.
+
             SMT-LIB format
         """
-        smt_input = ""
-        for pl in self.places.values():
-            smt_input += pl.smtlib_set_marking(k)
-        return smt_input
+        return ''.join(map(lambda pl: pl.smtlib_initial_marking(k), self.places.values()))
 
-    def smtlib_transitions(self, k):
-        """ Transition relations from places at order k to order k + 1.
+    def smtlib_transition_relation(self, k):
+        """ Transition relation from places at order k to order k + 1.
+
             SMT-LIB format
         """
         if not self.places:
             return ""
+
         smt_input = "(assert (or \n"
-        for tr in self.transitions.values():
-            smt_input += tr.smtlib(k)
+        smt_input += ''.join(map(lambda tr: tr.smtlib(k), self.transitions.values()))
         smt_input += "\t(and\n\t\t"
-        for pl in self.places.values():
-            smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
+        smt_input += ''.join(map(lambda pl: "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k), self.places.values()))
         smt_input += "\n\t)\n))\n"
+
         return smt_input
 
-    def smtlib_transitions_textbook(self, k):
+    def smtlib_transition_relation_textbook(self, k):
         """ Transition relations from places at order k to order k + 1.
             Textbook version not used.
+
             SMT-LIB format
         """
         smt_input = "(assert (or \n"
-        for tr in self.transitions.values():
-            smt_input += tr.smtlib_textbook(k)
+        smt_input += ''.join(map(lambda tr: tr.smtlib_textbook(k), self.transitions.values()))
         smt_input += "))\n"
+
         return smt_input
 
     def parse_net(self, filename):
-        """ Petri Net parser.
+        """ Petri net parser.
             Input format: .net
         """
         try:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
-                    content = re.split(r'\s+', line.strip().replace('#', ''))  # '#' is forbidden in SMT-LIB
+                    content = re.split(r'\s+', line.strip().replace('#', ''))  # '#' forbidden in SMT-LIB
                     element = content.pop(0)
                     if element == "net":
                         self.id = content[0]
@@ -128,25 +122,25 @@ class PetriNet:
         """ Transition parser.
             Input format: .net
         """
-        tr_id = content.pop(0).replace('{', '').replace('}', '') # '{' and '}' are forbidden in SMT-LIB
+        transition_id = content.pop(0).replace('{', '').replace('}', '') # '{' and '}' forbidden in SMT-LIB
 
-        if tr_id in self.transitions:
+        if transition_id in self.transitions:
             tr = self.transitions[tr.id]
         else:
-            tr = Transition(tr_id, self)
-            self.transitions[tr.id] = tr
+            tr = Transition(transition_id, self)
+            self.transitions[transition_id] = tr
 
         content = self.parse_label(content)
 
         arrow = content.index("->")
-        src = content[0:arrow]
-        dst = content[arrow + 1:]
+        inputs = content[0:arrow]
+        outputs = content[arrow + 1:]
 
-        for arc in src:
-            tr.pl_linked.append(self.parse_arc(arc, tr.input, tr.output))
+        for arc in inputs:
+            tr.connected_places.append(self.parse_arc(arc, tr.inputs, tr.outputs))
 
-        for arc in dst:
-            tr.pl_linked.append(self.parse_arc(arc, tr.output))
+        for arc in outputs:
+            tr.connected_places.append(self.parse_arc(arc, tr.outputs))
 
     def parse_arc(self, arc, arcs, opposite_arcs=[]):
         """ Arc parser.
@@ -156,7 +150,7 @@ class PetriNet:
                 - Inhibitor Arc.
             Input format: .net
         """
-        arc = arc.replace('{', '').replace('}', '')  # '{' and '}' are forbidden in SMT-LIB
+        arc = arc.replace('{', '').replace('}', '')  # '{' and '}' forbidden in SMT-LIB
 
         test_arc, inhibitor_arc = False, False
 
@@ -176,7 +170,6 @@ class PetriNet:
         if place_id not in self.places:
             new_place = Place(place_id)
             self.places[place_id] = new_place
-            self.counter_places += 1
 
         if len(arc) == 1:
             weight = 1
@@ -200,41 +193,33 @@ class PetriNet:
         """ Place parser.
             Input format: .net
         """
-        place_id = content.pop(0).replace('{', '').replace('}', '')  # '{' and '}' are forbidden in SMT-LIB
+        place_id = content.pop(0).replace('{', '').replace('}', '')  # '{' and '}' forbidden in SMT-LIB
 
         content = self.parse_label(content)
 
         if len(content) == 1:
-            marking = int(content[0].replace('(', '').replace(')', ''))
+            initial_marking = int(content[0].replace('(', '').replace(')', ''))
         else:
-            marking = 0
+            initial_marking = 0
 
         if place_id not in self.places:
-            new_place = Place(place_id, marking)
+            new_place = Place(place_id, initial_marking)
             self.places[place_id] = new_place
-            self.counter_places += 1
         else:
-            self.places.get(place_id).marking = marking
+            self.places.get(place_id).initial_marking = initial_marking
 
     def parse_label(self, content):
         """ Label parser.
             Input format: .net
         """
-        index_pl = 0
-        if content[index_pl] == ':':
-            label_skipped = content[index_pl + 1][0] != '{'
-            index_pl = 2
+        index = 0
+        if content[index] == ':':
+            label_skipped = content[index + 1][0] != '{'
+            index = 2
             while not label_skipped:
-                label_skipped = content[index_pl][-1] == '}'
-                index_pl += 1
-        return content[index_pl:]
-
-    def order_places(self):
-        """ Order the places according to an alphanumeric order.
-        """
-        self.ordered_places = sorted(self.places.values(), key=lambda x: x.id)
-        for index, pl in enumerate(self.ordered_places):
-            pl.order = index
+                label_skipped = content[index][-1] == '}'
+                index += 1
+        return content[index:]
 
 
 class Place:
@@ -242,25 +227,21 @@ class Place:
     Place defined by:
     - an identifier,
     - an initial marking,
-    - an order.
     """
 
-    def __init__(self, pl_id, marking=0):
-        self.id = pl_id
-        self.marking = marking
-        self.order = -1
-
-        # Only used for the Concurrent Places Problem
-        self.card_concurrency_relation_old = 0
-        self.card_concurrency_relation = 0
+    def __init__(self, place_id, initial_marking=0):
+        """ Initializer.
+        """
+        self.id = place_id
+        self.initial_marking = initial_marking
 
     def __str__(self):
         """ Place to .net format.
         """
-        text = ""
-        if self.marking:
-            text = "pl {} ({})\n".format(self.id, self.marking)
-        return text
+        if self.initial_marking:
+            return "pl {} ({})\n".format(self.id, self.initial_marking)
+        else:
+            return ""
 
     def smtlib_declare(self, k=None):
         """ Declare a place.
@@ -271,14 +252,14 @@ class Place:
         else:
             return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
 
-    def smtlib_set_marking(self, k=None):
+    def smtlib_initial_marking(self, k=None):
         """ Assertions to set the initial marking.
             SMT-LIB format
         """
         if k is not None:
-            return "(assert (= {}@{} {}))\n".format(self.id, k, self.marking)
+            return "(assert (= {}@{} {}))\n".format(self.id, k, self.initial_marking)
         else:
-            return "(assert (= {} {}))\n".format(self.id, self.marking)
+            return "(assert (= {} {}))\n".format(self.id, self.initial_marking)
 
 
 class Transition:
@@ -289,41 +270,47 @@ class Transition:
       associated to the weight of the arc (values)
     - a list of output places (keys),
       associated to the weight of the arc (values)
-    - the set of all the places linked to the transition,
+    - the set of all the places connected to the transition,
 
     """
 
-    def __init__(self, tr_id, pn):
+    def __init__(self, transition_id, pn):
         """ Initializer.
         """
-        self.id = tr_id
+        self.id = transition_id
+        self.inputs = {}
+        self.outputs = {}
+
+        self.connected_places = []
         self.pn = pn
-        self.input = {}
-        self.output = {}
-        self.pl_linked = []
 
     def __str__(self):
         """ Transition to .net format.
         """
-        text = "tr {}  ".format(self.id)
-        for src, weight in self.input.items():
-            text += self.str_arc(src, weight)
-        text += '-> '
-        for dest, weight in self.output.items():
-            text += self.str_arc(dest, weight)
+        text = "tr {} ".format(self.id)
+        
+        for src, weight in self.inputs.items():
+            text += ' ' + self.str_arc(src, weight)
+        
+        text += ' ->'
+        
+        for dest, weight in self.outputs.items():
+            text += ' ' + self.str_arc(dest, weight)
+        
         text += '\n'
         return text
 
-    def str_arc(self, pl, weight):
+    def str_arc(self, place, weight):
         """ Arc to .net format.
         """
-        text = ""
-        text += pl.id
+        text = place.id
+        
         if weight > 1:
             text += '*' + str(weight)
+        
         if weight < 0:
-            text += '?-' + str(- weight)
-        text += ' '
+            text += '?-' + str(-weight)
+        
         return text
 
     def smtlib(self, k):
@@ -332,77 +319,105 @@ class Transition:
             SMT-LIB format
         """
         smt_input = "\t(and\n\t\t"
-        for pl, weight in self.input.items():
+        
+        # Firing condition on input places
+        for pl, weight in self.inputs.items():
             if weight > 0:
                 smt_input += "(>= {}@{} {})".format(pl.id, k, weight)
             else:
-                smt_input += "(< {}@{} {})".format(pl.id, k, - weight)
+                smt_input += "(< {}@{} {})".format(pl.id, k, -weight)
         smt_input += "\n\t\t"
-        for pl, weight in self.input.items():
+        
+        # Update input places
+        for pl, weight in self.inputs.items():
             if weight > 0:
-                if pl in self.output:
-                    smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.output[pl], weight)
+                if pl in self.outputs:
+                    smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.outputs[pl], weight)
                 else:
                     smt_input += "(= {}@{} (- {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
-        for pl, weight in self.output.items():
-            if pl not in self.input or self.input[pl] < 0:
+        
+        # Update output places
+        for pl, weight in self.outputs.items():
+            if pl not in self.inputs or self.inputs[pl] < 0:
                 smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
         smt_input += "\n\t\t"
+        
+        # Unconnected places must not be changed
         for pl in self.pn.places.values():
-            if pl not in self.pl_linked:
+            if pl not in self.connected_places:
                 smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += "\n\t)\n"
+        
         return smt_input
 
     def smtlib_textbook(self, k):
         """ Transition relation from places at order k to order k + 1.
-            Textbook version not used.
+            Textbook version (not used).
             
             SMT-LIB format
         """
         smt_input = "\t(and\n\t\t(=>\n\t\t\t(and "
-        for pl, weight in self.input.items():
+
+        # Firing condition on input places
+        for pl, weight in self.inputs.items():
             if weight > 0:
                 smt_input += "(>= {}@{} {})".format(pl.id, k, weight)
             else:
-                smt_input += "(< {}@{} {})".format(pl.id, k, - weight)
+                smt_input += "(< {}@{} {})".format(pl.id, k, -weight)
         smt_input += ")\n\t\t\t(and "
-        for pl, weight in self.input.items():
+        
+        # Update input places
+        for pl, weight in self.inputs.items():
             if weight > 0:
-                if pl in self.output:
-                    smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.output[pl], weight)
+                if pl in self.outputs:
+                    smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.outputs[pl], weight)
                 else:
                     smt_input += "(= {}@{} (- {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
-        for pl, weight in self.output.items():
-            if pl not in self.input or self.input[pl] < 0:
+        
+        # Update output places
+        for pl, weight in self.outputs.items():
+            if pl not in self.inputs or self.inputs[pl] < 0:
                 smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
+        
+        # Unconnected places must not be changed
         for pl in self.pn.places.values():
-            if pl not in self.pl_linked:
+            if pl not in self.connected_places:
                 smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += ")\n\t\t)\n\t\t(=>\n\t\t\t(or "
-        for pl, weight in self.input.items():
+        
+        # Dead condition on input places
+        for pl, weight in self.inputs.items():
             if weight > 0:
                 smt_input += "(< {}@{} {})".format(pl.id, k, weight)
             else:
-                smt_input += "(>= {}@{} {})".format(pl.id, k, - weight)
+                smt_input += "(>= {}@{} {})".format(pl.id, k, -weight)
         smt_input += ")\n\t\t\t(and "
+        
+        # Places must not change
         for pl in self.pn.places.values():
             smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += ")\n\t\t)\n\t)\n"
-        return smt_input
+        
+        return smt_input    
 
 
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        exit("File missing: ./pn <path_to_file>")
+        exit("File missing: ./pn.py <path_to_file>")
 
-    net = PetriNet(sys.argv[1])
+    ptnet = PetriNet(sys.argv[1])
 
-    print("Petri Net")
-    print("---------")
-    print(net)
+    print("> Petri Net (.net format)")
+    print("-------------------------")
+    print(ptnet)
 
-    print("SMTlib")
-    print("------")
-    print(net.smtlib_declare_places())
+    print("> Generated SMTlib")
+    print("------------------")
+    print(">> Declare places")
+    print(ptnet.smtlib_declare_places())
+    print(">> Initial marking")
+    print(ptnet.smtlib_initial_marking())
+    print(">> Transition relation (0 -> 1)")
+    print(ptnet.smtlib_transition_relation(0))
+    

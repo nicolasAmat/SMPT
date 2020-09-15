@@ -157,7 +157,7 @@ class IC3:
         # F0 = I
         inequalities = []
         for pl in self.pn_current.places.values():
-            inequalities.append(Inequality(pl, pl.marking, '='))
+            inequalities.append(Inequality(pl, pl.initial_marking, '='))
         self.oars.append([Clause(inequalities, 'and')])
 
         # F1 = P
@@ -171,7 +171,7 @@ class IC3:
 
         self.solver.write(self.declare_places(init=True))
         self.solver.write(self.assert_equations(init=True))
-        self.solver.write(self.pn_current.smtlib_set_marking(0))
+        self.solver.write(self.pn_current.smtlib_initial_marking(0))
         self.solver.write(self.R.smtlib(self.reduced * 10, assertion=True))
 
         return self.solver.check_sat()
@@ -184,8 +184,8 @@ class IC3:
         self.solver.reset()
 
         self.solver.write(self.declare_places())
-        self.solver.write(self.pn_current.smtlib_set_marking(0))
-        self.solver.write(self.pn_current.smtlib_transitions(0))
+        self.solver.write(self.pn_current.smtlib_initial_marking(0))
+        self.solver.write(self.pn_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
         self.solver.write(self.R.smtlib(self.reduced * 10 + 1, assertion=True))
 
@@ -198,7 +198,7 @@ class IC3:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(k))
-        self.solver.write(self.pn_current.smtlib_transitions(0))
+        self.solver.write(self.pn_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
         self.solver.write(self.R.smtlib(self.reduced * 10 + 1, assertion=True))
 
@@ -211,7 +211,7 @@ class IC3:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.pn_current.smtlib_transitions(0))
+        self.solver.write(self.pn_current.smtlib_transition_relation(0))
         self.solver.write(c.smtlib(1, assertion=True, negation=True))
 
         return self.solver.check_sat()
@@ -224,7 +224,7 @@ class IC3:
         self.solver.write(self.declare_places())
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.pn_current.smtlib_transitions(0))
+        self.solver.write(self.pn_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
         self.solver.write(s.smtlib(1, assertion=True))
 
@@ -237,7 +237,7 @@ class IC3:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.pn_current.smtlib_transitions(0))
+        self.solver.write(self.pn_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
         self.solver.write(s.smtlib(k=1, assertion=True))
 
@@ -252,7 +252,7 @@ class IC3:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.pn_current.smtlib_transitions(0))
+        self.solver.write(self.pn_current.smtlib_transition_relation(0))
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
         self.solver.write(self.assert_equations())
         for eq in s.operands:
@@ -285,7 +285,7 @@ class IC3:
             self.solver.reset()
             self.solver.write(self.declare_places())
             self.solver.write(self.assert_formula(i))
-            self.solver.write(self.pn_current.smtlib_transitions(0))
+            self.solver.write(self.pn_current.smtlib_transition_relation(0))
             self.solver.write(self.assert_equations())
             self.solver.write(c.smtlib(0, assertion=True, negation=True))
             self.solver.write(c.smtlib(1, assertion=True))
