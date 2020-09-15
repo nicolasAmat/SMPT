@@ -146,7 +146,7 @@ class Enumerative:
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri net.
         """
-        log.info("[ENUMERATIVE] Declare places")
+        log.info("[ENUMERATIVE] Declaration of the places")
         self.solver.write(self.ptnet.smtlib_declare_places())
         log.info("[ENUMERATIVE] Formula to check the satisfiability")
         self.solver.write(self.R.smtlib(assertion=True))
@@ -156,7 +156,7 @@ class Enumerative:
     def prove_with_reduction(self):
         """ Prover for reduced Petri net.
         """
-        log.info("[ENUMERATIVE] Declare places")
+        log.info("[ENUMERATIVE] Declaration of the places")
         self.solver.write(self.ptnet.smtlib_declare_places())
         log.info("[ENUMERATIVE] Reduction equations")
         self.solver.write(self.system.smtlib())
