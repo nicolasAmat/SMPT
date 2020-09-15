@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Enumerative Marking Method
+Enumerative markings method
 
 Input file format: .aut
 Documentation: http://projects.laas.fr/tina//manuals/formats.html
@@ -25,7 +25,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 import logging as log
 import re
@@ -38,12 +38,11 @@ from system import System
 
 
 class Enumerative:
-    """
-    Marking defined by:
-    - a Petri Net,
-    - a set of reachable markings.
+    """ Enumerative markings method. 
     """
     def __init__(self, filename, ptnet, formula, ptnet_reduced, system, debug=False):
+        """ Initializer.
+        """
         self.ptnet = ptnet
         self.ptnet_reduced = ptnet_reduced
         
@@ -54,38 +53,46 @@ class Enumerative:
 
         self.markings = []
         self.parse_markings(filename)
+        
         self.solver = Solver(debug)
 
     def __str__(self):
-        """ Str method for markings.
+        """ Markings to str.
         """
         text = ""
         for marking in self.markings:
-            text += "-> "
-            for place, counter in marking.items():
-                text += "{}:{} ".format(place, counter)
+            text += "->"
+            for place, tokens in marking.items():
+                text += " {}:{}".format(place, tokens)
             text += "\n"
         return text
 
     def smtlib(self):
-        """ Return SMT-LIB assertions for markings (DNF).
+        """ Assert markings (DNF).
+
+            SMT-LIB format
         """
-        text = ""
+        if len(self.markings) == 0:
+            return ""
+
         if self.ptnet_reduced is None:
             places = self.ptnet.places
         else:
             places = self.ptnet_reduced.places
-        text += "(assert (or "
+        
+        smt_input = "(assert (or "
+        
         for marking in self.markings:
-            text += "(and "
-            for place, counter in marking.items():
-                text += "(= {} {})". format(place, counter)
+            smt_input += "(and "
+            for place, tokens in marking.items():
+                smt_input += "(= {} {})". format(place, tokens)
             for place in places:
                 if place not in marking:
-                    text += "(= {} 0)". format(place)
-            text += ")"
-        text += "))\n"
-        return text
+                    smt_input += "(= {} 0)". format(place)
+            smt_input += ")"
+        smt_input += "))\n"
+        
+        return smt_input
 
     def parse_markings(self, filename):
         """ Parse markings (.aut file format).
@@ -94,16 +101,25 @@ class Enumerative:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
                     content = line.strip().replace('(', '').replace(')', '').split(',')
-                    if content[0] == content[-1]:
-                        places = re.split(r'\s+', content[1].replace('"', ''))
+                    if len(content) >= 3 and content[0] == content[-1]:
+                        content = re.split(r'\s+', content[1].replace('"', ''))
                         consistent = True
                         marking = dict()
-                        for place in places:
-                            place_data = place.split('.')
-                            if place_data[0] != 'S':
+                        for marking_data in content:
+                            place_marking = marking_data.split('.')
+                            if place_marking[0] != 'S':
                                 consistent = False
                                 break
-                            marking[place_data[1].replace('`', '').replace('{', '').replace('}', '')] = 1
+                            place_marking = place_marking[1].split('*')
+                            place_id = place_marking[0].replace('`', '').replace('{', '').replace('}', '')
+                            if place_id == '':
+                                consistent = False
+                                break
+                            if len(place_marking) > 1:
+                                tokens = int(place_marking[1])
+                            else:
+                                tokens = 1
+                            marking[place_id] = tokens
                         if consistent:
                             self.markings.append(marking)
         except FileNotFoundError as e:
@@ -130,38 +146,56 @@ class Enumerative:
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri net.
         """
-        log.info("> Variable Definitions")
+        log.info("[ENUMERATIVE] Declare places")
         self.solver.write(self.ptnet.smtlib_declare_places())
-        log.info("> Property Formula")
+        log.info("[ENUMERATIVE] Formula to check the satisfiability")
         self.solver.write(self.R.smtlib(assertion=True))
-        log.info("> Net Markings")
+        log.info("[ENUMERATIVE] Markings")
         self.solver.write(self.smtlib())
 
     def prove_with_reduction(self):
         """ Prover for reduced Petri net.
         """
-        log.info("> Variable Definitions")
+        log.info("[ENUMERATIVE] Declare places")
         self.solver.write(self.ptnet.smtlib_declare_places())
-        log.info("> Reduction Equations")
+        log.info("[ENUMERATIVE] Reduction equations")
         self.solver.write(self.system.smtlib())
-        log.info("> Property Formula")
+        log.info("[ENUMERATIVE] Formula to check the satisfiability")
         self.solver.write(self.R.smtlib(assertion=True))
-        log.info("> Reduced Net Markings")
+        log.info("[ENUMERATIVE] Markings from the reduced net")
         self.solver.write(self.smtlib())
 
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 3:
-        exit("File missing: ./enumerative.py <path_to_net_file> <path_to_aut_file>")
+    if len(sys.argv) < 3:
+        exit("File missing: ./enumerative.py <path_to_Petri_net> <path_to_aut_file> [<path_to_reduced_net>]")
 
+    log.basicConfig(format="%(message)s", level=log.DEBUG)
+    
     ptnet = PetriNet(sys.argv[1])
-    markings = Enumerative(sys.argv[2], ptnet, None, None, None)
 
-    print("> Markings Enumeration")
+    properties = Properties(ptnet)
+    properties.generate_deadlock()
+    formula = list(properties.formulas.values())[0]
+
+    if len(sys.argv) == 4:
+        ptnet_reduced = PetriNet(sys.argv[3])
+        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
+    else:
+        ptnet_reduced = None
+        system = None
+
+    enumerative = Enumerative(sys.argv[2], ptnet, formula, ptnet_reduced, system)
+
+    print("> Markings enumeration")
     print("----------------------")
-    print(markings)
+    print(enumerative)
 
-    print("> SMTlib2 Format")
-    print("----------------")
-    print(markings.smtlib())
+    print("> Generated SMTlib")
+    print("------------------")
+    print(enumerative.smtlib())
+
+    print("> Result computed using z3")
+    print("--------------------------")
+    enumerative.prove()

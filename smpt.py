@@ -184,7 +184,7 @@ def main():
             path_ptnet = results.path_ptnet_reduced
         else:
             path_ptnet = results.path_ptnet
-        subprocess.run(["tina", "-aut", "-sp", "1", path_ptnet, fp_markings.name])
+        subprocess.run(["tina", "-aut", "-sp", "2", path_ptnet, fp_markings.name])
         results.path_markings = fp_markings.name
 
     # Read properties
