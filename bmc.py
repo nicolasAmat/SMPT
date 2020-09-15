@@ -28,8 +28,8 @@ import logging as log
 import sys
 from threading import Event, Thread
 
-from ptnet import PetriNet
 from properties import Properties
+from ptnet import PetriNet
 from solver import Solver
 from system import System
 

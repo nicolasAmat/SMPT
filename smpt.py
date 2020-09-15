@@ -37,8 +37,8 @@ from bmc import BMC, stop_bmc
 from enumerative import Enumerative
 from ic3 import IC3, stop_ic3
 from parallelizer import Parallelizer
-from ptnet import PetriNet
 from properties import Properties
+from ptnet import PetriNet
 from system import System
 
 

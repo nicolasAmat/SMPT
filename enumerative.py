@@ -31,8 +31,8 @@ import logging as log
 import re
 import sys
 
-from ptnet import PetriNet
 from properties import Properties
+from ptnet import PetriNet
 from solver import Solver
 from system import System
 

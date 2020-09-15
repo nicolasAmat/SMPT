@@ -44,8 +44,8 @@ import sys
 from subprocess import PIPE, Popen
 from threading import Event
 
-from ptnet import PetriNet
 from properties import Clause, Inequality, Properties
+from ptnet import PetriNet
 from solver import Solver
 from system import System
 
