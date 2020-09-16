@@ -404,7 +404,7 @@ class Transition:
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        exit("File missing: ./ptnet.py <path_to_file>")
+        exit("File missing: ./ptnet.py <path_to_Petri_net>")
 
     ptnet = PetriNet(sys.argv[1])
 
