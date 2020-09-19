@@ -137,7 +137,7 @@ class Formula:
             return StateFormula(operands, node)
 
         if node == 'is-fireable':
-            transitions, clauses = [self.ptnet.transitions[tr] for tr in formula_xml], []
+            transitions, clauses = [self.ptnet.transitions[tr.text] for tr in formula_xml], []
             for tr in transitions:
                 inequalities = []
                 for pl, weight in tr.inputs.items():
@@ -234,15 +234,15 @@ class Formula:
         """
         if self.property_def == 'finally':
             if sat:
-                print("True")
+                print("TRUE")
             else:
-                print("False")
+                print("FALSE")
 
         if self.property_def == 'globally':
             if sat:
-                print("False")
+                print("FALSE")
             else:
-                print("True")
+                print("TRUE")
 
 
 class StateFormula:
@@ -287,7 +287,7 @@ class StateFormula:
         """
         smt_input = ''.join(map(lambda operand: operand.smtlib(k), self.operands))
         
-        if len(self.operands) > 1:
+        if len(self.operands) > 1 or self.operator == 'not':
             smt_input = "({} {})".format(self.operator, smt_input)
         
         if negation:
