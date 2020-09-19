@@ -122,12 +122,12 @@ class Formula:
             if (node, child) == ('exists-path', 'finally'):
                 self.R = self.parse_xml(formula_xml[0][0])
                 self.P = StateFormula([self.R], 'not')
-                self.property_def = node
+                self.property_def = child
 
             if (node, child) == ('all-paths', 'globally'):
                 self.P = self.parse_xml(formula_xml[0][0])
                 self.R = StateFormula([self.P], 'not')
-                self.property_def = node
+                self.property_def = child
 
         if node == 'deadlock':
             return self.generate_deadlock()
