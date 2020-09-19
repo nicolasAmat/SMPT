@@ -29,7 +29,7 @@ from threading import Event, Thread
 
 from bmc import BMC, stop_bmc
 from ic3 import IC3, stop_ic3
-from properties import Properties
+from properties import Formula
 from ptnet import PetriNet
 from system import System
 
@@ -74,18 +74,16 @@ class Parallelizer:
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        exit("File missing: ./parallelizer.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
+        exit("File missing: ./parallelizer.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
 
-    ptnet = PetriNet(sys.argv[2])
-    marking = {ptnet.places[pl]: 1 for pl in sys.argv[1].split(',')}
+    ptnet = PetriNet(sys.argv[1])
 
-    properties = Properties(ptnet)
-    properties.generate_reachability(marking)
-    formula = list(properties.formulas.values())[0]
+    formula = Formula(ptnet)
+    formula.generate_deadlock()
 
-    if len(sys.argv) == 4:
-        ptnet_reduced = PetriNet(sys.argv[3])
-        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
+    if len(sys.argv) == 3:
+        ptnet_reduced = PetriNet(sys.argv[2])
+        system = System(sys.argv[2], ptnet.places.keys(), ptnet_reduced.places.keys())
     else:
         ptnet_reduced = None
         system = None

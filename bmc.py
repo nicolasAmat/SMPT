@@ -28,7 +28,7 @@ import logging as log
 import sys
 from threading import Event, Thread
 
-from properties import Properties
+from properties import Formula
 from ptnet import PetriNet
 from solver import Solver
 from system import System
@@ -242,9 +242,8 @@ if __name__ == '__main__':
 
     ptnet = PetriNet(sys.argv[1])
     
-    properties = Properties(ptnet)
-    properties.generate_deadlock()
-    formula = list(properties.formulas.values())[0]
+    formula = Formula(ptnet)
+    formula.generate_deadlock()
 
     if len(sys.argv) == 3:
         ptnet_reduced = PetriNet(sys.argv[2])

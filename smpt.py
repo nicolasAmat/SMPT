@@ -37,7 +37,7 @@ from bmc import BMC, stop_bmc
 from enumerative import Enumerative
 from ic3 import IC3, stop_ic3
 from parallelizer import Parallelizer
-from properties import Properties
+from properties import Properties, Formula
 from ptnet import PetriNet
 from system import System
 
@@ -193,20 +193,26 @@ def main():
     # Generate a deadlock property if '--deadlock' enabled
     if results.deadlock:
         property_id = "Deadlock"
-        properties.generate_deadlock(property_id)
+        formula = Formula(ptnet)
+        formula.generate_deadlock()
+        properties.add_formula(formula, property_id)
 
     # Generate a quasi-liveness property if '--quasi-liveness' enabled
     if results.quasi_live_transitions is not None:
         property_id = "Quasi-liveness: {}".format(results.quasi_live_transitions)
         transitions = results.quasi_live_transitions.replace('#', '').replace('{', '').replace('}', '').split(',')
-        properties.generate_quasi_liveness(transitions, property_id)
+        formula = Formula(ptnet)
+        formula.generate_quasi_liveness(transitions)
+        properties.add_formula(formula, property_id)
 
     # Generate a reachability property if '--reachability' enabled
     if results.reachable_places is not None:
         property_id = "Reachability: {}".format(results.reachable_places)
         places = results.reachable_places.replace('#', '').replace('{', '').replace('}', '').split(',')
         marking = {ptnet.places[pl]:1 for pl in places}
-        properties.generate_reachability(marking, property_id)
+        formula = Formula(ptnet)
+        formula.generate_reachability(marking)
+        properties.add_formula(formula, property_id)
     
     # Iterate over properties
     for property_id, formula in properties.formulas.items():

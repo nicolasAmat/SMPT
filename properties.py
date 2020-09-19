@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Formula Generator Module
+Formula Parser and Generator Module
 
 This file is part of SMPT.
 
@@ -34,9 +34,9 @@ from ptnet import PetriNet
 
 class Properties:
     """
-    Properties parsed from .xml file defined by:
-    - an associated Petri Net,
-    - a set of Formulas.
+    Properties defined by:
+    - an associated Petri net,
+    - a set of formulas.
     """
 
     def __init__(self, ptnet, xml_filename=None):
@@ -53,113 +53,32 @@ class Properties:
         """
         text = ""
         for formula_id, formula in self.formulas.items():
-            text += "--- Property {} ---\n".format(formula_id) + str(formula) + "\n"
+            text += "-> Property {}\n{}\n\n".format(formula_id, formula)
         return text
 
     def smtlib(self):
-        """ Assert the properties.
-
+        """ Assert properties.
             SMT-LIB format
         """
         smt_input = ""
         for formula_id, formula in self.formulas.items():
-            smt_input += "--- Property {} ---\n".format(formula_id) + formula.smtlib() + "\n"
+            smt_input += "; -> Property {}\n{}\n".format(formula_id, formula.smtlib())
         return smt_input
 
     def parse_xml(self, filename):
         """ Properties parser.
-
             Input format: .xml
         """
         tree = ET.parse(filename)
-        prop_set = tree.getroot()
+        properties_xml = tree.getroot()
+      
+        for property_xml in properties_xml:
+            property_id = property_xml[0].text
+            formula_xml = property_xml[2]
+            self.add_formula(Formula(self.ptnet, formula_xml), property_id)
 
-        namespace_m = re.match(r'\{.*\}', prop_set.tag)
-        if namespace_m:
-            namespace = namespace_m.group(0)
-        else:
-            namespace = ''
-
-        for prop in prop_set:
-            formula = None
-
-            property_id = prop.find(namespace + 'id').text
-            prop_formula = prop.find(namespace + 'formula')
-
-            deadlock = prop_formula.find(
-                './' + namespace + 'exists-path/' + namespace + 'finally/' + namespace + 'deadlock')
-            
-            reachability = "TODO"
-
-            quasi_liveness = prop_formula.find(
-                './' + namespace + 'exists-path/' + namespace + 'finally/' + namespace + 'is-fireable')
-
-            if deadlock is not None:
-                self.generate_deadlock(property_id)
-
-            if quasi_liveness is not None:
-               self.generate_quasi_liveness([tr.text for tr in quasi_liveness], property_id)
-    
-    def generate_deadlock(self, property_id=None):
-        """ `deadlock` formula generator.
-        """
-        clauses_R, clauses_P = [], []
-
-        for tr in self.ptnet.transitions.values():
-            inequalities_R, inequalities_P = [], []
-            
-            for pl, weight in tr.inputs.items():
-                if weight > 0:
-                    ineq_R, ineq_P = Inequality(pl, weight, '<'), Inequality(pl, weight, '>=')
-                else:
-                    ineq_R, ineq_P = Inequality(pl, -weight, '>='), Inequality(pl, -weight, '<')
-                
-                inequalities_R.append(ineq_R)
-                inequalities_P.append(ineq_P)
-            
-            clauses_R.append(Clause(inequalities_R, 'or'))
-            clauses_P.append(Clause(inequalities_P, 'and'))
-        
-        R, P = Clause(clauses_R, 'and'), Clause(clauses_P, 'or')
-        self.add_formula(Formula(R, P, 'deadlock'), property_id)
-
-    def generate_quasi_liveness(self, transitions, property_id=None):
-        """ `quasi-liveness` formula generator.
-        """
-        clauses_R, clauses_P = [], []
-
-        for tr_id in transitions:
-            inequalities_R, inequalities_P = [], []
-
-            for pl, weight in self.ptnet.transitions[tr_id].inputs.items():
-                if weight > 0:
-                    ineq_R, ineq_P = Inequality(pl, weight, '>='), Inequality(pl, weight, '<')
-                else:
-                    ineq_R, ineq_P = Inequality(pl, -weight, '<'), Inequality(pl, -weight, '>=')
-                
-                inequalities_R.append(ineq_R)
-                inequalities_P.append(ineq_P)
-
-            clauses_R.append(Clause(inequalities_R, "and"))
-            clauses_P.append(Clause(inequalities_P, "or"))
-        
-        R, P = Clause(clauses_R, "or"), Clause(clauses_P, "and")
-        self.add_formula(Formula(R, P, "quasi_liveness"), property_id)
-
-    def generate_reachability(self, marking, property_id=None):
-        """ `reachability` formula generator.
-        """
-        clauses_R, clauses_P = [], []
-
-        for pl, tokens in marking.items():
-            clauses_R.append(Inequality(pl, tokens, '>='))
-            clauses_P.append(Inequality(pl, tokens, '<'))
-
-        R, P = Clause(clauses_R, 'and'), Clause(clauses_P, 'or')
-        self.add_formula(Formula(R, P, 'reachability'), property_id)
-
-    def add_formula(self, formula, property_id):
-        """ Add formulas.
+    def add_formula(self, formula, property_id=None):
+        """ Add a formula.
             Generate a random property id if necessary.
         """
         if property_id is None:
@@ -167,87 +86,203 @@ class Properties:
 
         self.formulas[property_id] = formula
 
+
 class Formula:
     """
     Formula defined by:
-    - two clauses (R and P <=> -R),
+    - R and P,
     - a property definition.
     """
 
-    def __init__(self, R, P, property_def):
+    def __init__(self, ptnet, formula_xml=None):
         """ Initializer.
         """
-        if property_def not in ['deadlock', 'reachability', 'quasi_liveness']:
-            raise ValueError("Invalid property definition")
+        self.ptnet = ptnet
 
-        self.R = R
-        self.P = P
+        self.R = None
+        self.P = None
 
-        self.property_def = property_def
+        self.property_def = ""
 
+        if formula_xml is not None:
+            _, _, node = formula_xml.tag.rpartition('}')
+            if  node != 'formula':
+                raise ValueError("Invalid formula")
+            self.parse_xml(formula_xml[0])
+
+    def parse_xml(self, formula_xml):
+        """ Formula parser.
+            Input format: .xml
+        """
+        _, _, node = formula_xml.tag.rpartition('}')
+
+        if node in ['exists-path', 'all-paths']:
+            _, _, child = formula_xml[0].tag.rpartition('}')
+            
+            if (node, child) == ('exists-path', 'finally'):
+                self.R = self.parse_xml(formula_xml[0][0])
+                self.P = StateFormula([self.R], 'not')
+                self.property_def = node
+
+            if (node, child) == ('all-paths', 'globally'):
+                self.P = self.parse_xml(formula_xml[0][0])
+                self.R = StateFormula([self.P], 'not')
+                self.property_def = node
+
+        if node == 'deadlock':
+            return self.generate_deadlock()
+
+        if node in ['negation', 'conjunction', 'disjunction']:
+            operands = [self.parse_xml(operand_xml) for operand_xml in formula_xml]
+            return StateFormula(operands, node)
+
+        if node == 'is-fireable':
+            transitions, clauses = [self.ptnet.transitions[tr] for tr in formula_xml], []
+            for tr in transitions:
+                inequalities = []
+                for pl, weight in tr.inputs.items():
+                    if weight > 0:
+                        ineq = Atom(TokenCount([pl]), IntegerConstant(weight), '<')
+                    else:
+                        ineq = Atom(TokenCount([pl]), IntegerConstant(-weight), '>=')
+                    inequalities.append(ineq)
+                clauses.append(StateFormula(inequalities, 'or'))
+            return StateFormula(clauses, 'and')
+
+        if node == 'integer-le':
+            left_operand = self.parse_xml(formula_xml[0])
+            right_operand = self.parse_xml(formula_xml[1])
+            return Atom(left_operand, right_operand, '<=')
+
+        if node == 'tokens-count':
+            places = [self.ptnet.places[place.text] for place in formula_xml]
+            return TokenCount(places)
+
+        if node == 'integer-constant':
+            value = int(formula_xml.text)
+            return IntegerConstant(value)
+    
     def __str__(self):
         """ Formula to textual format.
         """
-        return ">> R\n----\n{}\n\n>> P\n----\n{}".format(str(self.R), str(self.P))
+        return "--> R\n{}\n\n--> P\n{}".format(str(self.R), str(self.P))
 
     def smtlib(self):
         """ Formula.
-
             SMT-LIB format
         """
-        return ">> R\n----\n{}\n>> P\n----\n{}".format(self.R.smtlib(assertion=True), self.P.smtlib(assertion=True))
+        return "; --> R\n{}\n; --> P\n{}".format(self.R.smtlib(assertion=True), self.P.smtlib(assertion=True))
+
+    def generate_deadlock(self):
+        """ `deadlock` formula generator.
+        """
+        clauses_R = []
+
+        for tr in self.ptnet.transitions.values():
+            inequalities_R = []
+            
+            for pl, weight in tr.inputs.items():
+                if weight > 0:
+                    ineq_R = Atom(TokenCount([pl]), IntegerConstant(weight), '<')
+                else:
+                    ineq_R = Atom(TokenCount([pl]), IntegerConstant(-weight), '>=')
+                inequalities_R.append(ineq_R)
+            
+            clauses_R.append(StateFormula(inequalities_R, 'or'))
+        
+        self.R = StateFormula(clauses_R, 'and')
+        self.P = StateFormula([self.R], 'not')
+        self.property_def = 'finally'
+        
+        return self.R
+
+    def generate_quasi_liveness(self, transitions):
+        """ `quasi-liveness` formula generator.
+        """
+        clauses_R = []
+
+        for tr_id in transitions:
+            inequalities_R = []
+
+            for pl, weight in self.ptnet.transitions[tr_id].inputs.items():
+                if weight > 0:
+                    ineq_R = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
+                else:
+                    ineq_R = Atom(TokenCount([pl]), IntegerConstant(-weight), '<')
+                inequalities_R.append(ineq_R)
+
+            clauses_R.append(StateFormula(inequalities_R, 'and'))
+        
+        self.R = StateFormula(clauses_R, 'or')
+        self.P = StateFormula([self.R], 'not')
+        self.property_def = 'finally'
+
+    def generate_reachability(self, marking):
+        """ `reachability` formula generator.
+        """
+        clauses_R = []
+
+        for pl, tokens in marking.items():
+            clauses_R.append(Atom(TokenCount([pl]), IntegerConstant(tokens), '>='))
+
+        self.R = StateFormula(clauses_R, 'and')
+        self.P = StateFormula([self.R], 'not')
+        self.property_def = 'finally'
 
     def result(self, sat):
         """ Display the result.
         """
-        if self.property_def == 'deadlock':
+        if self.property_def == 'finally':
             if sat:
-                print("Deadlock.")
+                print("True")
             else:
-                print("Deadlock-free.")
+                print("False")
 
-        if self.property_def == 'reachability':
+        if self.property_def == 'globally':
             if sat:
-                print("Reachable.")
+                print("False")
             else:
-                print("Unreachable.")
-
-        if self.property_def == 'quasi_liveness':
-            if sat:
-                print("Quasi-live.")
-            else:
-                print("Dead.")
+                print("True")
 
 
-class Clause:
+class StateFormula:
     """
-    Clause defined by:
-    - a set of operands,
-    - a boolean operator.
+    StateFormula defined by:
+    - a list of operands,
+    - a boolean operator (and, or, not).
     """
 
     def __init__(self, operands, operator):
         """ Initializer.
         """
-        if operator not in ['and', 'or']:
-            raise ValueError("Invalid operator for a clause")
-
         self.operands = operands
-        self.operator = operator
+
+        if operator in ['not', 'and', 'or']:
+            self.operator = operator
+        elif operator == 'negation':
+            self.operator = 'not'
+        elif operator == 'conjunction':
+            self.operator = 'and'
+        elif operator == 'disjunction':
+            self.operator = 'or'
+        else:
+            raise ValueError("Invalid operator for a state formula")
 
     def __str__(self):
-        """ Clause to textual format.
+        """ State formula to textual format.
         """
-        text = " {} ".format(self.operator).join(map(str, self.operands))
+        if self.operator == 'not':
+            return "(not {})".format(self.operands[0])
 
+        text = " {} ".format(self.operator).join(map(str, self.operands))
+        
         if len(self.operands) > 1:
             text = "({})".format(text)
-
+        
         return text
 
     def smtlib(self, k=None, assertion=False, negation=False):
-        """ Clause.
-
+        """ State formula.
             SMT-LIB format
         """
         smt_input = ''.join(map(lambda operand: operand.smtlib(k), self.operands))
@@ -264,9 +299,9 @@ class Clause:
         return smt_input
 
 
-class Inequality:
+class Atom:
     """
-    Inequality defined by:
+    Atom defined by:
     - a left operand,
     - a right operand,
     - an operator (=, <=, >=, <, >, distinct).
@@ -276,7 +311,7 @@ class Inequality:
         """ Initializer.
         """
         if operator not in ['=', '<=', '>=', '<', '>', 'distinct']:
-            raise ValueError("Invalid operator for an inequality")
+            raise ValueError("Invalid operator for an atom")
 
         self.left_operand = left_operand
         self.right_operand = right_operand
@@ -284,28 +319,97 @@ class Inequality:
         self.operator = operator
 
     def __str__(self):
-        """ Inequality to textual format.
+        """ Atom to textual format.
         """
-        return "({} {} {})".format(self.left_operand.id, self.operator, self.right_operand)
+        return "({} {} {})".format(self.left_operand, self.operator, self.right_operand)
+
+    def smtlib(self, k=None, assertion=False, negation=False):
+        """ Atom.
+            SMT-LIB format
+        """
+        smt_input = "({} {} {})".format(self.operator, self.left_operand.smtlib(k), self.right_operand.smtlib(k))
+
+        if negation:
+            smt_input = "(not {})".format(smt_input)
+        
+        if assertion:
+            smt_input = "(assert {})\n".format(smt_input)
+        
+        return smt_input
+
+
+class TokenCount:
+    """
+    Token count defined by:
+    - a list of places.
+    """
+
+    def __init__(self, places):
+        """ Initializer
+        """
+        self.places = places
+
+    def __str__(self):
+        """ Token count to textual format.
+        """
+        smt_input = ' + '.join(map(lambda pl: pl.id, self.places))
+
+        if len(self.places) > 1:
+            smt_input = "({})".format(smt_input)
+
+        return smt_input
 
     def smtlib(self, k=None):
-        """ Inequality.
-
+        """ Token count.
             SMT-LIB format
         """
         if k is not None:
-            return "({} {}@{} {})".format(self.operator, self.left_operand.id, k, self.right_operand)
+            smt_input = ' '.join(map(lambda pl: "{}@{}".format(pl.id, k), self.places))
         else:
-            return "({} {} {})".format(self.operator, self.left_operand.id, self.right_operand)
+            smt_input = ' '.join(map(lambda pl: pl.id, self.places))
+        
+        if len(self.places) > 1:
+            smt_input = "(+ {})".format(smt_input)
+
+        return smt_input
+
+
+class IntegerConstant:
+    """ 
+    Integer constant.
+    """
+
+    def __init__(self, value):
+        """ Initializer.
+        """
+        self.value = value
+
+    def __str__(self):
+        """ Integer constant to textual format.
+        """
+        return str(self.value)
+
+    def smtlib(self, k=None):
+        """ Integer constant.
+            SMT-LIB format
+        """
+        return str(self.value)
 
 
 if __name__ == '__main__':
 
-    if len(sys.argv) == 1:
-        exit("File missing: ./properties.py <path_to_Petri_net> <path_to_xml_properties>")
+    if len(sys.argv) < 2:
+        exit("File missing: ./properties.py <path_to_Petri_net> [<path_to_xml_properties>]")
 
     ptnet = PetriNet(sys.argv[1])
-    properties = Properties(ptnet, sys.argv[2])
+
+    if len(sys.argv) == 2:
+        properties = Properties(ptnet)
+        formula = Formula(ptnet)
+        formula.generate_deadlock()
+        properties.add_formula(formula)
+    else:
+        properties = Properties(ptnet, sys.argv[2])
 
     print("> Textual Formula")
     print("-----------------")

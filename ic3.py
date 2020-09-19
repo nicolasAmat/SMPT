@@ -44,7 +44,7 @@ import sys
 from subprocess import PIPE, Popen
 from threading import Event
 
-from properties import Clause, Inequality, Properties
+from properties import Atom, Formula, IntegerConstant, StateFormula, TokenCount
 from ptnet import PetriNet
 from solver import Solver
 from system import System
@@ -155,13 +155,12 @@ class IC3:
         log.info("[IC3] > F0 = I and F1 = P")
 
         # F0 = I
-        inequalities = []
+        equalities = []
         for pl in self.ptnet_current.places.values():
-            inequalities.append(Inequality(pl, pl.initial_marking, '='))
-        self.oars.append([Clause(inequalities, 'and')])
+            equalities.append(Atom(TokenCount([pl]), IntegerConstant(pl.initial_marking), '='))
+        self.oars.append([StateFormula(equalities, 'and')])
 
         # F1 = P
-
         self.oars.append([self.P])
 
     def init_marking_reach_bad_state(self):
@@ -256,19 +255,19 @@ class IC3:
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
         self.solver.write(self.assert_equations())
         for eq in s.operands:
-            self.solver.write("(assert (! {} :named {}))\n".format(eq.smtlib(1), eq.left_operand.id))
+            self.solver.write("(assert (! {} :named {}))\n".format(eq.smtlib(1), eq.left_operand))
 
         # Read Unsatisfiable Core
         unsat_core = self.solver.get_unsat_core()
 
         inequalities = []
         for eq in s.operands:
-            if eq.left_operand.id in unsat_core:
-                if int(eq.right_operand) == 0:
-                    inequalities.append(Inequality(eq.left_operand, eq.right_operand, ">"))
+            if str(eq.left_operand) in unsat_core:
+                if eq.right_operand.value == 0:
+                    inequalities.append(Atom(eq.left_operand, eq.right_operand, ">"))
                 else:
-                    inequalities.append(Inequality(eq.left_operand, eq.right_operand, "<"))
-        cl = Clause(inequalities, "or")
+                    inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
+        cl = StateFormula(inequalities, "or")
 
         log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
         return cl
@@ -294,16 +293,16 @@ class IC3:
                 c.operands.append(lit)
                 inequalities = []
                 for eq in c.operands:
-                    if int(eq.right_operand) == 0:
-                        inequalities.append(Inequality(eq.left_operand, eq.right_operand, "<"))
-                cl = Clause(inequalities, "or")
+                    if int(eq.right_operand.value) == 0:
+                        inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
+                cl = StateFormula(inequalities, "or")
                 log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
                 return cl
 
         inequalities = []
         for eq in s.operands:
-            inequalities.append(Inequality(eq.left_operand, eq.right_operand, "<"))
-        cl = Clause(inequalities, "or")
+            inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
+        cl = StateFormula(inequalities, "or")
         log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
         return cl
 
@@ -313,9 +312,9 @@ class IC3:
         """
         non_zero = []
         for eq in s.operands:
-            if eq.right_operand != 0:
-                non_zero.append(Inequality(eq.left_operand, eq.right_operand, ">="))
-        return Clause(non_zero, "and")
+            if eq.right_operand.value != 0:
+                non_zero.append(Atom(eq.left_operand, eq.right_operand, ">="))
+        return StateFormula(non_zero, "and")
 
     def prove(self, result=None):
         """ Prover.
@@ -443,23 +442,21 @@ class IC3:
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        exit("File missing: ./ic3.py <places_to_reach> <path_to_initial_petri_net> [<path_to_reduce_net>]")
+        exit("File missing: ./ic3.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
-    ptnet = PetriNet(sys.argv[2])
-    marking = {ptnet.places[pl]: 1 for pl in sys.argv[1].split(',')}
+    ptnet = PetriNet(sys.argv[1])
 
-    properties = Properties(ptnet)
-    properties.generate_reachability(marking)
-    formula = list(properties.formulas.values())[0]
+    formula = Formula(ptnet)
+    formula.generate_deadlock()
 
-    if len(sys.argv) == 3:
+    if len(sys.argv) == 2:
         ptnet_reduced = None
         system = None
     else:
-        ptnet_reduced = PetriNet(sys.argv[3])
-        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
+        ptnet_reduced = PetriNet(sys.argv[2])
+        system = System(sys.argv[2], ptnet.places.keys(), ptnet_reduced.places.keys())
 
     ic3 = IC3(ptnet, formula, ptnet_reduced, system)
 

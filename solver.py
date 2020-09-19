@@ -34,7 +34,7 @@ __version__ = "2.0.0"
 
 from subprocess import PIPE, Popen
 
-from properties import Clause, Inequality
+from properties import Atom, IntegerConstant, StateFormula, TokenCount
 
 
 class Solver:
@@ -134,9 +134,9 @@ class Solver:
                 if int(place_content[1]) == order:
                     place = place_content[0]
             if place_marking and place in ptnet.places:
-                model.append(Inequality(ptnet.places[place], int(place_marking), '='))
+                model.append(Atom(TokenCount([ptnet.places[place]]), IntegerConstant(int(place_marking)), '='))
 
-        return Clause(model, 'and')
+        return StateFormula(model, 'and')
 
     def enable_unsat_core(self):
         """ Enable generation of unsat cores.
@@ -161,8 +161,8 @@ class Solver:
         model = ""
         
         for place_marking in self.get_model(ptnet, order).operands:
-            if int(place_marking.right_operand) > 0:
-                model += " {}({})".format(place_marking.left_operand.id, place_marking.right_operand)
+            if place_marking.right_operand.value > 0:
+                model += " {}({})".format(place_marking.left_operand, place_marking.right_operand)
         
         if model == "":
             model = " empty marking"
