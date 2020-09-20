@@ -137,7 +137,7 @@ class Formula:
             return StateFormula(operands, node)
 
         if node == 'is-fireable':
-            transitions, clauses = [self.ptnet.transitions[tr.text] for tr in formula_xml], []
+            transitions, clauses = [self.ptnet.transitions[tr.text.replace('#', '').replace('{', '').replace('}', '')] for tr in formula_xml], []
             for tr in transitions:
                 inequalities = []
                 for pl, weight in tr.inputs.items():
@@ -155,7 +155,7 @@ class Formula:
             return Atom(left_operand, right_operand, '<=')
 
         if node == 'tokens-count':
-            places = [self.ptnet.places[place.text] for place in formula_xml]
+            places = [self.ptnet.places[place.text.replace('#', '').replace('{', '').replace('}', '')] for place in formula_xml]
             return TokenCount(places)
 
         if node == 'integer-constant':
