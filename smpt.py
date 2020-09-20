@@ -152,6 +152,18 @@ def main():
                         default=60,
                         help='a limit on execution time')
 
+    parser.add_argument('--display-model',
+                        action='store_true',
+                        help="display a counterexample if the property is FALSE")
+    
+    parser.add_argument('--display-time',
+                        action='store_true',
+                        help="display the analysis time")
+
+    parser.add_argument('--display-reduction-ratio',
+                        action='store_true',
+                        help="display the reduction ratio")
+
     results = parser.parse_args()
 
     # Set the verbose level
