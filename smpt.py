@@ -31,46 +31,16 @@ import logging as log
 import os
 import subprocess
 import tempfile
+import time
 from threading import Event, Thread
 
 from bmc import BMC, stop_bmc
 from enumerative import Enumerative
 from ic3 import IC3, stop_ic3
 from parallelizer import Parallelizer
-from properties import Properties, Formula
+from properties import Formula, Properties
 from ptnet import PetriNet
 from system import System
-
-
-def enumerative(path_markings, ptnet, formula, ptnet_reduced, system, debug):
-    """ Enumerative method caller.
-    """
-    enumerative = Enumerative(path_markings, ptnet, formula, ptnet_reduced, system, debug)
-    enumerative.prove()
-
-
-def bmc(ptnet, formula, ptnet_reduced, system, debug, timeout):
-    """ BMC method caller.
-    """
-    bmc = BMC(ptnet, formula, ptnet_reduced, system, debug)
-
-    # Run analysis with a timeout
-    proc = Thread(target=bmc.prove)
-    proc.start()
-    proc.join(timeout)
-    stop_bmc.set()
-
-
-def ic3(ptnet, formula, ptnet_reduced, system, debug, timeout):
-    """ IC3 method caller.
-    """
-    ic3 = IC3(ptnet, formula, ptnet_reduced, system, debug)
-
-    # Run analysis with a timeout
-    proc = Thread(target=ic3.prove)
-    proc.start()
-    proc.join(timeout)
-    stop_ic3.set()
 
 
 def main():
@@ -181,7 +151,9 @@ def main():
     # Reduce the Petri net if '--auto-reduce' enabled
     if results.auto_reduce:
         fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
+        start_time = time.time()
         subprocess.run(["reduce", "-rg,redundant,compact,convert,transitions", results.path_ptnet, fp_ptnet_reduced.name])
+        reduction_time = time.time() - start_time
         results.path_ptnet_reduced = fp_ptnet_reduced.name
 
     # Read the reduced Petri net and the system of equations linking both nets 
@@ -211,7 +183,7 @@ def main():
 
     # Generate a quasi-liveness property if '--quasi-liveness' enabled
     if results.quasi_live_transitions is not None:
-        property_id = "Quasi-liveness: {}".format(results.quasi_live_transitions)
+        property_id = "Quasi-liveness-{}".format(results.quasi_live_transitions)
         transitions = results.quasi_live_transitions.replace('#', '').replace('{', '').replace('}', '').split(',')
         formula = Formula(ptnet)
         formula.generate_quasi_liveness(transitions)
@@ -219,24 +191,49 @@ def main():
 
     # Generate a reachability property if '--reachability' enabled
     if results.reachable_places is not None:
-        property_id = "Reachability: {}".format(results.reachable_places)
+        property_id = "Reachability:-{}".format(results.reachable_places)
         places = results.reachable_places.replace('#', '').replace('{', '').replace('}', '').split(',')
         marking = {ptnet.places[pl]:1 for pl in places}
         formula = Formula(ptnet)
         formula.generate_reachability(marking)
         properties.add_formula(formula, property_id)
     
+    # Display net informations
+    ptnet_info = '# ' + ptnet.id
+    if results.display_reduction_ratio and ptnet_reduced is not None:
+        ptnet_info += " - RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places)  * 100))
+    if results.display_time and ptnet_reduced is not None:
+        ptnet_info += " - t~{}s".format(reduction_time)
+    print(ptnet_info)
+
     # Iterate over properties
     for property_id, formula in properties.formulas.items():
-        print("---{}---".format(property_id))
+        print(property_id, end=' ')
 
         if results.path_markings is not None:
             # Use enumerative method
-            enumerative(results.path_markings, ptnet, formula, ptnet_reduced, system, results.debug)
+            result = []
+            enumerative = Enumerative(results.path_markings, ptnet, formula, ptnet_reduced, system, results.debug)
+            enumerative.prove(result)
+            print(formula.result(result[0]))
+            if len(result) > 1:
+                result[1].display_model()
         else:
             # Use BMC and IC3 methods in parallel
             parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.debug)
-            model = parallelizer.run()
+            sat, model, execution_time = parallelizer.run(results.timeout)
+            # Display analysis result
+            if sat is not None:
+                print(formula.result(sat), end=' ')
+            else:
+                print("TIMEOUT", end=' ')
+            # Display execution time
+            if results.display_time:
+                print(execution_time, end=' ')
+            print()
+            # Display model if there is one
+            if results.display_model and model is not None:
+                model.display_model()
 
     # Close temporary files
     if results.auto_reduce:

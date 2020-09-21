@@ -49,7 +49,6 @@ class BMC:
         self.system = system
         
         self.formula = formula
-        self.R = formula.R
         
         self.solver = Solver(debug)
 
@@ -86,7 +85,7 @@ class BMC:
             smt_input += self.ptnet.smtlib_transition_relation(i)
 
         smt_input += "; Formula to check the satisfiability\n"
-        smt_input += self.R.smtlib(k + 1, assertion=True)
+        smt_input += self.formula.R.smtlib(k + 1, assertion=True)
 
         return smt_input
 
@@ -102,7 +101,7 @@ class BMC:
         smt_input += self.system.smtlib_declare_additional_variables()
 
         smt_input += "; Formula to check the satisfiability\n"
-        smt_input += self.R.smtlib(assertion=True)
+        smt_input += self.formula.R.smtlib(assertion=True)
 
         smt_input += "; Reduction equations (not involving places from the reduced Petri net)"
         smt_input += self.system.smtlib_equations_without_places_from_reduced_net()
@@ -128,7 +127,7 @@ class BMC:
 
         return smt_input
 
-    def prove(self, display=True, result=None):
+    def prove(self, result=[]):
         """ Prover.
         """
         log.info("[BMC] RUNNING")
@@ -139,26 +138,14 @@ class BMC:
             self.prove_with_reduction()
             order = None
         
-        model = None
-        
         if not stop_bmc.is_set():
-            self.formula.result(True)
-            if display:
-                self.solver.display_model(self.ptnet, order)
-            else:
-                model = self.solver.get_model(self.ptnet, order)
-        else:
-            self.formula.result(False)
+            result.append(True)
+            result.append(self.solver.get_model(self.ptnet, order))
 
         self.solver.exit()
         
         if self.stop_concurrent:
             self.stop_concurrent.set()
-        
-        if result is not None:
-            result.append(model)
-
-        return model
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.
@@ -171,7 +158,7 @@ class BMC:
         log.info("[BMC] \t>> Push")
         self.solver.push()
         log.info("[BMC] \t>> Formula to check the satisfiability (order: 0)")
-        self.solver.write(self.R.smtlib(0, assertion=True))
+        self.solver.write(self.formula.R.smtlib(0, assertion=True))
         
         k = 0
         while not self.solver.check_sat() and not stop_bmc.is_set():
@@ -185,7 +172,7 @@ class BMC:
             log.info("[BMC] \t>> Push")
             self.solver.push()
             log.info("[BMC] \t>> Formula to check the satisfiability (order: {})".format(k + 1))
-            self.solver.write(self.R.smtlib(k + 1, assertion=True))
+            self.solver.write(self.formula.R.smtlib(k + 1, assertion=True))
             k += 1
 
         return k
@@ -199,7 +186,7 @@ class BMC:
         log.info("[BMC] \t>> Declaration of the additional variables")
         self.solver.write(self.system.smtlib_declare_additional_variables())
         log.info("[BMC] \t>> Formula to check the satisfiability")
-        self.solver.write(self.R.smtlib(assertion=True))
+        self.solver.write(self.formula.R.smtlib(assertion=True))
         log.info("[BMC] \t>> Reduction Equations (not involving places from the reduced Petri net)")
         self.solver.write(self.system.smtlib_equations_without_places_from_reduced_net())
         log.info("[BMC] \t>> Declaration of the places from the reduced Petri net (order: 0)")
@@ -260,7 +247,10 @@ if __name__ == '__main__':
 
     print("> Result computed using z3")
     print("--------------------------")
-    proc = Thread(target= bmc.prove)
+    result = []
+    proc = Thread(target=bmc.prove, args=(result,))
     proc.start()
-    proc.join(timeout = 600)
+    proc.join(timeout=600)
     stop_bmc.set()
+    print(formula.result(result[0]))
+    result[1].display_model()

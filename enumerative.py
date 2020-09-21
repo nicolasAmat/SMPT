@@ -49,7 +49,6 @@ class Enumerative:
         self.system = system
         
         self.formula = formula
-        self.R = formula.R
 
         self.markings = []
         self.parse_markings(filename)
@@ -125,10 +124,10 @@ class Enumerative:
         except FileNotFoundError as e:
             exit(e)
 
-    def prove(self):
+    def prove(self, result=[]):
         """ Prover.
         """
-        print("---ENUMERATIVE MARKING RUNNING---")
+        log.info("[ENUMERATIVE] RUNNING")
 
         if self.ptnet_reduced is None:
             self.prove_without_reduction()
@@ -136,10 +135,10 @@ class Enumerative:
             self.prove_with_reduction()
 
         if self.solver.check_sat():
-            self.formula.result(True)
-            self.solver.display_model(self.ptnet)
+            result.append(True)
+            result.append(self.solver.get_model(self.ptnet))
         else:
-            self.formula.result(False)
+            result.append(False)
 
         self.solver.exit()
 
@@ -149,7 +148,7 @@ class Enumerative:
         log.info("[ENUMERATIVE] Declaration of the places")
         self.solver.write(self.ptnet.smtlib_declare_places())
         log.info("[ENUMERATIVE] Formula to check the satisfiability")
-        self.solver.write(self.R.smtlib(assertion=True))
+        self.solver.write(self.formula.R.smtlib(assertion=True))
         log.info("[ENUMERATIVE] Markings")
         self.solver.write(self.smtlib())
 
@@ -161,7 +160,7 @@ class Enumerative:
         log.info("[ENUMERATIVE] Reduction equations")
         self.solver.write(self.system.smtlib())
         log.info("[ENUMERATIVE] Formula to check the satisfiability")
-        self.solver.write(self.R.smtlib(assertion=True))
+        self.solver.write(self.formula.R.smtlib(assertion=True))
         log.info("[ENUMERATIVE] Markings from the reduced net")
         self.solver.write(self.smtlib())
 
@@ -197,4 +196,9 @@ if __name__ == '__main__':
 
     print("> Result computed using z3")
     print("--------------------------")
-    enumerative.prove()
+    result = []
+    enumerative.prove(result)
+    formula.result(result[0])
+    if len(result) > 1:
+        result[1].display_model()
+

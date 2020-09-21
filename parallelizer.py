@@ -25,6 +25,7 @@ __license__ = "GPLv3"
 __version__ = "2.0.0"
 
 import sys
+import time
 from threading import Event, Thread
 
 from bmc import BMC, stop_bmc
@@ -44,31 +45,40 @@ class Parallelizer:
         self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, stop_concurrent=stop_ic3)
         self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, stop_concurrent=stop_bmc)
 
-    def run(self):
+    def run(self, timeout=600):
         """ Run BMC and IC3 analysis in parrallel.
 
-            Return `True` is the property is verified,
-            Return a counterexample otherwise.
+            Return:
+            -`True` if a counterexample is found and `False` otherwise,
+            - a counterexample if there is one,
+            - execution time.
         """
         result_bmc = []
         result_ic3 = []
 
-        proc_bmc = Thread(target=self.bmc.prove, args=(False, result_bmc,))
+        proc_bmc = Thread(target=self.bmc.prove, args=(result_bmc,))
         proc_ic3 = Thread(target=self.ic3.prove, args=(result_ic3,))
 
         stop_bmc.clear()
         stop_ic3.clear()
 
+        start_time = time.time()
+
         proc_bmc.start()
         proc_ic3.start()
 
-        proc_bmc.join()
-        proc_ic3.join()
+        proc_bmc.join(timeout=timeout)
+        proc_ic3.join(timeout=timeout)
 
-        if len(result_ic3) == 1:
-            return True
-        else:
-            return result_bmc[0]
+        execution_time = time.time() - start_time
+
+        if len(result_bmc) >= 1:
+            return result_bmc[0], result_bmc[1], execution_time
+      
+        if len(result_ic3) >= 1:
+            return not result_ic3[0], None, execution_time
+
+        return None, None, execution_time
 
 
 if __name__ == '__main__':
@@ -92,4 +102,5 @@ if __name__ == '__main__':
 
     print("> Result of the parallelized analysis")
     print("-------------------------------------")
-    parallelizer.run()
+    sat, _, _ = parallelizer.run()
+    print(formula.result(sat))

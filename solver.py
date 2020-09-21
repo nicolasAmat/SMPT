@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Z3 interface
+Z3 Interface
 
 Uses SMT-LIB v2 format
 Standard: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf
@@ -89,7 +89,7 @@ class Solver:
 
     def push(self):
         """ Push.
-            Creates a new scope by saving the current stack size
+            Creates a new scope by saving the current stack size.
         """
         self.write("(push)\n")
 
@@ -154,17 +154,3 @@ class Solver:
         self.flush()
 
         return self.readline().replace('(', '').replace(')', '').split(' ')
-
-    def display_model(self, ptnet, order=None):
-        """ Display the resulting model.
-        """
-        model = ""
-        
-        for place_marking in self.get_model(ptnet, order).operands:
-            if place_marking.right_operand.value > 0:
-                model += " {}({})".format(place_marking.left_operand, place_marking.right_operand)
-        
-        if model == "":
-            model = " empty marking"
-        
-        print("Model:", model, sep='')

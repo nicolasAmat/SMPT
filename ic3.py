@@ -316,7 +316,7 @@ class IC3:
                 non_zero.append(Atom(eq.left_operand, eq.right_operand, ">="))
         return StateFormula(non_zero, "and")
 
-    def prove(self, result=None):
+    def prove(self, result=[]):
         """ Prover.
         """
         log.info("---IC3 RUNNING---")
@@ -435,8 +435,8 @@ class IC3:
         """
         if self.stop_concurrent is not None:
             self.stop_concurrent.set()
-        if result and result_output is not None:
-            result_output.append(result)
+        
+        result_output.append(result)
 
 
 if __name__ == '__main__':
@@ -460,7 +460,11 @@ if __name__ == '__main__':
 
     ic3 = IC3(ptnet, formula, ptnet_reduced, system)
 
-    if ic3.prove():
-        print("Proved")
-    else:
-        print("Counterexample")
+    print("> Result computed using z3")
+    print("--------------------------")
+    result = []
+    proc = Thread(target= ic3.prove, args=(result,))
+    proc.start()
+    proc.join(timeout = 600)
+    stop_ic3.set()
+    print(formula.result(not result[0]))

@@ -137,7 +137,7 @@ class Formula:
             return StateFormula(operands, node)
 
         if node == 'is-fireable':
-            transitions, clauses = [self.ptnet.transitions[tr.text.replace('#', '').replace('{', '').replace('}', '')] for tr in formula_xml], []
+            transitions, clauses = [self.ptnet.transitions[tr.text.replace('#', '')] for tr in formula_xml], []
             for tr in transitions:
                 inequalities = []
                 for pl, weight in tr.inputs.items():
@@ -155,7 +155,7 @@ class Formula:
             return Atom(left_operand, right_operand, '<=')
 
         if node == 'tokens-count':
-            places = [self.ptnet.places[place.text.replace('#', '').replace('{', '').replace('}', '')] for place in formula_xml]
+            places = [self.ptnet.places[place.text.replace('#', '')] for place in formula_xml]
             return TokenCount(places)
 
         if node == 'integer-constant':
@@ -234,15 +234,15 @@ class Formula:
         """
         if self.property_def == 'finally':
             if sat:
-                print("TRUE")
+                return "TRUE"
             else:
-                print("FALSE")
+                return "FALSE"
 
         if self.property_def == 'globally':
             if sat:
-                print("FALSE")
+                return "FALSE"
             else:
-                print("TRUE")
+                return "TRUE"
 
 
 class StateFormula:
@@ -297,6 +297,20 @@ class StateFormula:
             smt_input = "(assert {})\n".format(smt_input)
         
         return smt_input
+
+    def display_model(self):
+        """ Display a model.
+        """
+        model = ""
+        
+        for place_marking in self.operands:
+            if place_marking.right_operand.value > 0:
+                model += " {}({})".format(place_marking.left_operand, place_marking.right_operand)
+        
+        if model == "":
+            model = " empty marking"
+        
+        print("# Model:", model, sep='')
 
 
 class Atom:
