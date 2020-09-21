@@ -33,7 +33,7 @@ import sys
 
 class PetriNet:
     """
-    Petri Net defined by:
+    Petri net defined by:
     - an identifier,
     - a finite set of places (identified by names),
     - a finite set of transitions (identified by names).
@@ -43,6 +43,7 @@ class PetriNet:
         """ Initializer.
         """
         self.id = ""
+        
         self.places = {}
         self.transitions = {}
 
@@ -93,6 +94,9 @@ class PetriNet:
 
             SMT-LIB format
         """
+        if not self.places:
+            return ""
+
         smt_input = "(assert (or \n"
         smt_input += ''.join(map(lambda tr: tr.smtlib_textbook(k), self.transitions.values()))
         smt_input += "))\n"
@@ -109,7 +113,7 @@ class PetriNet:
                     content = re.split(r'\s+', line.strip().replace('#', ''))  # '#' forbidden in SMT-LIB
                     element = content.pop(0)
                     if element == "net":
-                        self.id = content[0]
+                        self.id = content[0].replace('{', '').replace('}', '')
                     if element == "tr":
                         self.parse_transition(content)
                     if element == "pl":
@@ -270,7 +274,7 @@ class Transition:
       associated to the weight of the arc (values)
     - a list of output places (keys),
       associated to the weight of the arc (values)
-    - the set of all the places connected to the transition,
+    - a list of the places connected to the transition.
 
     """
 
@@ -278,10 +282,12 @@ class Transition:
         """ Initializer.
         """
         self.id = transition_id
+        
         self.inputs = {}
         self.outputs = {}
 
         self.connected_places = []
+        
         self.ptnet = ptnet
 
     def __str__(self):
