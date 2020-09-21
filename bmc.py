@@ -38,18 +38,19 @@ stop_bmc = Event()
 
 class BMC:
     """
-    Bounded Model Checking method
+    Bounded Model Checking method.
     """
+
     def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, stop_concurrent=None):
         """ Initializer.
         """
         self.ptnet = ptnet
         self.ptnet_reduced = ptnet_reduced
-        
+
         self.system = system
-        
+
         self.formula = formula
-        
+
         self.solver = Solver(debug)
 
         self.stop_concurrent = stop_concurrent
@@ -61,9 +62,9 @@ class BMC:
             smt_input = self.smtlib_without_reduction(k)
         else:
             smt_input = self.smtlib_with_reduction(k)
-        
+
         smt_input += "(check-sat)\n(get-model)\n"
-        
+
         return smt_input
 
     def smtlib_without_reduction(self, k):
@@ -122,7 +123,7 @@ class BMC:
         smt_input += "; Reduction equations\n"
         smt_input += self.system.smtlib_equations_with_places_from_reduced_net(k)
 
-        smt_input == "; Link initial and reduced nets\n"
+        smt_input += "; Link initial and reduced nets\n"
         smt_input += self.system.smtlib_link_nets(k)
 
         return smt_input
@@ -131,19 +132,19 @@ class BMC:
         """ Prover.
         """
         log.info("[BMC] RUNNING")
-        
+
         if self.ptnet_reduced is None:
             order = self.prove_without_reduction()
         else:
             self.prove_with_reduction()
             order = None
-        
+
         if not stop_bmc.is_set():
             result.append(True)
             result.append(self.solver.get_model(self.ptnet, order))
 
         self.solver.exit()
-        
+
         if self.stop_concurrent:
             self.stop_concurrent.set()
 
@@ -159,7 +160,7 @@ class BMC:
         self.solver.push()
         log.info("[BMC] \t>> Formula to check the satisfiability (order: 0)")
         self.solver.write(self.formula.R.smtlib(0, assertion=True))
-        
+
         k = 0
         while not self.solver.check_sat() and not stop_bmc.is_set():
             log.info("[BMC] > k = {}".format(k))
@@ -199,7 +200,7 @@ class BMC:
         self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(0))
         log.info("[BMC] \t>> Link initial and reduced nets")
         self.solver.write(self.system.smtlib_link_nets(0))
-        
+
         k = 0
         while not self.solver.check_sat() and not stop_bmc.is_set():
             log.info("[BMC] > k = {}".format(k))
@@ -221,14 +222,14 @@ class BMC:
 
 
 if __name__ == '__main__':
-    
+
     if len(sys.argv) < 2:
         exit("File missing: ./bmc.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
-    
+
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
     ptnet = PetriNet(sys.argv[1])
-    
+
     formula = Formula(ptnet)
     formula.generate_deadlock()
 
@@ -241,8 +242,8 @@ if __name__ == '__main__':
 
     bmc = BMC(ptnet, formula, ptnet_reduced, system)
 
-    print("> Generated SMTlib")
-    print("------------------")
+    print("> Generated SMT-LIB")
+    print("-------------------")
     print(bmc.smtlib(1))
 
     print("> Result computed using z3")

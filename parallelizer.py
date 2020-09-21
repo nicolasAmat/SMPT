@@ -26,7 +26,7 @@ __version__ = "2.0.0"
 
 import sys
 import time
-from threading import Event, Thread
+from threading import Thread
 
 from bmc import BMC, stop_bmc
 from ic3 import IC3, stop_ic3
@@ -36,14 +36,16 @@ from system import System
 
 
 class Parallelizer:
-    """ Concurrent analyzer.
+    """ Analysis methods parallelizer.
     """
 
     def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False):
         """ Initializer.
         """
-        self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, stop_concurrent=stop_ic3)
-        self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, stop_concurrent=stop_bmc)
+        self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
+                       stop_concurrent=stop_ic3)
+        self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
+                       stop_concurrent=stop_bmc)
 
     def run(self, timeout=600):
         """ Run BMC and IC3 analysis in parrallel.
@@ -74,7 +76,7 @@ class Parallelizer:
 
         if len(result_bmc) >= 1:
             return result_bmc[0], result_bmc[1], execution_time
-      
+
         if len(result_ic3) >= 1:
             return not result_ic3[0], None, execution_time
 

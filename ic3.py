@@ -41,7 +41,6 @@ __version__ = "2.0.0"
 import copy
 import logging as log
 import sys
-from subprocess import PIPE, Popen
 from threading import Event, Thread
 
 from properties import Atom, Formula, IntegerConstant, StateFormula, TokenCount
@@ -63,7 +62,8 @@ class IC3:
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, stop_concurrent=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True,
+                 stop_concurrent=None):
         """ Initializer.
 
             By default the IC3 method uses the unsat core of the solver.
@@ -71,9 +71,9 @@ class IC3:
         """
         self.ptnet = ptnet
         self.ptnet_reduced = ptnet_reduced
-        
+
         self.system = system
-        
+
         self.formula = formula
 
         self.reduction = ptnet_reduced is not None
@@ -146,10 +146,10 @@ class IC3:
             smt_input = self.oars[i][0].smtlib(0, assertion=True)
         else:
             smt_input = self.oars[i][0].smtlib(self.reduction * 10, assertion=True)
-        
+
         for clause in self.oars[i][1:]:
             smt_input += clause.smtlib(0, assertion=True)
-        
+
         return smt_input
 
     def oars_initialization(self):
@@ -273,7 +273,7 @@ class IC3:
         cl = StateFormula(inequalities, "or")
 
         log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
-        
+
         return cl
 
     def sub_clause_finder_mic(self, i, s):
@@ -285,6 +285,7 @@ class IC3:
             literal = c.operands.pop()
 
             self.solver.reset()
+
             self.solver.write(self.declare_places())
             self.solver.write(self.assert_formula(i))
             self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
@@ -442,7 +443,7 @@ class IC3:
         """
         if self.stop_concurrent is not None:
             self.stop_concurrent.set()
-        
+
         result_output.append(result)
 
 
@@ -470,8 +471,8 @@ if __name__ == '__main__':
     print("> Result computed using z3")
     print("--------------------------")
     result = []
-    proc = Thread(target= ic3.prove, args=(result,))
+    proc = Thread(target=ic3.prove, args=(result,))
     proc.start()
-    proc.join(timeout = 600)
+    proc.join(timeout=600)
     stop_ic3.set()
     print(formula.result(not result[0]))

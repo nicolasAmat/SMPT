@@ -24,7 +24,6 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "2.0.0"
 
-import re
 import sys
 import uuid
 import xml.etree.ElementTree as ET
@@ -71,7 +70,7 @@ class Properties:
         """
         tree = ET.parse(filename)
         properties_xml = tree.getroot()
-      
+
         for property_xml in properties_xml:
             property_id = property_xml[0].text
             formula_xml = property_xml[2]
@@ -106,7 +105,7 @@ class Formula:
 
         if formula_xml is not None:
             _, _, node = formula_xml.tag.rpartition('}')
-            if  node != 'formula':
+            if node != 'formula':
                 raise ValueError("Invalid formula")
             self.parse_xml(formula_xml[0])
 
@@ -118,7 +117,7 @@ class Formula:
 
         if node in ['exists-path', 'all-paths']:
             _, _, child = formula_xml[0].tag.rpartition('}')
-            
+
             if (node, child) == ('exists-path', 'finally'):
                 self.R = self.parse_xml(formula_xml[0][0])
                 self.P = StateFormula([self.R], 'not')
@@ -161,7 +160,7 @@ class Formula:
         if node == 'integer-constant':
             value = int(formula_xml.text)
             return IntegerConstant(value)
-    
+
     def __str__(self):
         """ Formula to textual format.
         """
@@ -180,20 +179,20 @@ class Formula:
 
         for tr in self.ptnet.transitions.values():
             inequalities_R = []
-            
+
             for pl, weight in tr.inputs.items():
                 if weight > 0:
                     ineq_R = Atom(TokenCount([pl]), IntegerConstant(weight), '<')
                 else:
                     ineq_R = Atom(TokenCount([pl]), IntegerConstant(-weight), '>=')
                 inequalities_R.append(ineq_R)
-            
+
             clauses_R.append(StateFormula(inequalities_R, 'or'))
-        
+
         self.R = StateFormula(clauses_R, 'and')
         self.P = StateFormula([self.R], 'not')
         self.property_def = 'finally'
-        
+
         return self.R
 
     def generate_quasi_liveness(self, transitions):
@@ -212,7 +211,7 @@ class Formula:
                 inequalities_R.append(ineq_R)
 
             clauses_R.append(StateFormula(inequalities_R, 'and'))
-        
+
         self.R = StateFormula(clauses_R, 'or')
         self.P = StateFormula([self.R], 'not')
         self.property_def = 'finally'
@@ -275,10 +274,10 @@ class StateFormula:
             return "(not {})".format(self.operands[0])
 
         text = " {} ".format(self.operator).join(map(str, self.operands))
-        
+
         if len(self.operands) > 1:
             text = "({})".format(text)
-        
+
         return text
 
     def smtlib(self, k=None, assertion=False, negation=False):
@@ -286,30 +285,30 @@ class StateFormula:
             SMT-LIB format
         """
         smt_input = ''.join(map(lambda operand: operand.smtlib(k), self.operands))
-        
+
         if len(self.operands) > 1 or self.operator == 'not':
             smt_input = "({} {})".format(self.operator, smt_input)
-        
+
         if negation:
             smt_input = "(not {})".format(smt_input)
-        
+
         if assertion:
             smt_input = "(assert {})\n".format(smt_input)
-        
+
         return smt_input
 
     def display_model(self):
         """ Display a model.
         """
         model = ""
-        
+
         for place_marking in self.operands:
             if place_marking.right_operand.value > 0:
                 model += " {}({})".format(place_marking.left_operand, place_marking.right_operand)
-        
+
         if model == "":
             model = " empty marking"
-        
+
         print("# Model:", model, sep='')
 
 
@@ -345,10 +344,10 @@ class Atom:
 
         if negation:
             smt_input = "(not {})".format(smt_input)
-        
+
         if assertion:
             smt_input = "(assert {})\n".format(smt_input)
-        
+
         return smt_input
 
 
@@ -381,7 +380,7 @@ class TokenCount:
             smt_input = ' '.join(map(lambda pl: "{}@{}".format(pl.id, k), self.places))
         else:
             smt_input = ' '.join(map(lambda pl: pl.id, self.places))
-        
+
         if len(self.places) > 1:
             smt_input = "(+ {})".format(smt_input)
 
@@ -429,6 +428,6 @@ if __name__ == '__main__':
     print("-----------------")
     print(properties)
 
-    print("> Generated SMTlib2")
+    print("> Generated SMT-LIB")
     print("-------------------")
     print(properties.smtlib())

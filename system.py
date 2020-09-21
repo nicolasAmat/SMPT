@@ -60,10 +60,10 @@ class System:
 
     def smtlib(self):
         """ Decalare additional variables and assert equations.
-            
             SMT-LIB format
         """
-        smt_input = ''.join(map(lambda var: "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var, var), self.additional_vars))
+        smt_input = ''.join(
+            map(lambda var: "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var, var), self.additional_vars))
         smt_input += '\n'.join(map(lambda eq: eq.smtlib(), self.equations)) + '\n'
 
         return smt_input
@@ -76,7 +76,7 @@ class System:
             SMT-LIB format
         """
         smt_input = ""
-        
+
         for var in self.additional_vars:
             if var not in self.places_reduced:
                 var_name = var if k_initial is None else "{}@{}".format(var, k_initial)
@@ -96,7 +96,7 @@ class System:
         for eq in self.equations:
             if not eq.contain_reduced:
                 smt_input += eq.smtlib(k_initial, [*self.places_initial] + self.additional_vars) + '\n'
-        
+
         return smt_input
 
     def smtlib_equations_with_places_from_reduced_net(self, k, k_initial=None):
@@ -106,13 +106,13 @@ class System:
             k_initial: used by IC3.
             
             SMT-LIB format
-        """  
+        """
         smt_input = ""
 
         for eq in self.equations:
             if eq.contain_reduced:
                 smt_input += eq.smtlib_with_order(k, k_initial, self.places_reduced,
-                                               [*self.places_initial] + self.additional_vars) + '\n'
+                                                  [*self.places_initial] + self.additional_vars) + '\n'
 
         return smt_input
 
@@ -137,12 +137,12 @@ class System:
 
     def parser(self, filename):
         """ System of reduction equations parser.
-            
             Input format: .net (output of the `reduce` tool)
         """
         try:
             with open(filename, 'r') as fp:
-                content = re.search(r'generated equations\n(.*)?\n\n', fp.read().replace('{', '').replace('}', '').replace('#', ''), re.DOTALL)
+                content = re.search(r'generated equations\n(.*)?\n\n',
+                                    fp.read().replace('{', '').replace('}', '').replace('#', ''), re.DOTALL)
                 if content:
                     lines = re.split('\n+', content.group())[1:-1]
                     equations = [re.split(r'\s+', line.partition(' |- ')[2]) for line in lines]
@@ -168,9 +168,9 @@ class Equation:
         self.left = []
         self.right = []
         self.operator = ""
-        
+
         self.contain_reduced = False
-        
+
         self.parse_equation(eq, system)
 
     def __str__(self):
@@ -200,16 +200,16 @@ class Equation:
             SMT-LIB format
         """
         smt_input = ""
-        
+
         for elem in member:
             if k_initial is None or elem not in other_vars:
                 smt_input += " {}".format(elem)
             else:
                 smt_input += " {}@{}".format(elem, k_initial)
-        
+
         if len(member) > 1:
             smt_input = "(+ {})".format(smt_input)
-        
+
         return smt_input
 
     def smtlib_with_order(self, k, k_initial, places_reduced, other_vars=[]):
@@ -238,7 +238,7 @@ class Equation:
             SMTLIB format
         """
         smt_input = ""
-        
+
         for elem in member:
             if elem in places_reduced:
                 smt_input += " {}@{}".format(elem, k)
@@ -246,15 +246,14 @@ class Equation:
                 smt_input += " {}@{}".format(elem, k_initial)
             else:
                 smt_input += " {}".format(elem)
-        
+
         if len(member) > 1:
             smt_input = "(+ {})".format(smt_input)
-        
+
         return smt_input
 
     def parse_equation(self, eq, system):
         """ Equation parser.
-            
             Input format: .net (output of the `reduced` tool)
         """
         for index, element in enumerate(eq):
@@ -293,6 +292,6 @@ if __name__ == "__main__":
     print("-------------------")
     print(system)
 
-    print("> SMTlib2 Format")
-    print("----------------")
+    print("> Generated SMT-LIB")
+    print("-------------------")
     print(system.smtlib())

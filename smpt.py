@@ -28,15 +28,11 @@ __version__ = "2.0.0"
 
 import argparse
 import logging as log
-import os
 import subprocess
 import tempfile
 import time
-from threading import Event, Thread
 
-from bmc import BMC, stop_bmc
 from enumerative import Enumerative
-from ic3 import IC3, stop_ic3
 from parallelizer import Parallelizer
 from properties import Formula, Properties
 from ptnet import PetriNet
@@ -125,7 +121,7 @@ def main():
     parser.add_argument('--display-model',
                         action='store_true',
                         help="display a counterexample if the property is FALSE")
-    
+
     parser.add_argument('--display-time',
                         action='store_true',
                         help="display the analysis time")
@@ -152,7 +148,8 @@ def main():
     if results.auto_reduce:
         fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
         start_time = time.time()
-        subprocess.run(["reduce", "-rg,redundant,compact,convert,transitions", results.path_ptnet, fp_ptnet_reduced.name])
+        subprocess.run(
+            ["reduce", "-rg,redundant,compact,convert,transitions", results.path_ptnet, fp_ptnet_reduced.name])
         reduction_time = time.time() - start_time
         results.path_ptnet_reduced = fp_ptnet_reduced.name
 
@@ -193,15 +190,15 @@ def main():
     if results.reachable_places is not None:
         property_id = "Reachability:-{}".format(results.reachable_places)
         places = results.reachable_places.replace('#', '').replace('{', '').replace('}', '').split(',')
-        marking = {ptnet.places[pl]:1 for pl in places}
+        marking = {ptnet.places[pl]: 1 for pl in places}
         formula = Formula(ptnet)
         formula.generate_reachability(marking)
         properties.add_formula(formula, property_id)
-    
+
     # Display net informations
     ptnet_info = '# ' + ptnet.id
     if results.display_reduction_ratio and ptnet_reduced is not None:
-        ptnet_info += " - RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places)  * 100))
+        ptnet_info += " - RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
     if results.display_time and ptnet_reduced is not None:
         ptnet_info += " - t~{}s".format(reduction_time)
     print(ptnet_info)

@@ -38,21 +38,22 @@ from system import System
 
 
 class Enumerative:
-    """ Enumerative markings method. 
+    """ Enumerative markings method.
     """
+
     def __init__(self, filename, ptnet, formula, ptnet_reduced, system, debug=False):
         """ Initializer.
         """
         self.ptnet = ptnet
         self.ptnet_reduced = ptnet_reduced
-        
+
         self.system = system
-        
+
         self.formula = formula
 
         self.markings = []
         self.parse_markings(filename)
-        
+
         self.solver = Solver(debug)
 
     def __str__(self):
@@ -68,7 +69,6 @@ class Enumerative:
 
     def smtlib(self):
         """ Assert markings (DNF).
-
             SMT-LIB format
         """
         if len(self.markings) == 0:
@@ -78,19 +78,19 @@ class Enumerative:
             places = self.ptnet.places
         else:
             places = self.ptnet_reduced.places
-        
+
         smt_input = "(assert (or "
-        
+
         for marking in self.markings:
             smt_input += "(and "
             for place, tokens in marking.items():
-                smt_input += "(= {} {})". format(place, tokens)
+                smt_input += "(= {} {})".format(place, tokens)
             for place in places:
                 if place not in marking:
-                    smt_input += "(= {} 0)". format(place)
+                    smt_input += "(= {} 0)".format(place)
             smt_input += ")"
         smt_input += "))\n"
-        
+
         return smt_input
 
     def parse_markings(self, filename):
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         exit("File missing: ./enumerative.py <path_to_Petri_net> <path_to_aut_file> [<path_to_reduced_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
-    
+
     ptnet = PetriNet(sys.argv[1])
 
     formula = Formula(ptnet)
@@ -190,8 +190,8 @@ if __name__ == '__main__':
     print("----------------------")
     print(enumerative)
 
-    print("> Generated SMTlib")
-    print("------------------")
+    print("> Generated SMT-LIB")
+    print("-------------------")
     print(enumerative.smtlib())
 
     print("> Result computed using z3")
@@ -201,4 +201,3 @@ if __name__ == '__main__':
     formula.result(result[0])
     if len(result) > 1:
         result[1].display_model()
-

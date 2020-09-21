@@ -62,7 +62,7 @@ class Solver:
         """
         if self.debug or debug:
             print(smt_input)
-        
+
         if smt_input != "":
             self.solver.stdin.write(bytes(smt_input, 'utf-8'))
 
@@ -75,10 +75,10 @@ class Solver:
         """ Read a line from the standard output.
         """
         smt_output = self.solver.stdout.readline().decode('utf-8').strip()
-        
+
         if self.debug or debug:
             print(smt_output)
-        
+
         return smt_output
 
     def reset(self):
@@ -113,7 +113,7 @@ class Solver:
         """
         self.write("(get-model)\n")
         self.flush()
-        
+
         # Read '(model '
         self.readline()
 
@@ -124,7 +124,7 @@ class Solver:
             
             if len(place_content) < 2 or self.solver.poll() is not None:
                 break
-            
+
             place_marking = self.readline().replace(' ', '').replace(')', '')
             place = ""
             if order is None:
@@ -149,7 +149,7 @@ class Solver:
             Return a clause (disjunctive).
         """
         assert (not self.check_sat())
-        
+
         self.write("(get-unsat-core)\n")
         self.flush()
 

@@ -43,7 +43,7 @@ class PetriNet:
         """ Initializer.
         """
         self.id = ""
-        
+
         self.places = {}
         self.transitions = {}
 
@@ -60,21 +60,18 @@ class PetriNet:
 
     def smtlib_declare_places(self, k=None):
         """ Declare places.
-
             SMT-LIB format
         """
         return ''.join(map(lambda pl: pl.smtlib_declare(k), self.places.values()))
 
     def smtlib_initial_marking(self, k=None):
         """ Assert the initial marking.
-
             SMT-LIB format
         """
         return ''.join(map(lambda pl: pl.smtlib_initial_marking(k), self.places.values()))
 
     def smtlib_transition_relation(self, k):
         """ Transition relation from places at order k to order k + 1.
-
             SMT-LIB format
         """
         if not self.places:
@@ -91,7 +88,6 @@ class PetriNet:
     def smtlib_transition_relation_textbook(self, k):
         """ Transition relations from places at order k to order k + 1.
             Textbook version not used.
-
             SMT-LIB format
         """
         if not self.places:
@@ -126,7 +122,7 @@ class PetriNet:
         """ Transition parser.
             Input format: .net
         """
-        transition_id = content.pop(0).replace('{', '').replace('}', '') # '{' and '}' forbidden in SMT-LIB
+        transition_id = content.pop(0).replace('{', '').replace('}', '')  # '{' and '}' forbidden in SMT-LIB
 
         if transition_id in self.transitions:
             tr = self.transitions[tr.id]
@@ -282,27 +278,27 @@ class Transition:
         """ Initializer.
         """
         self.id = transition_id
-        
+
         self.inputs = {}
         self.outputs = {}
 
         self.connected_places = []
-        
+
         self.ptnet = ptnet
 
     def __str__(self):
         """ Transition to .net format.
         """
         text = "tr {} ".format(self.id)
-        
+
         for src, weight in self.inputs.items():
             text += ' ' + self.str_arc(src, weight)
-        
+
         text += ' ->'
-        
+
         for dest, weight in self.outputs.items():
             text += ' ' + self.str_arc(dest, weight)
-        
+
         text += '\n'
         return text
 
@@ -310,22 +306,21 @@ class Transition:
         """ Arc to .net format.
         """
         text = place.id
-        
+
         if weight > 1:
             text += '*' + str(weight)
-        
+
         if weight < 0:
             text += '?-' + str(-weight)
-        
+
         return text
 
     def smtlib(self, k):
         """ Transition relation from places at order k to order k + 1.
-            
             SMT-LIB format
         """
         smt_input = "\t(and\n\t\t"
-        
+
         # Firing condition on input places
         for pl, weight in self.inputs.items():
             if weight > 0:
@@ -333,33 +328,33 @@ class Transition:
             else:
                 smt_input += "(< {}@{} {})".format(pl.id, k, -weight)
         smt_input += "\n\t\t"
-        
+
         # Update input places
         for pl, weight in self.inputs.items():
             if weight > 0:
                 if pl in self.outputs:
-                    smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.outputs[pl], weight)
+                    smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.outputs[pl],
+                                                                        weight)
                 else:
                     smt_input += "(= {}@{} (- {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
-        
+
         # Update output places
         for pl, weight in self.outputs.items():
             if pl not in self.inputs or self.inputs[pl] < 0:
                 smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
         smt_input += "\n\t\t"
-        
+
         # Unconnected places must not be changed
         for pl in self.ptnet.places.values():
             if pl not in self.connected_places:
                 smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += "\n\t)\n"
-        
+
         return smt_input
 
     def smtlib_textbook(self, k):
         """ Transition relation from places at order k to order k + 1.
             Textbook version (not used).
-            
             SMT-LIB format
         """
         smt_input = "\t(and\n\t\t(=>\n\t\t\t(and "
@@ -371,26 +366,27 @@ class Transition:
             else:
                 smt_input += "(< {}@{} {})".format(pl.id, k, -weight)
         smt_input += ")\n\t\t\t(and "
-        
+
         # Update input places
         for pl, weight in self.inputs.items():
             if weight > 0:
                 if pl in self.outputs:
-                    smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.outputs[pl], weight)
+                    smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.outputs[pl],
+                                                                        weight)
                 else:
                     smt_input += "(= {}@{} (- {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
-        
+
         # Update output places
         for pl, weight in self.outputs.items():
             if pl not in self.inputs or self.inputs[pl] < 0:
                 smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
-        
+
         # Unconnected places must not be changed
         for pl in self.ptnet.places.values():
             if pl not in self.connected_places:
                 smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += ")\n\t\t)\n\t\t(=>\n\t\t\t(or "
-        
+
         # Dead condition on input places
         for pl, weight in self.inputs.items():
             if weight > 0:
@@ -398,13 +394,13 @@ class Transition:
             else:
                 smt_input += "(>= {}@{} {})".format(pl.id, k, -weight)
         smt_input += ")\n\t\t\t(and "
-        
+
         # Places must not change
         for pl in self.ptnet.places.values():
             smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += ")\n\t\t)\n\t)\n"
-        
-        return smt_input    
+
+        return smt_input
 
 
 if __name__ == "__main__":
@@ -418,12 +414,11 @@ if __name__ == "__main__":
     print("-------------------------")
     print(ptnet)
 
-    print("> Generated SMTlib")
-    print("------------------")
+    print("> Generated SMT-LIB")
+    print("-------------------")
     print(">> Declare places")
     print(ptnet.smtlib_declare_places())
     print(">> Initial marking")
     print(ptnet.smtlib_initial_marking())
     print(">> Transition relation (0 -> 1)")
     print(ptnet.smtlib_transition_relation(0))
-    
