@@ -201,9 +201,6 @@ class Equation:
         """
         smt_input = ""
         
-        if len(member) > 1:
-            smt_input += " (+"
-        
         for elem in member:
             if k_initial is None or elem not in other_vars:
                 smt_input += " {}".format(elem)
@@ -211,7 +208,7 @@ class Equation:
                 smt_input += " {}@{}".format(elem, k_initial)
         
         if len(member) > 1:
-            smt_input += ")"
+            smt_input = "(+ {})".format(smt_input)
         
         return smt_input
 
@@ -242,9 +239,6 @@ class Equation:
         """
         smt_input = ""
         
-        if len(member) > 1:
-            smt_input += " (+"
-        
         for elem in member:
             if elem in places_reduced:
                 smt_input += " {}@{}".format(elem, k)
@@ -254,7 +248,7 @@ class Equation:
                 smt_input += " {}".format(elem)
         
         if len(member) > 1:
-            smt_input += ")"
+            smt_input = "(+ {})".format(smt_input)
         
         return smt_input
 
