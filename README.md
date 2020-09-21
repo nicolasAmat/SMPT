@@ -67,7 +67,8 @@ usage: smpt.py [-h] [--version] [-v] [--debug]
                (--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES)
                [--auto-reduce | --reduced PATH_PTNET_REDUCED]
                [--auto-enumerative | --enumerative PATH_MARKINGS]
-               [--timeout TIMEOUT]
+               [--timeout TIMEOUT] [--display-model] [--display-time]
+               [--display-reduction-ratio]
                ptnet
 
 SMPT: Satisfiability Modulo Petri Net
@@ -96,6 +97,10 @@ optional arguments:
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
   --timeout TIMEOUT     a limit on execution time
+  --display-model       display a counterexample if the property is FALSE
+  --display-time        display the analysis time
+  --display-reduction-ratio
+                        display the reduction ratio
 ```
 
 ## Dependencies
