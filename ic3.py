@@ -9,7 +9,7 @@ Based on "SAT-Based Model Checking without Unrolling"
 Aaron Bradley, VMCAI 2011
 Adapted for Petri nets
 
-Indications for orders:
+Orders (state' denotes a state reached by firing one transition):
 - Case non-reduced:
     ptnet : 0
     ptnet': 1
@@ -36,13 +36,13 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 import copy
 import logging as log
 import sys
 from subprocess import PIPE, Popen
-from threading import Event
+from threading import Event, Thread
 
 from properties import Atom, Formula, IntegerConstant, StateFormula, TokenCount
 from ptnet import PetriNet
@@ -54,20 +54,20 @@ stop_ic3 = Event()
 
 class Counterexample(Exception):
     """
-    Exception raised in case of a counter-example
+    Exception raised in case of a counterexample.
     """
 
 
 class IC3:
-    """
-    IC3 Method.
+    """ 
+    Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
     def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, stop_concurrent=None):
-        """ IC3 initializer.
+        """ Initializer.
 
             By default the IC3 method uses the unsat core of the solver.
-            Option to use the MIC algorithm: unsat_core=False
+            Option to use the MIC algorithm: `unsat_core=False`.
         """
         self.ptnet = ptnet
         self.ptnet_reduced = ptnet_reduced
@@ -75,13 +75,11 @@ class IC3:
         self.system = system
         
         self.formula = formula
-        self.R = formula.R
-        self.P = formula.P
 
-        self.reduced = ptnet_reduced is not None
-        self.ptnet_current = self.ptnet_reduced if self.reduced else self.ptnet
+        self.reduction = ptnet_reduced is not None
+        self.ptnet_current = self.ptnet_reduced if self.reduction else self.ptnet
 
-        self.oars = []  # list of CNF
+        self.oars = []  # list of CNFs
 
         self.solver = Solver(debug)
         if unsat_core:
@@ -94,17 +92,22 @@ class IC3:
     def declare_places(self, init=False):
         """ Declare places.
 
+            Without reductions:
             If init is True:  declare places at order 0,
             If init is False: declare places at order 0 and 1.
+
+            With reductions:
+            If init is True:  declare initial places at order 10, reduced places at order 0.
+            If init is False: declare initial places at order 10 and 11, reduced places at order 0 and 1.
         """
         if init:
-            if self.reduced:
+            if self.reduction:
                 return self.ptnet.smtlib_declare_places(10) \
                        + self.ptnet_reduced.smtlib_declare_places(0)
             else:
                 return self.ptnet.smtlib_declare_places(0)
         else:
-            if self.reduced:
+            if self.reduction:
                 return self.ptnet.smtlib_declare_places(10) \
                        + self.ptnet.smtlib_declare_places(11) \
                        + self.ptnet_reduced.smtlib_declare_places(0) \
@@ -114,12 +117,11 @@ class IC3:
                        + self.ptnet.smtlib_declare_places(1)
 
     def assert_equations(self, init=False):
-        """ Reduction equations.
+        """ Assert reduction equations.
 
-            If init is True:  equations at order 0,
-            If init is False: equations at order 0 and 1.
+            Orders are the same than the declare places method.
         """
-        if not self.reduced:
+        if not self.reduction:
             return ""
 
         if init:
@@ -138,14 +140,16 @@ class IC3:
                    + self.system.smtlib_link_nets(1, 11)
 
     def assert_formula(self, i):
-        """ F_i
+        """ Assert F_i
         """
         if i == 0:
             smt_input = self.oars[i][0].smtlib(0, assertion=True)
         else:
-            smt_input = self.oars[i][0].smtlib(self.reduced * 10, assertion=True)
+            smt_input = self.oars[i][0].smtlib(self.reduction * 10, assertion=True)
+        
         for clause in self.oars[i][1:]:
             smt_input += clause.smtlib(0, assertion=True)
+        
         return smt_input
 
     def oars_initialization(self):
@@ -161,7 +165,7 @@ class IC3:
         self.oars.append([StateFormula(equalities, 'and')])
 
         # F1 = P
-        self.oars.append([self.P])
+        self.oars.append([self.formula.P])
 
     def init_marking_reach_bad_state(self):
         """ sat (I and -P)
@@ -171,7 +175,7 @@ class IC3:
         self.solver.write(self.declare_places(init=True))
         self.solver.write(self.assert_equations(init=True))
         self.solver.write(self.ptnet_current.smtlib_initial_marking(0))
-        self.solver.write(self.R.smtlib(self.reduced * 10, assertion=True))
+        self.solver.write(self.formula.R.smtlib(self.reduction * 10, assertion=True))
 
         return self.solver.check_sat()
 
@@ -186,7 +190,7 @@ class IC3:
         self.solver.write(self.ptnet_current.smtlib_initial_marking(0))
         self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
-        self.solver.write(self.R.smtlib(self.reduced * 10 + 1, assertion=True))
+        self.solver.write(self.formula.R.smtlib(self.reduction * 10 + 1, assertion=True))
 
         return self.solver.check_sat()
 
@@ -199,7 +203,7 @@ class IC3:
         self.solver.write(self.assert_formula(k))
         self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(self.assert_equations())
-        self.solver.write(self.R.smtlib(self.reduced * 10 + 1, assertion=True))
+        self.solver.write(self.formula.R.smtlib(self.reduction * 10 + 1, assertion=True))
 
         return self.solver.check_sat()
 
@@ -246,7 +250,6 @@ class IC3:
         """ unsat core (-s and Fi and T and s')
         """
         self.solver.reset()
-
         self.solver.enable_unsat_core()
 
         self.solver.write(self.declare_places())
@@ -270,16 +273,16 @@ class IC3:
         cl = StateFormula(inequalities, "or")
 
         log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
+        
         return cl
 
     def sub_clause_finder_mic(self, i, s):
-        """ Minimal inductive clause (MIC)
+        """ Minimal inductive clause (MIC).
         """
         c = copy.deepcopy(s)
 
         while len(c.operands) > 1:
-
-            lit = c.operands.pop()
+            literal = c.operands.pop()
 
             self.solver.reset()
             self.solver.write(self.declare_places())
@@ -290,7 +293,7 @@ class IC3:
             self.solver.write(c.smtlib(1, assertion=True))
 
             if self.solver.check_sat():
-                c.operands.append(lit)
+                c.operands.append(literal)
                 inequalities = []
                 for eq in c.operands:
                     if int(eq.right_operand.value) == 0:
@@ -303,7 +306,9 @@ class IC3:
         for eq in s.operands:
             inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
         cl = StateFormula(inequalities, "or")
+
         log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
+
         return cl
 
     def cuber_filter(self, s):
@@ -314,12 +319,13 @@ class IC3:
         for eq in s.operands:
             if eq.right_operand.value != 0:
                 non_zero.append(Atom(eq.left_operand, eq.right_operand, ">="))
+
         return StateFormula(non_zero, "and")
 
     def prove(self, result=[]):
         """ Prover.
         """
-        log.info("---IC3 RUNNING---")
+        log.info("[IC3] RUNNING")
 
         if self.init_marking_reach_bad_state() or self.init_tr_reach_bad_state():
             self.exit_helper(False, result)
@@ -332,7 +338,7 @@ class IC3:
         while not stop_ic3.is_set():
             log.info("[IC3] > F{} = P".format(k + 1))
 
-            self.oars.append([self.P])
+            self.oars.append([self.formula.P])
             if not self.strengthen(k):
                 self.exit_helper(False, result)
                 return False
@@ -367,8 +373,8 @@ class IC3:
             return False
 
     def propagate_clauses(self, k):
-        """ For 1 <= i <= k.
-            Look at a clause c in CL(Fi) and not in CL(Fi+1),
+        """ For 1 <= i <= k,
+            look at a clause c in CL(Fi) and not in CL(Fi+1),
             s.t. unsat (Fi and T and -c').
             When this is the case, propagate the clause forward,
             i.e. add c to CL(Fi+1)
@@ -395,6 +401,7 @@ class IC3:
                 return i - 1
 
         self.generate_clause(s, k, k)
+
         return k
 
     def generate_clause(self, s, i, k):
