@@ -97,7 +97,7 @@ optional arguments:
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
   --timeout TIMEOUT     a limit on execution time
-  --display-model       display a counterexample if the property is FALSE
+  --display-model       display a counterexample if the there is one
   --display-time        display the analysis time
   --display-reduction-ratio
                         display the reduction ratio

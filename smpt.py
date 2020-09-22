@@ -120,7 +120,7 @@ def main():
 
     parser.add_argument('--display-model',
                         action='store_true',
-                        help="display a counterexample if the property is FALSE")
+                        help="display a counterexample if there is one")
 
     parser.add_argument('--display-time',
                         action='store_true',
