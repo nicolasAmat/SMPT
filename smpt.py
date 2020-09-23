@@ -63,7 +63,7 @@ def main():
                         type=str,
                         help='path to Petri Net (.net format)')
 
-    group_formula = parser.add_mutually_exclusive_group(required=True)
+    group_formula = parser.add_mutually_exclusive_group()
 
     group_formula.add_argument('--xml',
                                action='store',
@@ -124,7 +124,7 @@ def main():
 
     parser.add_argument('--display-time',
                         action='store_true',
-                        help="display the analysis time")
+                        help="display execution times")
 
     parser.add_argument('--display-reduction-ratio',
                         action='store_true',
@@ -149,7 +149,7 @@ def main():
         fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
         start_time = time.time()
         subprocess.run(
-            ["reduce", "-rg,redundant,compact,convert,transitions", results.path_ptnet, fp_ptnet_reduced.name])
+            ["reduce", "-rg,redundant,compact+,convert,mg,4ti2,transitions", "-redundant-limit", "650", "-redundant-time", "10", "-inv-limit", "1000", "-inv-time", "10", results.path_ptnet, fp_ptnet_reduced.name])
         reduction_time = time.time() - start_time
         results.path_ptnet_reduced = fp_ptnet_reduced.name
 

@@ -64,7 +64,7 @@ You can list all the options by using the *help* option:
 ```
 $> python smpt.py --help
 usage: smpt.py [-h] [--version] [-v] [--debug]
-               (--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES)
+               [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
                [--auto-reduce | --reduced PATH_PTNET_REDUCED]
                [--auto-enumerative | --enumerative PATH_MARKINGS]
                [--timeout TIMEOUT] [--display-model] [--display-time]
@@ -97,8 +97,8 @@ optional arguments:
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
   --timeout TIMEOUT     a limit on execution time
-  --display-model       display a counterexample if the there is one
-  --display-time        display the analysis time
+  --display-model       display a counterexample if there is one
+  --display-time        display execution times
   --display-reduction-ratio
                         display the reduction ratio
 ```
