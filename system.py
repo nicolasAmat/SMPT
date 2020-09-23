@@ -144,9 +144,9 @@ class System:
                 content = re.search(r'generated equations\n(.*)?\n\n',
                                     fp.read().replace('{', '').replace('}', '').replace('#', ''), re.DOTALL)
                 if content:
-                    lines = re.split('\n+', content.group())[1:-1]
-                    equations = [re.split(r'\s+', line.partition(' |- ')[2]) for line in lines]
-                    self.equations = [Equation(eq, self) for eq in equations]
+                    for line in re.split('\n+', content.group())[1:-1]:
+                        if line.partition(' |- ')[0] not in [' O', ' C']:
+                            self.equations.append(Equation(re.split(r'\s+', line.partition(' |- ')[2]), self))
             fp.close()
         except FileNotFoundError as e:
             exit(e)
@@ -208,7 +208,7 @@ class Equation:
                 smt_input += " {}@{}".format(elem, k_initial)
 
         if len(member) > 1:
-            smt_input = "(+ {})".format(smt_input)
+            smt_input = " (+{})".format(smt_input)
 
         return smt_input
 
@@ -248,7 +248,7 @@ class Equation:
                 smt_input += " {}".format(elem)
 
         if len(member) > 1:
-            smt_input = "(+ {})".format(smt_input)
+            smt_input = "(+{})".format(smt_input)
 
         return smt_input
 
