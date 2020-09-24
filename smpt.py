@@ -40,7 +40,7 @@ from system import System
 
 
 def main():
-    """ Main Function.
+    """ Main function.
     """
     # Arguments parser
     parser = argparse.ArgumentParser(description='SMPT: Satisfiability Modulo Petri Net')
@@ -196,11 +196,11 @@ def main():
         properties.add_formula(formula, property_id)
 
     # Display net informations
-    ptnet_info = '# ' + ptnet.id
+    ptnet_info = '#' + ptnet.id
     if results.display_reduction_ratio and ptnet_reduced is not None:
-        ptnet_info += " - RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
+        ptnet_info += " RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
     if results.display_time and ptnet_reduced is not None:
-        ptnet_info += " - t~{}s".format(reduction_time)
+        ptnet_info += " t~{}s".format(reduction_time)
     print(ptnet_info)
 
     # Iterate over properties
