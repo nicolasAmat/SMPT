@@ -312,7 +312,7 @@ class IC3:
 
         return cl
 
-    def cuber_filter(self, s):
+    def cube_filter(self, s):
         """ Extract a sub-cube with only non-null equalities,
             replace equalities by "greater or equal than".
         """
@@ -361,7 +361,7 @@ class IC3:
 
         try:
             while self.formula_reach_bad_state(k) and not stop_ic3.is_set():
-                s = self.cuber_filter(self.solver.get_model(self.ptnet_current, 0))
+                s = self.cube_filter(self.solver.get_model(self.ptnet_current, 0))
                 n = self.inductively_generalize(s, k - 2, k)
 
                 log.info("[IC3] \t\t>> s: {}".format(s))
@@ -429,7 +429,7 @@ class IC3:
                 return
 
             if self.formula_reach_state(n, s):
-                p = self.cuber_filter(self.solver.get_model(self.ptnet_current, order=0))
+                p = self.cube_filter(self.solver.get_model(self.ptnet_current, order=0))
                 m = self.inductively_generalize(p, n - 2, k)
                 states.append((m + 1, p))
             else:
