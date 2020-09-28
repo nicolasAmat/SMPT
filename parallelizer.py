@@ -84,8 +84,10 @@ class Parallelizer:
 
         if self.bmc:
             proc_bmc.join(timeout=timeout)
+            stop_bmc.set()
         if self.ic3:
             proc_ic3.join(timeout=timeout)
+            stop_ic3.set()
 
         execution_time = time.time() - start_time
 

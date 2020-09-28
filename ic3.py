@@ -441,6 +441,8 @@ class IC3:
         """ Helper function to add the result to the output list,
             and stop the concurrent method if there is one.
         """
+        self.solver.exit()
+    
         if self.stop_concurrent is not None:
             self.stop_concurrent.set()
 
