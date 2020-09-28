@@ -133,3 +133,6 @@ benchmark/INPUTS/
 benchmark/oracle/
 benchmark/inputs_list
 benchmark/data/
+
+# dependencies
+bin/
