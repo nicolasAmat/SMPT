@@ -131,3 +131,5 @@ dmypy.json
 # benchmarks directories
 benchmark/INPUTS/
 benchmark/oracle/
+benchmark/inputs_list
+benchmark/data/
