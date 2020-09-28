@@ -39,15 +39,22 @@ class Parallelizer:
     """ Analysis methods parallelizer.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, method_disabled=''):
         """ Initializer.
         """
-        self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
+        if method_disabled != 'BMC':
+            self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
                        stop_concurrent=stop_ic3)
-        self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
-                       stop_concurrent=stop_bmc)
+        else:
+            self.bmc = None
 
-    def run(self, timeout=600):
+        if method_disabled != 'IC3' and formula.method_restriction != 'IC3':
+            self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
+                       stop_concurrent=stop_bmc)
+        else:
+            self.ic3 = None
+
+    def run(self, timeout=60):
         """ Run BMC and IC3 analysis in parrallel.
 
             Return:
@@ -58,29 +65,37 @@ class Parallelizer:
         result_bmc = []
         result_ic3 = []
 
-        proc_bmc = Thread(target=self.bmc.prove, args=(result_bmc,))
-        proc_ic3 = Thread(target=self.ic3.prove, args=(result_ic3,))
+        if self.bmc:
+            proc_bmc = Thread(target=self.bmc.prove, args=(result_bmc,))
+        if self.ic3:
+            proc_ic3 = Thread(target=self.ic3.prove, args=(result_ic3,))
 
-        stop_bmc.clear()
-        stop_ic3.clear()
+        if self.bmc:
+            stop_bmc.clear()
+        if self.ic3:
+            stop_ic3.clear()
 
         start_time = time.time()
 
-        proc_bmc.start()
-        proc_ic3.start()
+        if self.bmc:
+            proc_bmc.start()
+        if self.ic3:
+            proc_ic3.start()
 
-        proc_bmc.join(timeout=timeout)
-        proc_ic3.join(timeout=timeout)
+        if self.bmc:
+            proc_bmc.join(timeout=timeout)
+        if self.ic3:
+            proc_ic3.join(timeout=timeout)
 
         execution_time = time.time() - start_time
 
         if len(result_bmc) >= 1:
-            return result_bmc[0], result_bmc[1], execution_time
+            return result_bmc[0], result_bmc[1], execution_time, 'BMC'
 
         if len(result_ic3) >= 1:
-            return not result_ic3[0], None, execution_time
+            return not result_ic3[0], None, execution_time, 'IC3'
 
-        return None, None, execution_time
+        return None, None, execution_time, ''
 
 
 if __name__ == '__main__':
@@ -105,5 +120,5 @@ if __name__ == '__main__':
 
     print("> Result of the parallelized analysis")
     print("-------------------------------------")
-    sat, _, _ = parallelizer.run()
-    print(formula.result(sat))
+    sat, _, _, method = parallelizer.run()
+    print("{} {}".format(formula.result(sat), method))

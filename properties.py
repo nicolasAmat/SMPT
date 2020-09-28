@@ -102,6 +102,7 @@ class Formula:
         self.P = None
 
         self.property_def = ""
+        self.method_restriction = ""
 
         if formula_xml is not None:
             _, _, node = formula_xml.tag.rpartition('}')
@@ -109,7 +110,7 @@ class Formula:
                 raise ValueError("Invalid formula")
             self.parse_xml(formula_xml[0])
 
-    def parse_xml(self, formula_xml):
+    def parse_xml(self, formula_xml, negation=False):
         """ Formula parser.
             Input format: .xml
         """
@@ -119,20 +120,21 @@ class Formula:
             _, _, child = formula_xml[0].tag.rpartition('}')
 
             if (node, child) == ('exists-path', 'finally'):
+                self.property_def = child
                 self.R = self.parse_xml(formula_xml[0][0])
                 self.P = StateFormula([self.R], 'not')
-                self.property_def = child
 
             if (node, child) == ('all-paths', 'globally'):
+                self.property_def = child
                 self.P = self.parse_xml(formula_xml[0][0])
                 self.R = StateFormula([self.P], 'not')
-                self.property_def = child
 
         if node == 'deadlock':
             return self.generate_deadlock()
 
         if node in ['negation', 'conjunction', 'disjunction']:
-            operands = [self.parse_xml(operand_xml) for operand_xml in formula_xml]
+            negation ^= node == 'negation'
+            operands = [self.parse_xml(operand_xml, negation=negation) for operand_xml in formula_xml]
             return StateFormula(operands, node)
 
         if node == 'is-fireable':
@@ -141,16 +143,32 @@ class Formula:
                 inequalities = []
                 for pl, weight in tr.inputs.items():
                     if weight > 0:
-                        ineq = Atom(TokenCount([pl]), IntegerConstant(weight), '<')
+                        inequality = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
+                        if (self.property_def == 'finally' and negation) or (self.property_def == 'globally' and not negation):
+                            self.method_restriction = 'IC3'
                     else:
-                        ineq = Atom(TokenCount([pl]), IntegerConstant(-weight), '>=')
-                    inequalities.append(ineq)
-                clauses.append(StateFormula(inequalities, 'or'))
-            return StateFormula(clauses, 'and')
+                        inequality = Atom(TokenCount([pl]), IntegerConstant(-weight), '<')
+                        if (self.property_def == 'finally' and not negation) or (self.property_def == 'globally' and negation):
+                            self.method_restriction = 'IC3'
+                    inequalities.append(inequality)
+                clauses.append(StateFormula(inequalities, 'and'))
+            return StateFormula(clauses, 'or')
 
         if node == 'integer-le':
-            left_operand = self.parse_xml(formula_xml[0])
-            right_operand = self.parse_xml(formula_xml[1])
+            left_operand = self.parse_xml(formula_xml[0], negation=negation)
+            right_operand = self.parse_xml(formula_xml[1], negation=negation)
+
+            finally_monotone = self.property_def == 'finally' \
+                                and ((not negation and isinstance(left_operand, IntegerConstant) and isinstance(right_operand, TokenCount)) \
+                                    or (negation and isinstance(left_operand, TokenCount) and isinstance(right_operand, IntegerConstant)))
+            globally_monotone = self.property_def == 'globally' \
+                                and ((negation and isinstance(left_operand, IntegerConstant) and isinstance(right_operand, TokenCount)) \
+                                    or (not negation and isinstance(left_operand, TokenCount) and isinstance(right_operand, IntegerConstant)))
+
+            # If the property is non-monotone disable the IC3 method
+            if not (finally_monotone or globally_monotone):
+                self.method_restriction = 'IC3'
+
             return Atom(left_operand, right_operand, '<=')
 
         if node == 'tokens-count':
@@ -191,7 +209,9 @@ class Formula:
 
         self.R = StateFormula(clauses_R, 'and')
         self.P = StateFormula([self.R], 'not')
+
         self.property_def = 'finally'
+        self.method_restriction = 'IC3'
 
         return self.R
 
@@ -208,6 +228,7 @@ class Formula:
                     ineq_R = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
                 else:
                     ineq_R = Atom(TokenCount([pl]), IntegerConstant(-weight), '<')
+                    self.method_restriction = 'IC3'
                 inequalities_R.append(ineq_R)
 
             clauses_R.append(StateFormula(inequalities_R, 'and'))

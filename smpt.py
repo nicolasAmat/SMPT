@@ -64,25 +64,25 @@ def main():
                         type=str,
                         help='path to Petri Net (.net format)')
 
-    group_formula = parser.add_mutually_exclusive_group()
+    group_properties = parser.add_mutually_exclusive_group()
 
-    group_formula.add_argument('--xml',
+    group_properties.add_argument('--xml',
                                action='store',
                                dest='path_properties',
                                type=str,
                                help='use XML format for properties')
 
-    group_formula.add_argument('--deadlock',
+    group_properties.add_argument('--deadlock',
                                action='store_true',
                                help='deadlock analysis')
 
-    group_formula.add_argument('--quasi-liveness',
+    group_properties.add_argument('--quasi-liveness',
                                action='store',
                                dest='quasi_live_transitions',
                                type=str,
                                help='liveness analysis (comma separated list of transition names)')
 
-    group_formula.add_argument('--reachability',
+    group_properties.add_argument('--reachability',
                                action='store',
                                dest='reachable_places',
                                type=str,
@@ -100,13 +100,21 @@ def main():
                               type=str,
                               help='path to reduced Petri Net (.net format)')
 
-    group_enumerative = parser.add_mutually_exclusive_group()
+    group_methods = parser.add_mutually_exclusive_group()
 
-    group_enumerative.add_argument('--auto-enumerative',
+    group_methods.add_argument('--no-bmc',
+                               action='store_true',
+                               help='disable BMC method')
+
+    group_methods.add_argument('--no-ic3',
+                               action='store_true',
+                               help='disable IC3 method')
+
+    group_methods.add_argument('--auto-enumerative',
                                    action='store_true',
                                    help="enumerate automatically the states (using `tina`)")
 
-    group_enumerative.add_argument('--enumerative',
+    group_methods.add_argument('--enumerative',
                                    action='store',
                                    dest='path_markings',
                                    type=str,
@@ -118,6 +126,10 @@ def main():
                         type=int,
                         default=60,
                         help='a limit on execution time')
+
+    parser.add_argument('--display-method',
+                        action='store_true',
+                        help="display the method returning the result")
 
     parser.add_argument('--display-model',
                         action='store_true',
@@ -196,6 +208,13 @@ def main():
         formula.generate_reachability(marking)
         properties.add_formula(formula, property_id)
 
+    # Read the method restriction
+    method_disabled = ''
+    if results.no_ic3:
+        method_disabled = 'IC3'
+    if results.no_bmc:
+        method_disabled = 'BMC'
+
     # Display net informations
     ptnet_info = '#' + ptnet.id
     if results.display_reduction_ratio and ptnet_reduced is not None:
@@ -213,13 +232,17 @@ def main():
             result = []
             enumerative = Enumerative(results.path_markings, ptnet, formula, ptnet_reduced, system, results.debug)
             enumerative.prove(result)
-            print(formula.result(result[0]))
+            print(formula.result(result[0]), end=' ')
+            # Display method
+            if results.display_method:
+                print('ENNUMERATIVE', end= '')
+            print()
             if len(result) > 1:
                 result[1].display_model()
         else:
             # Use BMC and IC3 methods in parallel
-            parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.debug)
-            sat, model, execution_time = parallelizer.run(results.timeout)
+            parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.debug, method_disabled)
+            sat, model, execution_time, method = parallelizer.run(results.timeout)
             # Display analysis result
             if sat is not None:
                 print(formula.result(sat), end=' ')
@@ -228,6 +251,12 @@ def main():
             # Display execution time
             if results.display_time:
                 print(execution_time, end=' ')
+            # Display method
+            if results.display_method:
+                if method != '':
+                    print(method, end= ' ')
+                if formula.method_restriction != '':
+                    print("({} auto-disabled)".format(formula.method_restriction), end='')
             print()
             # Display model if there is one
             if results.display_model and model is not None:

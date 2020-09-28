@@ -66,9 +66,9 @@ $> python smpt.py --help
 usage: smpt.py [-h] [--version] [-v] [--debug]
                [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
                [--auto-reduce | --reduced PATH_PTNET_REDUCED]
-               [--auto-enumerative | --enumerative PATH_MARKINGS]
-               [--timeout TIMEOUT] [--display-model] [--display-time]
-               [--display-reduction-ratio]
+               [--no-bmc | --no-ic3 | --auto-enumerative | --enumerative PATH_MARKINGS]
+               [--timeout TIMEOUT] [--display-method] [--display-model]
+               [--display-time] [--display-reduction-ratio]
                ptnet
 
 SMPT: Satisfiability Modulo Petri Net
@@ -93,10 +93,13 @@ optional arguments:
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PTNET_REDUCED
                         path to reduced Petri Net (.net format)
+  --no-bmc              disable BMC method
+  --no-ic3              disable IC3 method
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
   --timeout TIMEOUT     a limit on execution time
+  --display-method      display the method returning the result
   --display-model       display a counterexample if there is one
   --display-time        display execution times
   --display-reduction-ratio
