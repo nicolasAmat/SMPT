@@ -281,7 +281,7 @@ class Equation:
 if __name__ == "__main__":
 
     if len(sys.argv) < 3:
-        exit("File missing: ./system.py <path_to_initial_Petri_net> <path_to_reduced_Petri_net>")
+        exit("Argument missing: ./system.py <path_to_initial_Petri_net> <path_to_reduced_Petri_net>")
 
     ptnet = PetriNet(sys.argv[1])
     ptnet_reduced = PetriNet(sys.argv[2])

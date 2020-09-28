@@ -168,7 +168,7 @@ class Enumerative:
 if __name__ == '__main__':
 
     if len(sys.argv) < 3:
-        exit("File missing: ./enumerative.py <path_to_Petri_net> <path_to_aut_file> [<path_to_reduced_net>]")
+        exit("Argument missing: ./enumerative.py <path_to_Petri_net> <path_to_aut_file> [<path_to_reduced_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 

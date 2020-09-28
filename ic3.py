@@ -449,22 +449,23 @@ class IC3:
 
 if __name__ == '__main__':
 
-    if len(sys.argv) < 2:
-        exit("File missing: ./ic3.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
+    if len(sys.argv) < 3:
+        exit("Argument missing: ./ic3.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
-    ptnet = PetriNet(sys.argv[1])
+    ptnet = PetriNet(sys.argv[2])
 
+    marking = {ptnet.places[pl]: 1 for pl in sys.argv[1].split(',')}
     formula = Formula(ptnet)
-    formula.generate_deadlock()
+    formula.generate_reachability(marking)
 
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         ptnet_reduced = None
         system = None
     else:
-        ptnet_reduced = PetriNet(sys.argv[2])
-        system = System(sys.argv[2], ptnet.places.keys(), ptnet_reduced.places.keys())
+        ptnet_reduced = PetriNet(sys.argv[3])
+        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
 
     ic3 = IC3(ptnet, formula, ptnet_reduced, system)
 
@@ -473,6 +474,6 @@ if __name__ == '__main__':
     result = []
     proc = Thread(target=ic3.prove, args=(result,))
     proc.start()
-    proc.join(timeout=600)
+    proc.join(timeout=60)
     stop_ic3.set()
     print(formula.result(not result[0]))

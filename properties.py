@@ -412,7 +412,7 @@ class IntegerConstant:
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        exit("File missing: ./properties.py <path_to_Petri_net> [<path_to_xml_properties>]")
+        exit("Argument missing: ./properties.py <path_to_Petri_net> [<path_to_xml_properties>]")
 
     ptnet = PetriNet(sys.argv[1])
 

@@ -31,6 +31,7 @@ import logging as log
 import subprocess
 import tempfile
 import time
+from sys import exit
 
 from enumerative import Enumerative
 from parallelizer import Parallelizer

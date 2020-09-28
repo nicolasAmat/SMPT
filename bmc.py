@@ -224,7 +224,7 @@ class BMC:
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        exit("File missing: ./bmc.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
+        exit("Argument missing: ./bmc.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
     result = []
     proc = Thread(target=bmc.prove, args=(result,))
     proc.start()
-    proc.join(timeout=600)
+    proc.join(timeout=60)
     stop_bmc.set()
     print(formula.result(result[0]))
     result[1].display_model()

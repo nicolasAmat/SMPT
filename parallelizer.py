@@ -85,20 +85,21 @@ class Parallelizer:
 
 if __name__ == '__main__':
 
-    if len(sys.argv) < 2:
-        exit("File missing: ./parallelizer.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
+    if len(sys.argv) < 3:
+        exit("Argument missing: ./parallelizer.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
 
-    ptnet = PetriNet(sys.argv[1])
+    ptnet = PetriNet(sys.argv[2])
 
+    marking = {ptnet.places[pl]: 1 for pl in sys.argv[1].split(',')}
     formula = Formula(ptnet)
-    formula.generate_deadlock()
+    formula.generate_reachability(marking)
 
     if len(sys.argv) == 3:
-        ptnet_reduced = PetriNet(sys.argv[2])
-        system = System(sys.argv[2], ptnet.places.keys(), ptnet_reduced.places.keys())
-    else:
         ptnet_reduced = None
         system = None
+    else:
+        ptnet_reduced = PetriNet(sys.argv[3])
+        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
 
     parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system)
 
