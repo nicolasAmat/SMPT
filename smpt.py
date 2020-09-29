@@ -186,7 +186,7 @@ def main():
 
     # Generate a deadlock property if '--deadlock' enabled
     if results.deadlock:
-        property_id = "Deadlock"
+        property_id = "ReachabilityDeadlock"
         formula = Formula(ptnet)
         formula.generate_deadlock()
         properties.add_formula(formula, property_id)
@@ -256,7 +256,7 @@ def main():
                 if method != '':
                     print(method, end= ' ')
                 if formula.method_restriction != '':
-                    print("({} auto-disabled)".format(formula.method_restriction), end='')
+                    print("({}_auto-disabled)".format(formula.method_restriction), end='')
             print()
             # Display model if there is one
             if results.display_model and model is not None:

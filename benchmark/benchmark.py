@@ -34,7 +34,7 @@ def benchmark_model(path_inputs, model, path_oracles):
     dest = "data/{}/".format(model)
     path_model = "{}/{}/model.net".format(path_inputs, model)
 
-    # Clean dest directory
+    # Clean 'dest' directory
     if os.path.exists(dest):
         shutil.rmtree(dest)
     os.makedirs(dest)
@@ -68,7 +68,7 @@ def benchmark_model(path_inputs, model, path_oracles):
     
     # Run analysis benchmarks
     if analysis:
-        for properties in ['RC', 'RF']:
+        for properties in ['RC', 'RF', 'RD']:
             benchmark_properties(path_inputs, model, path_model, path_oracles, dest, properties)
 
 
@@ -76,12 +76,12 @@ def benchmark_properties(path_inputs, model, path_model, path_oracles, dest, pro
     """ Benchmark properties on a model.
     """
     # Get the corresponding properties option
-    if properties == 'RD':
-        properties_option = ['--deadlock']
     if properties == 'RC':
         properties_option = ['--xml', "{}/{}/ReachabilityCardinality.xml".format(path_inputs, model)]
     if properties == 'RF':
         properties_option = ['--xml', "{}/{}/ReachabilityFireability.xml".format(path_inputs, model)]
+    if properties == 'RD':
+        properties_option = ['--deadlock']
 
     basic_options = ['smpt', '--display-method', '--display-time', '--timeout', TIMEOUT, path_model] + properties_option
 
@@ -159,7 +159,7 @@ def main():
                         type=str,
                         help='path to oracles directory')
 
-    parser.add_argument('--generate-common-file',
+    parser.add_argument('--merge_files',
                         action='store_true',
                         help='path to oracles directory')
 
