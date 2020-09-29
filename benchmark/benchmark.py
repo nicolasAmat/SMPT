@@ -27,7 +27,7 @@ import pandas as pd
 
 
 TIMEOUT = '60'
-MIN_REDUCTION_RATIO = 30
+MIN_REDUCTION_RATIO = 50
 
 
 def benchmark_model(path_inputs, model, path_oracles):
@@ -118,7 +118,7 @@ def benchmark_properties(path_inputs, model, path_model, path_oracles, dest, pro
             assert(prop_without_reduction[0] == prop_oracle[1])
 
             # Get property data
-            property_data = [model, prop_oracle[1], prop_with_reduction[-1] == '(IC3_auto-disabled)']
+            property_data = [model, prop_oracle[1], prop_with_reduction[-1] != '(IC3_auto-disabled)']
 
             # Get analysis with reduction dat
             if prop_with_reduction[1] == 'TIMEOUT':
