@@ -55,7 +55,7 @@ rm oracle.tar.gz
 # Remove useless files
 cd oracle/
 rm -v *-COL-*
-rm -v !(*-RC.out|*-RF.out|*-GP.out)
+rm -v !(*-RC.out|*-RF.out|*-RD.out)
 cd ..
 
 # Disable extended globbing
