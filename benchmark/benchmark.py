@@ -17,11 +17,13 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
 import csv
+import glob
 import os
 import shutil
 import subprocess
 
 import numpy as np
+import pandas as pd
 
 
 TIMEOUT = '60'
@@ -138,6 +140,26 @@ def benchmark_properties(path_inputs, model, path_model, path_oracles, dest, pro
             print(' '.join(map(str, property_data)))
 
 
+def merge_files():
+    """ Merge .csv file in common files.
+    """
+    merged_path = 'data/merged/'
+
+    # Delete 'data/merged' directory
+    if os.path.exists(merged_path):
+        shutil.rmtree(merged_path)
+    
+    # Create 'data/merged' folder
+    os.makedirs(merged_path)
+    
+    # Merge files
+    for csv_filename in ['reduction.csv', 'RC.csv', 'RF.csv', 'RD.csv']:
+        csv_filenames = [filename for filename in glob.iglob('data/**/*{}'.format(csv_filename), recursive=True)]
+        if csv_filenames:
+            merged_csv = pd.concat([pd.read_csv(filename) for filename in csv_filenames])
+            merged_csv.to_csv(merged_path + csv_filename, index=False, encoding='utf-8')
+
+
 def main():
     """ Main function.
     """
@@ -159,7 +181,7 @@ def main():
                         type=str,
                         help='path to oracles directory')
 
-    parser.add_argument('--merge_files',
+    parser.add_argument('--merge-files',
                         action='store_true',
                         help='path to oracles directory')
 
@@ -173,12 +195,14 @@ def main():
     try:
         with open(results.path_inputs_list, 'r') as fp_inputs_list:
             for model in fp_inputs_list.readlines():
-                model = model.strip()
-                print(model)
-                benchmark_model(results.path_inputs, model, results.path_oracles)
+                benchmark_model(results.path_inputs, model.strip(), results.path_oracles)
         fp_inputs_list.close()
     except FileNotFoundError as e:
         exit(e)
+
+    # Merge files
+    if results.merge_files:
+        merge_files()
 
 
 if __name__ == "__main__":
