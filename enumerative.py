@@ -30,6 +30,7 @@ __version__ = "2.0.0"
 import logging as log
 import re
 import sys
+from sys import exit
 
 from properties import Formula
 from ptnet import PetriNet

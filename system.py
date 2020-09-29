@@ -29,6 +29,7 @@ __version__ = "2.0.0"
 
 import re
 import sys
+from sys import exit
 
 from ptnet import PetriNet
 
