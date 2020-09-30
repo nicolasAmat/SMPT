@@ -63,13 +63,13 @@ of [TINA](http://projects.laas.fr/tina/) does not contain this tool yet.
 You can list all the options by using the *help* option:
 ```
 $> python smpt.py --help
-usage: smpt.py [-h] [--version] [-v] [--debug]
-               [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
-               [--auto-reduce | --reduced PATH_PTNET_REDUCED]
-               [--no-bmc | --no-ic3 | --auto-enumerative | --enumerative PATH_MARKINGS]
-               [--timeout TIMEOUT] [--display-method] [--display-model]
-               [--display-time] [--display-reduction-ratio]
-               ptnet
+usage: smpt [-h] [--version] [-v] [--debug]
+            [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
+            [--auto-reduce | --reduced PATH_PTNET_REDUCED]
+            [--no-bmc | --no-ic3 | --auto-enumerative | --enumerative PATH_MARKINGS]
+            [--timeout TIMEOUT] [--skip-non-monotonic] [--display-method]
+            [--display-model] [--display-time] [--display-reduction-ratio]
+            ptnet
 
 SMPT: Satisfiability Modulo Petri Net
 
@@ -99,6 +99,7 @@ optional arguments:
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
   --timeout TIMEOUT     a limit on execution time
+  --skip-non-monotonic  skip non-monotonic properties
   --display-method      display the method returning the result
   --display-model       display a counterexample if there is one
   --display-time        display execution times

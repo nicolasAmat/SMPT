@@ -26,11 +26,7 @@ import numpy as np
 import pandas as pd
 
 
-TIMEOUT = '60'
-MIN_REDUCTION_RATIO = 50
-
-
-def benchmark_model(path_inputs, model, path_oracles):
+def benchmark_model(path_inputs, model, path_oracles, timeout, ratio_min, skip_non_monotonic):
     """ Bencharmark a model.
     """
     dest = "data/{}/".format(model)
@@ -56,7 +52,7 @@ def benchmark_model(path_inputs, model, path_oracles):
         reduction_time = np.nan
 
     # Run property analysis if the reduction ratio is greater than the minimum defined
-    analysis = reduction_ratio >= MIN_REDUCTION_RATIO
+    analysis = reduction_ratio >= ratio_min
 
     # Write model information in `reduction.csv`
     with open(dest + 'reduction.csv', 'w') as reduction_file:
@@ -71,10 +67,10 @@ def benchmark_model(path_inputs, model, path_oracles):
     # Run analysis benchmarks
     if analysis:
         for properties in ['RC', 'RF', 'RD']:
-            benchmark_properties(path_inputs, model, path_model, path_oracles, dest, properties)
+            benchmark_properties(path_inputs, model, path_model, path_oracles, dest, properties, timeout, skip_non_monotonic)
 
 
-def benchmark_properties(path_inputs, model, path_model, path_oracles, dest, properties):
+def benchmark_properties(path_inputs, model, path_model, path_oracles, dest, properties, timeout, skip_non_monotonic):
     """ Benchmark properties on a model.
     """
     # Get the corresponding properties option
@@ -85,7 +81,11 @@ def benchmark_properties(path_inputs, model, path_model, path_oracles, dest, pro
     if properties == 'RD':
         properties_option = ['--deadlock']
 
-    basic_options = ['smpt', '--display-method', '--display-time', '--timeout', TIMEOUT, path_model] + properties_option
+    # Set SMPT arguments
+    basic_options = ['smpt', '--display-method', '--display-time', '--timeout', str(timeout), path_model] + properties_option
+
+    if skip_non_monotonic:
+        basic_options.append('--skip-non-monotonic')
 
     # Run SMPT with reduction
     smpt_with_reduction = subprocess.Popen(basic_options + ['--auto-reduce'], stdout=subprocess.PIPE, encoding='utf-8')
@@ -108,7 +108,7 @@ def benchmark_properties(path_inputs, model, path_model, path_oracles, dest, pro
     with open("{}/{}.csv".format(dest, properties), 'w') as result_file:
 
         result_writer = csv.writer(result_file)
-        result_writer.writerow(['MODEL', 'PROPERTY', 'MONOTONE', 'TIME_WITH_REDUCTION', 'METHOD_WITH_REDUCTION', 'CORRECTNESS_WITH_REDUCTION', 'TIME_WITHOUT_REDUCTION', 'METHOD_WITHOUT_REDUCTION', 'CORRECTNESS_WITHOUT_REDUCTION'])
+        result_writer.writerow(['MODEL', 'PROPERTY', 'MONOTONIC', 'TIME_WITH_REDUCTION', 'METHOD_WITH_REDUCTION', 'CORRECTNESS_WITH_REDUCTION', 'TIME_WITHOUT_REDUCTION', 'METHOD_WITHOUT_REDUCTION', 'CORRECTNESS_WITHOUT_REDUCTION'])
 
         for prop_with_reduction, prop_without_reduction, prop_oracle in zip(smpt_output_with_reduction[1:], smpt_output_without_reduction[1:], oracles[1:]):
             prop_with_reduction, prop_without_reduction, prop_oracle = prop_with_reduction.strip().split(' '), prop_without_reduction.strip().split(' '), prop_oracle.strip().split(' ')
@@ -118,16 +118,20 @@ def benchmark_properties(path_inputs, model, path_model, path_oracles, dest, pro
             assert(prop_without_reduction[0] == prop_oracle[1])
 
             # Get property data
-            property_data = [model, prop_oracle[1], prop_with_reduction[-1] != '(IC3_auto-disabled)']
+            property_data = [model, prop_oracle[1], prop_with_reduction[1] != 'SKIPPED' and prop_with_reduction[-1] != '(IC3_auto-disabled)']
 
             # Get analysis with reduction dat
-            if prop_with_reduction[1] == 'TIMEOUT':
+            if prop_with_reduction[1] == 'SKIPPED':
+                analysis_with_reduction_data = [np.nan, 'None', 'Skipped']
+            elif prop_with_reduction[1] == 'TIMEOUT':
                 analysis_with_reduction_data = [np.nan, 'None', 'None']
             else:
                 analysis_with_reduction_data = [prop_with_reduction[2], prop_with_reduction[3], prop_with_reduction[1] == prop_oracle[2]]
 
             # Get analysis without reduction data
-            if prop_without_reduction[1] == 'TIMEOUT':
+            if prop_without_reduction[1] == 'SKIPPED':
+                analysis_without_reduction_data = [np.nan, 'None', 'Skipped']
+            elif prop_without_reduction[1] == 'TIMEOUT':
                 analysis_without_reduction_data = [np.nan, 'None', 'None']
             else:
                 analysis_without_reduction_data = [prop_without_reduction[2], prop_without_reduction[3], prop_without_reduction[1] == prop_oracle[2]]
@@ -185,6 +189,24 @@ def main():
                         action='store_true',
                         help='path to oracles directory')
 
+    parser.add_argument('--timeout',
+                        action='store',
+                        dest='timeout',
+                        type=int,
+                        default=60,
+                        help='limit excution time per property')
+                    
+    parser.add_argument('--ratio-min',
+                        action='store',
+                        dest='ratio_min',
+                        type=int,
+                        default=50,
+                        help='limit reduction ratio properties analysis')
+
+    parser.add_argument('--skip-non-monotonic',
+                        action='store_true',
+                        help='skip non-monotonic properties')
+
     results = parser.parse_args()
 
     # Create 'data/' directory
@@ -195,7 +217,7 @@ def main():
     try:
         with open(results.path_inputs_list, 'r') as fp_inputs_list:
             for model in fp_inputs_list.readlines():
-                benchmark_model(results.path_inputs, model.strip(), results.path_oracles)
+                benchmark_model(results.path_inputs, model.strip(), results.path_oracles, results.timeout, results.ratio_min, results.skip_non_monotonic)
         fp_inputs_list.close()
     except FileNotFoundError as e:
         exit(e)

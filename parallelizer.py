@@ -48,7 +48,7 @@ class Parallelizer:
         else:
             self.bmc = None
 
-        if method_disabled != 'IC3' and formula.method_restriction != 'IC3':
+        if method_disabled != 'IC3' and not formula.non_monotonic:
             self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
                        stop_concurrent=stop_bmc)
         else:

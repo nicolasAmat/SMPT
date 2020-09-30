@@ -127,6 +127,10 @@ def main():
                         default=60,
                         help='a limit on execution time')
 
+    parser.add_argument('--skip-non-monotonic',
+                        action='store_true',
+                        help="skip non-monotonic properties")
+
     parser.add_argument('--display-method',
                         action='store_true',
                         help="display the method returning the result")
@@ -242,22 +246,26 @@ def main():
         else:
             # Use BMC and IC3 methods in parallel
             parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.debug, method_disabled)
-            sat, model, execution_time, method = parallelizer.run(results.timeout)
-            # Display analysis result
-            if sat is not None:
-                print(formula.result(sat), end=' ')
+            # Check non-monotonic analysis
+            if results.skip_non_monotonic and formula.non_monotonic:
+                print("SKIPPED")
             else:
-                print("TIMEOUT", end=' ')
-            # Display execution time
-            if results.display_time:
-                print(execution_time, end=' ')
-            # Display method
-            if results.display_method:
-                if method != '':
-                    print(method, end= ' ')
-                if formula.method_restriction != '':
-                    print("({}_auto-disabled)".format(formula.method_restriction), end='')
-            print()
+                sat, model, execution_time, method = parallelizer.run(results.timeout)
+                # Display analysis result
+                if sat is not None:
+                    print(formula.result(sat), end=' ')
+                else:
+                    print("TIMEOUT", end=' ')
+                # Display execution time
+                if results.display_time:
+                    print(execution_time, end=' ')
+                # Display method
+                if results.display_method:
+                    if method != '':
+                        print(method, end= ' ')
+                    if formula.non_monotonic:
+                        print("(IC3_auto-disabled)", end='')
+                print()
             # Display model if there is one
             if results.display_model and model is not None:
                 model.display_model()

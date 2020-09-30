@@ -102,7 +102,7 @@ class Formula:
         self.P = None
 
         self.property_def = ""
-        self.method_restriction = ""
+        self.non_monotonic = False
 
         if formula_xml is not None:
             _, _, node = formula_xml.tag.rpartition('}')
@@ -144,12 +144,10 @@ class Formula:
                 for pl, weight in tr.inputs.items():
                     if weight > 0:
                         inequality = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
-                        if (self.property_def == 'finally' and negation) or (self.property_def == 'globally' and not negation):
-                            self.method_restriction = 'IC3'
+                        self.non_monotonic = (self.property_def == 'finally' and negation) or (self.property_def == 'globally' and not negation)
                     else:
                         inequality = Atom(TokenCount([pl]), IntegerConstant(-weight), '<')
-                        if (self.property_def == 'finally' and not negation) or (self.property_def == 'globally' and negation):
-                            self.method_restriction = 'IC3'
+                        self.non_monotonic = (self.property_def == 'finally' and not negation) or (self.property_def == 'globally' and negation)
                     inequalities.append(inequality)
                 clauses.append(StateFormula(inequalities, 'and'))
             return StateFormula(clauses, 'or')
@@ -166,8 +164,7 @@ class Formula:
                                     or (not negation and isinstance(left_operand, TokenCount) and isinstance(right_operand, IntegerConstant)))
 
             # If the property is non-monotone disable the IC3 method
-            if not (finally_monotone or globally_monotone):
-                self.method_restriction = 'IC3'
+            self.non_monotonic = not (finally_monotone or globally_monotone)
 
             return Atom(left_operand, right_operand, '<=')
 
@@ -211,7 +208,7 @@ class Formula:
         self.P = StateFormula([self.R], 'not')
 
         self.property_def = 'finally'
-        self.method_restriction = 'IC3'
+        self.non_monotonic = True
 
         return self.R
 
@@ -228,7 +225,7 @@ class Formula:
                     ineq_R = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
                 else:
                     ineq_R = Atom(TokenCount([pl]), IntegerConstant(-weight), '<')
-                    self.method_restriction = 'IC3'
+                    self.non_monotonic = True
                 inequalities_R.append(ineq_R)
 
             clauses_R.append(StateFormula(inequalities_R, 'and'))
