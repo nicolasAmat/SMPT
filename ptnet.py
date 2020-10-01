@@ -198,7 +198,7 @@ class PetriNet:
 
         content = self.parse_label(content)
 
-        if len(content) == 1:
+        if content == 1:
             initial_marking = int(content[0].replace('(', '').replace(')', ''))
         else:
             initial_marking = 0
@@ -214,7 +214,7 @@ class PetriNet:
             Input format: .net
         """
         index = 0
-        if content[index] == ':':
+        if content and content[index] == ':':
             label_skipped = content[index + 1][0] != '{'
             index = 2
             while not label_skipped:
