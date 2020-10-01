@@ -198,7 +198,7 @@ class PetriNet:
 
         content = self.parse_label(content)
 
-        if content == 1:
+        if content:
             initial_marking = int(content[0].replace('(', '').replace(')', ''))
         else:
             initial_marking = 0
