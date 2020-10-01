@@ -29,7 +29,6 @@ __version__ = "2.0.0"
 
 import re
 import sys
-from sys import exit
 
 
 class PetriNet:
@@ -117,7 +116,7 @@ class PetriNet:
                         self.parse_place(content)
             fp.close()
         except FileNotFoundError as e:
-            exit(e)
+            sys.exit(e)
 
     def parse_transition(self, content):
         """ Transition parser.
@@ -407,7 +406,7 @@ class Transition:
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        exit("Argument missing: ./ptnet.py <path_to_Petri_net>")
+        sys.exit("Argument missing: ./ptnet.py <path_to_Petri_net>")
 
     ptnet = PetriNet(sys.argv[1])
 

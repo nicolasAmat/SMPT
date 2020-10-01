@@ -144,9 +144,7 @@ class Solver:
         self.write("(set-option :produce-unsat-cores true)\n")
 
     def get_unsat_core(self):
-        """ Get an unsat core.
-            From the current UNSAT stack.
-            Return a clause (disjunctive).
+        """ Get an unsat core from the current UNSAT stack.
         """
         assert (not self.check_sat())
 

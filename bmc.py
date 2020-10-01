@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-BMC (Bounded Model Checking) method
+BMC: Bounded Model Checking
 
 This file is part of SMPT.
 
@@ -56,7 +56,7 @@ class BMC:
         self.stop_concurrent = stop_concurrent
 
     def smtlib(self, k):
-        """ Return SMT-LIB format for understanding.
+        """ SMT-LIB format for understanding.
         """
         if self.ptnet_reduced is None:
             smt_input = self.smtlib_without_reduction(k)
@@ -69,6 +69,7 @@ class BMC:
 
     def smtlib_without_reduction(self, k):
         """ SMT-LIB format for understanding.
+            Case without reduction.
         """
         smt_input = ""
 
@@ -92,6 +93,7 @@ class BMC:
 
     def smtlib_with_reduction(self, k):
         """ SMT-LIB format for understanding.
+            Case with reduction.
         """
         smt_input = ""
 
@@ -110,7 +112,7 @@ class BMC:
         smt_input += "; Declaration of the places from the reduced Petri net (order: {})\n".format(0)
         smt_input += self.ptnet_reduced.smtlib_declare_places(0)
 
-        smt_input += "; Initial Marking of the reduced Petri net\n"
+        smt_input += "; Initial marking of the reduced Petri net\n"
         smt_input += self.ptnet_reduced.smtlib_initial_marking(0)
 
         for i in range(k):
@@ -123,7 +125,7 @@ class BMC:
         smt_input += "; Reduction equations\n"
         smt_input += self.system.smtlib_equations_with_places_from_reduced_net(k)
 
-        smt_input += "; Link initial and reduced nets\n"
+        smt_input += "; Link initial and reduced Petri nets\n"
         smt_input += self.system.smtlib_link_nets(k)
 
         return smt_input
@@ -188,7 +190,7 @@ class BMC:
         self.solver.write(self.system.smtlib_declare_additional_variables())
         log.info("[BMC] \t>> Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
-        log.info("[BMC] \t>> Reduction Equations (not involving places from the reduced Petri net)")
+        log.info("[BMC] \t>> Reduction equations (not involving places from the reduced Petri net)")
         self.solver.write(self.system.smtlib_equations_without_places_from_reduced_net())
         log.info("[BMC] \t>> Declaration of the places from the reduced Petri net (order: 0)")
         self.solver.write(self.ptnet_reduced.smtlib_declare_places(0))
@@ -198,7 +200,7 @@ class BMC:
         self.solver.push()
         log.info("[BMC] \t>> Reduction equations")
         self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(0))
-        log.info("[BMC] \t>> Link initial and reduced nets")
+        log.info("[BMC] \t>> Link initial and reduced Petri nets")
         self.solver.write(self.system.smtlib_link_nets(0))
 
         k = 0
@@ -214,7 +216,7 @@ class BMC:
             self.solver.push()
             log.info("[BMC] \t>> Reduction equations")
             self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(k + 1))
-            log.info("[BMC] \t>> Link initial and reduced nets")
+            log.info("[BMC] \t>> Link initial and reduced Petri nets")
             self.solver.write(self.system.smtlib_link_nets(k + 1))
             k += 1
 
@@ -224,7 +226,7 @@ class BMC:
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        exit("Argument missing: ./bmc.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
+        sys.exit("Argument missing: ./bmc.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 

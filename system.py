@@ -29,7 +29,6 @@ __version__ = "2.0.0"
 
 import re
 import sys
-from sys import exit
 
 from ptnet import PetriNet
 
@@ -150,7 +149,7 @@ class System:
                             self.equations.append(Equation(re.split(r'\s+', line.partition(' |- ')[2]), self))
             fp.close()
         except FileNotFoundError as e:
-            exit(e)
+            sys.exit(e)
 
 
 class Equation:
@@ -282,7 +281,7 @@ class Equation:
 if __name__ == "__main__":
 
     if len(sys.argv) < 3:
-        exit("Argument missing: ./system.py <path_to_initial_Petri_net> <path_to_reduced_Petri_net>")
+        sys.exit("Argument missing: ./system.py <path_to_initial_Petri_net> <path_to_reduced_Petri_net>")
 
     ptnet = PetriNet(sys.argv[1])
     ptnet_reduced = PetriNet(sys.argv[2])

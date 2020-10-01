@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Enumerative markings method
+Enumerative Markings Method
 
 Input file format: .aut
 Documentation: http://projects.laas.fr/tina//manuals/formats.html
@@ -30,7 +30,6 @@ __version__ = "2.0.0"
 import logging as log
 import re
 import sys
-from sys import exit
 
 from properties import Formula
 from ptnet import PetriNet
@@ -72,7 +71,7 @@ class Enumerative:
         """ Assert markings (DNF).
             SMT-LIB format
         """
-        if len(self.markings) == 0:
+        if not self.markings:
             return ""
 
         if self.ptnet_reduced is None:
@@ -123,7 +122,7 @@ class Enumerative:
                         if consistent:
                             self.markings.append(marking)
         except FileNotFoundError as e:
-            exit(e)
+            sys.exit(e)
 
     def prove(self, result=[]):
         """ Prover.
@@ -162,14 +161,14 @@ class Enumerative:
         self.solver.write(self.system.smtlib())
         log.info("[ENUMERATIVE] Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
-        log.info("[ENUMERATIVE] Markings from the reduced net")
+        log.info("[ENUMERATIVE] Markings from the reduced Petri net")
         self.solver.write(self.smtlib())
 
 
 if __name__ == '__main__':
 
     if len(sys.argv) < 3:
-        exit("Argument missing: ./enumerative.py <path_to_Petri_net> <path_to_aut_file> [<path_to_reduced_net>]")
+        sys.exit("Argument missing: ./enumerative.py <path_to_Petri_net> <path_to_aut_file> [<path_to_reduced_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 

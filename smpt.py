@@ -29,9 +29,9 @@ __version__ = "2.0.0"
 import argparse
 import logging as log
 import subprocess
+import sys
 import tempfile
 import time
-from sys import exit
 
 from enumerative import Enumerative
 from parallelizer import Parallelizer
@@ -279,4 +279,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    exit(0)
+    sys.exit(0)

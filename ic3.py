@@ -119,7 +119,7 @@ class IC3:
     def assert_equations(self, init=False):
         """ Assert reduction equations.
 
-            Orders are the same than the declare places method.
+            Orders are equivalent to the declare places method.
         """
         if not self.reduction:
             return ""
@@ -140,7 +140,7 @@ class IC3:
                    + self.system.smtlib_link_nets(1, 11)
 
     def assert_formula(self, i):
-        """ Assert F_i
+        """ Assert F_i.
         """
         if i == 0:
             smt_input = self.oars[i][0].smtlib(0, assertion=True)
@@ -167,7 +167,7 @@ class IC3:
         # F1 = P
         self.oars.append([self.formula.P])
 
-    def init_marking_reach_bad_state(self):
+    def initial_marking_bad_state(self):
         """ sat (I and -P)
         """
         log.info("[IC3] > INIT => P")
@@ -179,7 +179,7 @@ class IC3:
 
         return self.solver.check_sat()
 
-    def init_tr_reach_bad_state(self):
+    def initial_marking_reach_bad_state(self):
         """ sat (I and T and -P')
         """
         log.info("[IC3] > INIT and T => P'")
@@ -328,7 +328,7 @@ class IC3:
         """
         log.info("[IC3] RUNNING")
 
-        if self.init_marking_reach_bad_state() or self.init_tr_reach_bad_state():
+        if self.initial_marking_bad_state() or self.initial_marking_reach_bad_state():
             self.exit_helper(False, result)
             return False
 
@@ -452,7 +452,7 @@ class IC3:
 if __name__ == '__main__':
 
     if len(sys.argv) < 3:
-        exit("Argument missing: ./ic3.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
+        sys.exit("Argument missing: ./ic3.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
 
     log.basicConfig(format="%(message)s", level=log.DEBUG)
 

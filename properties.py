@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Formula Parser and Generator Module
+Properties Parser and Generator
 
 This file is part of SMPT.
 
@@ -430,7 +430,7 @@ class IntegerConstant:
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        exit("Argument missing: ./properties.py <path_to_Petri_net> [<path_to_xml_properties>]")
+        sys.exit("Argument missing: ./properties.py <path_to_Petri_net> [<path_to_xml_properties>]")
 
     ptnet = PetriNet(sys.argv[1])
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Parallelizer for BMC and IC3 analysis methods.
+Parallelizer for BMC and IC3 Analysis Methods
 
 This file is part of SMPT.
 
@@ -42,17 +42,15 @@ class Parallelizer:
     def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, method_disabled=''):
         """ Initializer.
         """
+        self.bmc, self.ic3 = None, None
+
         if method_disabled != 'BMC':
             self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
                        stop_concurrent=stop_ic3)
-        else:
-            self.bmc = None
 
         if method_disabled != 'IC3' and not formula.non_monotonic:
             self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
                        stop_concurrent=stop_bmc)
-        else:
-            self.ic3 = None
 
     def run(self, timeout=60):
         """ Run BMC and IC3 analysis in parrallel.
@@ -62,8 +60,7 @@ class Parallelizer:
             - a counterexample if there is one,
             - execution time.
         """
-        result_bmc = []
-        result_ic3 = []
+        result_bmc, result_ic3 = [], []
 
         if self.bmc:
             proc_bmc = Thread(target=self.bmc.prove, args=(result_bmc,))
@@ -103,7 +100,7 @@ class Parallelizer:
 if __name__ == '__main__':
 
     if len(sys.argv) < 3:
-        exit("Argument missing: ./parallelizer.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
+        sys.exit("Argument missing: ./parallelizer.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
 
     ptnet = PetriNet(sys.argv[2])
 

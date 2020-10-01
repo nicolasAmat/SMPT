@@ -128,11 +128,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# benchmarks directories
+# Benchmarks directories
 benchmark/INPUTS/
 benchmark/oracle/
 benchmark/inputs_list
 benchmark/data/
 
-# dependencies
+# Dependencies
 bin/
