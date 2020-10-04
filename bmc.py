@@ -25,8 +25,12 @@ __license__ = "GPLv3"
 __version__ = "2.0.0"
 
 import logging as log
+import os
+import signal
 import sys
 from multiprocessing import Process, Queue
+
+import psutil
 
 from properties import Formula
 from ptnet import PetriNet
@@ -39,7 +43,7 @@ class BMC:
     Bounded Model Checking method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, parallelizer=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, parallelizer_pid=None):
         """ Initializer.
         """
         self.ptnet = ptnet
@@ -50,7 +54,7 @@ class BMC:
         self.formula = formula
 
         self.solver = Solver(debug)
-        self.parallelizer = parallelizer
+        self.parallelizer_pid = parallelizer_pid
 
     def smtlib(self, k):
         """ SMT-LIB format for understanding.
@@ -138,12 +142,17 @@ class BMC:
             self.prove_with_reduction()
             order = None
 
-
+        # Put the result in the queue
         result.put([True, self.solver.get_model(self.ptnet, order)])
 
-        self.solver.kill()
-        if self.parallelizer:
-            self.parallelizer.stop_ic3()
+        # Kill parallelizer children
+        if self.parallelizer_pid:
+            bmc_pid = os.getpid()
+            parent = psutil.Process(self.parallelizer_pid)
+            children = parent.children(recursive=True)
+            for process in children:
+                if process.pid != bmc_pid:
+                    process.send_signal(signal.SIGTERM)
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.

@@ -49,13 +49,13 @@ class Solver:
     def __init__(self, debug=False):
         """ Initializer.
         """
-        self.solver = Popen('z3 -in', stdin=PIPE, stdout=PIPE, shell=True, preexec_fn=os.setsid)
+        self.solver = Popen(['z3', '-in'], stdin=PIPE, stdout=PIPE)
         self.debug = debug
 
     def kill(self):
         """" Kill the process.
         """
-        os.killpg(os.getpgid(self.solver.pid), signal.SIGTERM)
+        self.solver.kill()
 
     def write(self, smt_input, debug=False):
         """ Write instructions into the standard input.

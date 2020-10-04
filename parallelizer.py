@@ -24,9 +24,13 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "2.0.0"
 
+import os
+import signal
 import sys
 import time
 from multiprocessing import Process, Queue
+
+import psutil
 
 from bmc import BMC
 from ic3 import IC3
@@ -46,11 +50,11 @@ class Parallelizer:
 
         # Create a BMC instance if not disabled
         if method_disabled != 'BMC':
-            self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, parallelizer=self)
+            self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, parallelizer_pid=os.getpid())
 
         # Create an IC3 instance if not disabled and if the formula is monotonic
         if method_disabled != 'IC3' and not formula.non_monotonic:
-            self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, parallelizer=self)
+            self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, parallelizer_pid=os.getpid())
 
         self.proc_bmc, self.proc_ic3 = None, None
 
@@ -68,10 +72,8 @@ class Parallelizer:
         # Create daemon processes
         if self.bmc:
             self.proc_bmc = Process(target=self.bmc.prove, args=(result_bmc,))
-            self.proc_bmc.daemon = True
         if self.ic3:
             self.proc_ic3 = Process(target=self.ic3.prove, args=(result_ic3,))
-            self.proc_ic3.daemon = True
 
         # Get the starting time
         start_time = time.time()
@@ -110,22 +112,13 @@ class Parallelizer:
     def stop(self):
         """ Stop BMC and IC3 methods.
         """
-        self.stop_bmc()
-        self.stop_ic3()
-
-    def stop_bmc(self):
-        """ Stop BMC method.
-        """
-        if self.proc_bmc:
-            self.bmc.solver.kill()
-            self.proc_bmc.terminate()
-
-    def stop_ic3(self):
-        """ Stop IC3 method.
-        """
-        if self.proc_ic3:
-            self.ic3.solver.kill()
-            self.proc_ic3.terminate()
+        # Kill children
+        parallelizer_pid = os.getpid()
+        parent = psutil.Process(parallelizer_pid)
+        children = parent.children(recursive=True)
+        for process in children:
+            if process.pid != parallelizer_pid:
+                process.send_signal(signal.SIGTERM)
 
 
 if __name__ == '__main__':

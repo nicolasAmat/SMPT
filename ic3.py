@@ -40,8 +40,12 @@ __version__ = "2.0.0"
 
 import copy
 import logging as log
+import os
+import signal
 import sys
 from multiprocessing import Process, Queue
+
+import psutil
 
 from properties import Atom, Formula, IntegerConstant, StateFormula, TokenCount
 from ptnet import PetriNet
@@ -60,7 +64,7 @@ class IC3:
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, parallelizer=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, parallelizer_pid=None):
         """ Initializer.
 
             By default the IC3 method uses the unsat core of the solver.
@@ -79,7 +83,7 @@ class IC3:
         self.oars = []  # list of CNFs
 
         self.solver = Solver(debug)
-        self.parallelizer = parallelizer        
+        self.parallelizer_pid = parallelizer_pid
         
         if unsat_core:
             self.sub_clause_finder = self.sub_clause_finder_unsat_core
@@ -436,14 +440,20 @@ class IC3:
                 states.append((m + 1, s))
 
     def exit_helper(self, result, result_output):
-        """ Helper function to add the result to the output list,
+        """ Helper function to put the result to the output queue,
             and stop the concurrent method if there is one.
         """
-        self.solver.kill()
+        # Put the result in the queue
         result_output.put([result])
 
-        if self.parallelizer:
-            self.parallelizer.stop_bmc()
+        # Kill parallelizer children
+        if self.parallelizer_pid:
+            ic3_pid = os.getpid()
+            parent = psutil.Process(self.parallelizer_pid)
+            children = parent.children(recursive=True)
+            for process in children:
+                if process.pid != ic3_pid:
+                    process.send_signal(signal.SIGTERM)
 
 
 if __name__ == '__main__':
