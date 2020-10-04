@@ -26,14 +26,12 @@ __version__ = "2.0.0"
 
 import logging as log
 import sys
-from threading import Event, Thread
+from multiprocessing import Process, Queue
 
 from properties import Formula
 from ptnet import PetriNet
 from solver import Solver
 from system import System
-
-stop_bmc = Event()
 
 
 class BMC:
@@ -41,7 +39,7 @@ class BMC:
     Bounded Model Checking method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, stop_concurrent=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, parallelizer=None):
         """ Initializer.
         """
         self.ptnet = ptnet
@@ -52,8 +50,7 @@ class BMC:
         self.formula = formula
 
         self.solver = Solver(debug)
-
-        self.stop_concurrent = stop_concurrent
+        self.parallelizer = parallelizer
 
     def smtlib(self, k):
         """ SMT-LIB format for understanding.
@@ -141,14 +138,12 @@ class BMC:
             self.prove_with_reduction()
             order = None
 
-        if not stop_bmc.is_set():
-            result.append(True)
-            result.append(self.solver.get_model(self.ptnet, order))
 
-        self.solver.exit()
+        result.put([True, self.solver.get_model(self.ptnet, order)])
 
-        if self.stop_concurrent:
-            self.stop_concurrent.set()
+        self.solver.kill()
+        if self.parallelizer:
+            self.parallelizer.stop_ic3()
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.
@@ -164,7 +159,7 @@ class BMC:
         self.solver.write(self.formula.R.smtlib(0, assertion=True))
 
         k = 0
-        while not self.solver.check_sat() and not stop_bmc.is_set():
+        while not self.solver.check_sat():
             log.info("[BMC] > k = {}".format(k))
             log.info("[BMC] \t>> Pop")
             self.solver.pop()
@@ -204,7 +199,7 @@ class BMC:
         self.solver.write(self.system.smtlib_link_nets(0))
 
         k = 0
-        while not self.solver.check_sat() and not stop_bmc.is_set():
+        while not self.solver.check_sat():
             log.info("[BMC] > k = {}".format(k))
             log.info("[BMC] \t>> Pop")
             self.solver.pop()
@@ -250,10 +245,12 @@ if __name__ == '__main__':
 
     print("> Result computed using z3")
     print("--------------------------")
-    result = []
-    proc = Thread(target=bmc.prove, args=(result,))
+    result = Queue()
+    proc = Process(target=bmc.prove, args=(result,))
     proc.start()
     proc.join(timeout=60)
-    stop_bmc.set()
-    print(formula.result(result[0]))
-    result[1].display_model()
+    if not result.empty():
+        sat, model = result.get()
+        print(formula.result(sat))
+        model.display_model()
+

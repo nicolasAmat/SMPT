@@ -140,7 +140,7 @@ class Enumerative:
         else:
             result.append(False)
 
-        self.solver.exit()
+        self.solver.kill()
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri net.

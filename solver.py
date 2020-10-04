@@ -32,6 +32,8 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "2.0.0"
 
+import os
+import signal
 from subprocess import PIPE, Popen
 
 from properties import Atom, IntegerConstant, StateFormula, TokenCount
@@ -47,15 +49,13 @@ class Solver:
     def __init__(self, debug=False):
         """ Initializer.
         """
-        self.solver = Popen(["z3", "-in"], stdin=PIPE, stdout=PIPE)
+        self.solver = Popen('z3 -in', stdin=PIPE, stdout=PIPE, shell=True, preexec_fn=os.setsid)
         self.debug = debug
 
-    def exit(self):
-        """" Exit.
+    def kill(self):
+        """" Kill the process.
         """
-        self.write("(exit)\n")
-        self.solver.stdin.close()
-        self.solver.stdout.close()
+        os.killpg(os.getpgid(self.solver.pid), signal.SIGTERM)
 
     def write(self, smt_input, debug=False):
         """ Write instructions into the standard input.
@@ -122,7 +122,7 @@ class Solver:
         while True:
             place_content = self.readline().split(' ')
             
-            if len(place_content) < 2 or self.solver.poll() is not None:
+            if len(place_content) < 2:
                 break
 
             place_marking = self.readline().replace(' ', '').replace(')', '')

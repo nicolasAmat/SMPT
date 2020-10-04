@@ -26,10 +26,10 @@ __version__ = "2.0.0"
 
 import sys
 import time
-from threading import Thread
+from multiprocessing import Process, Queue
 
-from bmc import BMC, stop_bmc
-from ic3 import IC3, stop_ic3
+from bmc import BMC
+from ic3 import IC3
 from properties import Formula
 from ptnet import PetriNet
 from system import System
@@ -44,13 +44,15 @@ class Parallelizer:
         """
         self.bmc, self.ic3 = None, None
 
+        # Create a BMC instance if not disabled
         if method_disabled != 'BMC':
-            self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
-                       stop_concurrent=stop_ic3)
+            self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, parallelizer=self)
 
+        # Create an IC3 instance if not disabled and if the formula is monotonic
         if method_disabled != 'IC3' and not formula.non_monotonic:
-            self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug,
-                       stop_concurrent=stop_bmc)
+            self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, parallelizer=self)
+
+        self.proc_bmc, self.proc_ic3 = None, None
 
     def run(self, timeout=60):
         """ Run BMC and IC3 analysis in parrallel.
@@ -60,41 +62,70 @@ class Parallelizer:
             - a counterexample if there is one,
             - execution time.
         """
-        result_bmc, result_ic3 = [], []
+        # Create queues to store the result
+        result_bmc, result_ic3 = Queue(), Queue()
 
+        # Create daemon processes
         if self.bmc:
-            proc_bmc = Thread(target=self.bmc.prove, args=(result_bmc,))
+            self.proc_bmc = Process(target=self.bmc.prove, args=(result_bmc,))
+            self.proc_bmc.daemon = True
         if self.ic3:
-            proc_ic3 = Thread(target=self.ic3.prove, args=(result_ic3,))
+            self.proc_ic3 = Process(target=self.ic3.prove, args=(result_ic3,))
+            self.proc_ic3.daemon = True
 
-        if self.bmc:
-            stop_bmc.clear()
-        if self.ic3:
-            stop_ic3.clear()
-
+        # Get the starting time
         start_time = time.time()
 
-        if self.bmc:
-            proc_bmc.start()
-        if self.ic3:
-            proc_ic3.start()
+        # Start processes
+        if self.proc_bmc:
+            self.proc_bmc.start()
+        if self.proc_ic3:
+            self.proc_ic3.start()
 
-        if self.bmc:
-            proc_bmc.join(timeout=timeout)
-            stop_bmc.set()
-        if self.ic3:
-            proc_ic3.join(timeout=timeout)
-            stop_ic3.set()
+        # Join the BMC process, if it finishes it will kill the IC3 process
+        if self.proc_bmc:
+            self.proc_bmc.join(timeout=timeout)
 
+        # Join the IC3 process if BMC is disabled
+        if self.proc_ic3 and not self.proc_bmc:
+            self.proc_ic3.join(timeout=timeout)
+
+        # Get the execution time
         execution_time = time.time() - start_time
 
-        if len(result_bmc) >= 1:
-            return result_bmc[0], result_bmc[1], execution_time, 'BMC'
+        # Get the BMC result if there is one
+        if not result_bmc.empty():
+            sat, model = result_bmc.get()
+            return sat, model, execution_time, 'BMC'
 
-        if len(result_ic3) >= 1:
-            return not result_ic3[0], None, execution_time, 'IC3'
-
+        # Get the IC3 result if there is one
+        if not result_ic3.empty():
+            sat = not result_ic3.get()[0]
+            return sat, None, execution_time, 'IC3'
+        
+        # Otherwise exit
+        self.stop()
         return None, None, execution_time, ''
+
+    def stop(self):
+        """ Stop BMC and IC3 methods.
+        """
+        self.stop_bmc()
+        self.stop_ic3()
+
+    def stop_bmc(self):
+        """ Stop BMC method.
+        """
+        if self.proc_bmc:
+            self.bmc.solver.kill()
+            self.proc_bmc.terminate()
+
+    def stop_ic3(self):
+        """ Stop IC3 method.
+        """
+        if self.proc_ic3:
+            self.ic3.solver.kill()
+            self.proc_ic3.terminate()
 
 
 if __name__ == '__main__':

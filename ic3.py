@@ -41,14 +41,12 @@ __version__ = "2.0.0"
 import copy
 import logging as log
 import sys
-from threading import Event, Thread
+from multiprocessing import Process, Queue
 
 from properties import Atom, Formula, IntegerConstant, StateFormula, TokenCount
 from ptnet import PetriNet
 from solver import Solver
 from system import System
-
-stop_ic3 = Event()
 
 
 class Counterexample(Exception):
@@ -62,8 +60,7 @@ class IC3:
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True,
-                 stop_concurrent=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, parallelizer=None):
         """ Initializer.
 
             By default the IC3 method uses the unsat core of the solver.
@@ -82,12 +79,13 @@ class IC3:
         self.oars = []  # list of CNFs
 
         self.solver = Solver(debug)
+        self.parallelizer = parallelizer        
+        
         if unsat_core:
             self.sub_clause_finder = self.sub_clause_finder_unsat_core
         else:
             self.sub_clause_finder = self.sub_clause_finder_mic
 
-        self.stop_concurrent = stop_concurrent
 
     def declare_places(self, init=False):
         """ Declare places.
@@ -336,7 +334,7 @@ class IC3:
 
         k = 1
 
-        while not stop_ic3.is_set():
+        while True:
             log.info("[IC3] > F{} = P".format(k + 1))
 
             self.oars.append([self.formula.P])
@@ -360,7 +358,7 @@ class IC3:
         log.info("[IC3] > Strengthen (k = {})".format(k))
 
         try:
-            while self.formula_reach_bad_state(k) and not stop_ic3.is_set():
+            while self.formula_reach_bad_state(k):
                 s = self.cube_filter(self.solver.get_model(self.ptnet_current, 0))
                 n = self.inductively_generalize(s, k - 2, k)
 
@@ -421,7 +419,7 @@ class IC3:
         """
         log.info("[IC3] \t> Push generalization (k = {})".format(k))
 
-        while not stop_ic3.is_set():
+        while True:
             state = min(states, key=lambda t: t[0])
             n, s = state[0], state[1]
 
@@ -441,12 +439,11 @@ class IC3:
         """ Helper function to add the result to the output list,
             and stop the concurrent method if there is one.
         """
-        self.solver.exit()
-    
-        if self.stop_concurrent is not None:
-            self.stop_concurrent.set()
+        self.solver.kill()
+        result_output.put([result])
 
-        result_output.append(result)
+        if self.parallelizer:
+            self.parallelizer.stop_bmc()
 
 
 if __name__ == '__main__':
@@ -473,9 +470,10 @@ if __name__ == '__main__':
 
     print("> Result computed using z3")
     print("--------------------------")
-    result = []
-    proc = Thread(target=ic3.prove, args=(result,))
+    result = Queue()
+    proc = Process(target=ic3.prove, args=(result,))
     proc.start()
     proc.join(timeout=60)
-    stop_ic3.set()
-    print(formula.result(not result[0]))
+    if not result.empty():
+        sat = not result.get()[0]
+        print(formula.result(sat))
