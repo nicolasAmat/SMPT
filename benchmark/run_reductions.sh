@@ -27,7 +27,6 @@ for D in "$PATH_INPUTS"*; do
         # Run smpt and redirect the result in 'reduction.out'
         smpt --auto-reduce --save-reduced-net --display-reduction-ratio --display-time $D/model.net > $PATH_OUTPUTS$INSTANCE/reduction.out
     fi
-    exit 0
 done
 
 # Exit
