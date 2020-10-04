@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Script to reduce all the instances.
+
 # Set paths
 PATH_INPUTS="INPUTS/"
 PATH_OUTPUTS="OUTPUTS/"

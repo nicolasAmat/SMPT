@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Script to install INPUTS and oracles from MCC.
+
 # Thanks to Yann Thierry-Mieg.
 # This file is inspired from https://github.com/yanntm/pnmcc-models-2020/install_inputs.sh.
 # Dependencies:
@@ -29,23 +31,20 @@ rm -rv lost+found
 ls *.tgz | xargs -n1 tar -xzvf
 rm -v *.tgz
 for D in *; do
-    if [[ ("${D}" == GPPP-PT-C0010N1000000000) || ("${D}" == LamportFastMutEx-PT-*) ]]; then
-        rm -rv "${D}"
-    elif [ -d "${D}" ]; then
-        echo "${D}"
-        cd "${D}"
+    if [[ ($D == GPPP-PT-C0010N1000000000) || ($D == LamportFastMutEx-PT-*) ]]; then
+        rm -rv $D
+    elif [ -d $D ]; then
+        echo $D
+        cd $D
         rm -v !(model.pnml|ReachabilityCardinality.xml|ReachabilityFireability.xml)
         ndrio model.pnml model.net
-        if [[ ("${D}" == IBM*) ]]; then
+        if [[ ($D == IBM*) ]]; then
             sed -i 's/_/./g' ReachabilityCardinality.xml ReachabilityFireability.xml
         fi
         cd ..
     fi
 done
 cd ..
-
-# Create models list
-ls INPUTS/ > inputs_list
 
 # Get oracles
 wget https://yanntm.github.io/pnmcc-models-2020/oracle.tar.gz
