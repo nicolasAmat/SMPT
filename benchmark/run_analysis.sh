@@ -36,13 +36,14 @@ while IFS= read instance; do
     P2=$!
     smpt --display-method --display-time --timeout $TIMEOUT $PATH_INSTANCE/model.net --deadlock >  $PATH_OUTPUT/RD_without_reduction.out &
     P3=$!
-    smpt --display-method --display-time --timeout $TIMEOUT $PATH_INSTANCE/model.net --xml $PATH_INSTANCE/ReachabilityCardinality.xml --auto-reduce >  $PATH_OUTPUT/RC_with_reduction.out &
+    smpt --display-method --display-time --timeout $TIMEOUT $PATH_INSTANCE/model.net --xml $PATH_INSTANCE/ReachabilityCardinality.xml --reduce $PATH_INSTANCE/model_reduced.net >  $PATH_OUTPUT/RC_with_reduction.out &
     P4=$!
-    smpt --display-method --display-time --timeout $TIMEOUT $PATH_INSTANCE/model.net --xml $PATH_INSTANCE/ReachabilityFireability.xml --auto-reduce >  $PATH_OUTPUT/RF_with_reduction.out &
+    smpt --display-method --display-time --timeout $TIMEOUT $PATH_INSTANCE/model.net --xml $PATH_INSTANCE/ReachabilityFireability.xml --reduce $PATH_INSTANCE/model_reduced.net >  $PATH_OUTPUT/RF_with_reduction.out &
     P5=$!
-    smpt --display-method --display-time --timeout $TIMEOUT $PATH_INSTANCE/model.net --deadlock --auto-reduce >  $PATH_OUTPUT/RD_with_reductio.out &
+    smpt --display-method --display-time --timeout $TIMEOUT $PATH_INSTANCE/model.net --deadlock --reduce $PATH_INSTANCE/model_reduced.net >  $PATH_OUTPUT/RD_with_reductio.out &
     P6=$!
 
+    # Wait completion
     wait $P1 $P2 $P3 $P4 $P5 $P6 
 
 done <$LIST
