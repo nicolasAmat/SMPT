@@ -100,6 +100,10 @@ def main():
                               type=str,
                               help='path to reduced Petri Net (.net format)')
 
+    parser.add_argument('--save-reduced-net',
+                               action='store_true',
+                               help='save the reduced net')
+
     group_methods = parser.add_mutually_exclusive_group()
 
     group_methods.add_argument('--no-bmc',
@@ -163,7 +167,10 @@ def main():
 
     # Reduce the Petri net if '--auto-reduce' enabled
     if results.auto_reduce:
-        fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
+        if results.save_reduced_net:
+            fp_ptnet_reduced = open(results.path_ptnet.replace('.net', '_reduced.net'), 'w+')
+        else:
+            fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
         start_time = time.time()
         subprocess.run(
             ["reduce", "-rg,redundant,compact+,convert,mg,4ti2,transitions", "-redundant-limit", "650", "-redundant-time", "10", "-inv-limit", "1000", "-inv-time", "10", results.path_ptnet, fp_ptnet_reduced.name])
@@ -223,7 +230,7 @@ def main():
     ptnet_info = '#' + ptnet.id
     if results.display_reduction_ratio and ptnet_reduced is not None:
         ptnet_info += " RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
-    if results.display_time and ptnet_reduced is not None:
+    if results.display_time and results.auto_reduce:
         ptnet_info += " t~{}s".format(reduction_time)
     print(ptnet_info)
 

@@ -25,7 +25,7 @@ for D in "$PATH_INPUTS"*; do
         mkdir -p -- $PATH_OUTPUTS$INSTANCE
 
         # Run smpt and redirect the result in 'reduction.out'
-        smpt --auto-reduce --display-reduction-ratio --display-time $D/model.net > $PATH_OUTPUTS$INSTANCE/reduction.out
+        smpt --auto-reduce --save-reduced-net --display-reduction-ratio --display-time $D/model.net > $PATH_OUTPUTS$INSTANCE/reduction.out
     fi
     exit 0
 done

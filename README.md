@@ -66,6 +66,7 @@ $> python smpt.py --help
 usage: smpt [-h] [--version] [-v] [--debug]
             [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
             [--auto-reduce | --reduced PATH_PTNET_REDUCED]
+            [--save-reduced-net]
             [--no-bmc | --no-ic3 | --auto-enumerative | --enumerative PATH_MARKINGS]
             [--timeout TIMEOUT] [--skip-non-monotonic] [--display-method]
             [--display-model] [--display-time] [--display-reduction-ratio]
@@ -93,6 +94,7 @@ optional arguments:
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PTNET_REDUCED
                         path to reduced Petri Net (.net format)
+  --save-reduced-net    save the reduced net
   --no-bmc              disable BMC method
   --no-ic3              disable IC3 method
   --auto-enumerative    enumerate automatically the states (using `tina`)
