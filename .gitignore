@@ -130,9 +130,8 @@ dmypy.json
 
 # Benchmarks directories
 benchmark/INPUTS/
+benchmark/OUTPUTS/
 benchmark/oracle/
-benchmark/inputs_list
-benchmark/data/
 
 # Dependencies
 bin/
