@@ -40,6 +40,9 @@ for D in *; do
         ndrio model.pnml model.net
         if [[ ($D == IBM*) ]]; then
             sed -i 's/_/./g' ReachabilityCardinality.xml ReachabilityFireability.xml
+        elif [[ ($D == Angiogenesis*) ]]; then
+            sed -i 's/t0/k0/g' ReachabilityFireability.xml
+            sed -i 's/t1/k1/g' ReachabilityFireability.xml
         fi
         cd ..
     fi
