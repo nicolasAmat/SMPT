@@ -43,7 +43,7 @@ class BMC:
     Bounded Model Checking method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, parallelizer_pid=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, display_model=False, debug=False, parallelizer_pid=None):
         """ Initializer.
         """
         self.ptnet = ptnet
@@ -53,7 +53,10 @@ class BMC:
 
         self.formula = formula
 
+        self.display_model = display_model
+
         self.solver = Solver(debug)
+
         self.parallelizer_pid = parallelizer_pid
 
     def smtlib(self, k):
@@ -143,7 +146,10 @@ class BMC:
             order = None
 
         # Put the result in the queue
-        result.put([True, self.solver.get_model(self.ptnet, order)])
+        model = None
+        if self.display_model:
+            model = self.solver.get_model(self.ptnet, order)
+        result.put([True, model])
 
         # Kill parallelizer children
         if self.parallelizer_pid:

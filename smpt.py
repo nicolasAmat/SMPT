@@ -252,7 +252,7 @@ def main():
                 result[1].display_model()
         else:
             # Use BMC and IC3 methods in parallel
-            parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.debug, method_disabled)
+            parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.display_model, results.debug, method_disabled)
             # Check non-monotonic analysis
             if results.skip_non_monotonic and formula.non_monotonic:
                 print("SKIPPED")

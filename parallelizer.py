@@ -43,14 +43,14 @@ class Parallelizer:
     """ Analysis methods parallelizer.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, method_disabled=''):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, display_model=False, debug=False, method_disabled=''):
         """ Initializer.
         """
         self.bmc, self.ic3 = None, None
 
         # Create a BMC instance if not disabled
         if method_disabled != 'BMC':
-            self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, parallelizer_pid=os.getpid())
+            self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, display_model=display_model, debug=debug, parallelizer_pid=os.getpid())
 
         # Create an IC3 instance if not disabled and if the formula is monotonic
         if method_disabled != 'IC3' and not formula.non_monotonic:
