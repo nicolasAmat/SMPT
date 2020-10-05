@@ -256,17 +256,26 @@ class Equation:
         """ Equation parser.
             Input format: .net (output of the `reduced` tool)
         """
+        inversed = False
+
         for index, element in enumerate(eq):
             if element != '+':
                 if element in ['=', '<=', '>=', '<', '>']:
                     self.operator = element
                 else:
-                    element = element
+                    if '-1.' in element:
+                        element = element.replace('-1.', '')  
+                        inversed = True
                     self.check_variable(element, system)
                     if index == 0:
                         self.left.append(element)
                     else:
                         self.right.append(element)
+
+        if inversed:
+            self.left.append(self.right.pop(0))
+            if not self.right:
+                self.right.append('0')
 
     def check_variable(self, element, system):
         """ Check if a given element is an additional variable and a place from the reduced net.
