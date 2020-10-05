@@ -144,10 +144,12 @@ class Formula:
                 for pl, weight in tr.inputs.items():
                     if weight > 0:
                         inequality = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
-                        self.non_monotonic = (self.property_def == 'finally' and negation) or (self.property_def == 'globally' and not negation)
+                        if (self.property_def == 'finally' and negation) or (self.property_def == 'globally' and not negation):
+                            self.non_monotonic = True
                     else:
                         inequality = Atom(TokenCount([pl]), IntegerConstant(-weight), '<')
-                        self.non_monotonic = (self.property_def == 'finally' and not negation) or (self.property_def == 'globally' and negation)
+                        if (self.property_def == 'finally' and not negation) or (self.property_def == 'globally' and negation):
+                            self.non_monotonic = True
                     inequalities.append(inequality)
                 clauses.append(StateFormula(inequalities, 'and'))
             return StateFormula(clauses, 'or')
@@ -156,15 +158,15 @@ class Formula:
             left_operand = self.parse_xml(formula_xml[0], negation=negation)
             right_operand = self.parse_xml(formula_xml[1], negation=negation)
 
-            finally_monotone = self.property_def == 'finally' \
+            finally_monotonic = self.property_def == 'finally' \
                                 and ((not negation and isinstance(left_operand, IntegerConstant) and isinstance(right_operand, TokenCount)) \
                                     or (negation and isinstance(left_operand, TokenCount) and isinstance(right_operand, IntegerConstant)))
-            globally_monotone = self.property_def == 'globally' \
+            globally_monotonic = self.property_def == 'globally' \
                                 and ((negation and isinstance(left_operand, IntegerConstant) and isinstance(right_operand, TokenCount)) \
                                     or (not negation and isinstance(left_operand, TokenCount) and isinstance(right_operand, IntegerConstant)))
 
-            # If the property is non-monotone disable the IC3 method
-            self.non_monotonic = not (finally_monotone or globally_monotone)
+            if not (finally_monotonic or globally_monotonic):
+                self.non_monotonic = True
 
             return Atom(left_operand, right_operand, '<=')
 
