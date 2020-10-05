@@ -64,17 +64,26 @@ class Solver:
             print(smt_input)
 
         if smt_input != "":
-            self.solver.stdin.write(bytes(smt_input, 'utf-8'))
+            try:
+                self.solver.stdin.write(bytes(smt_input, 'utf-8'))
+            except BrokenPipeError:
+                return ""
 
     def flush(self):
         """ Flush the standard input.
         """
-        self.solver.stdin.flush()
+        try:
+            self.solver.stdin.flush()
+        except BrokenPipeError:
+            return
 
     def readline(self, debug=False):
         """ Read a line from the standard output.
         """
-        smt_output = self.solver.stdout.readline().decode('utf-8').strip()
+        try:
+            smt_output = self.solver.stdout.readline().decode('utf-8').strip()
+        except BrokenPipeError:
+            return ""
 
         if self.debug or debug:
             print(smt_output)
