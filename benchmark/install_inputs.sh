@@ -31,7 +31,7 @@ rm -rv lost+found
 ls *.tgz | xargs -n1 tar -xzvf
 rm -v *.tgz
 for D in *; do
-    if [[ ($D == GPPP-PT-C0010N1000000000) || ($D == LamportFastMutEx-PT-*) ]]; then
+    if [[ ($D == GPPP-PT-C0010N1000000000) || ($D == LamportFastMutEx-PT-*) ||  ($D == FamilyReunion-PT-L00200M0020C010P010G005) || ($D == FamilyReunion-PT-L00400M0040C020P020G001) || ($D == ViralEpidemic-PT-S16D2C4A03) ]]; then
         rm -rv $D
     elif [ -d $D ]; then
         echo $D
