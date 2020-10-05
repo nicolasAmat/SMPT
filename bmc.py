@@ -152,7 +152,10 @@ class BMC:
             children = parent.children(recursive=True)
             for process in children:
                 if process.pid != bmc_pid:
-                    process.send_signal(signal.SIGTERM)
+                    try:
+                        process.send_signal(signal.SIGTERM)
+                    except psutil.NoSuchProcess:
+                        pass
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.

@@ -118,7 +118,10 @@ class Parallelizer:
         children = parent.children(recursive=True)
         for process in children:
             if process.pid != parallelizer_pid:
-                process.send_signal(signal.SIGTERM)
+                try:
+                    process.send_signal(signal.SIGTERM)
+                except psutil.NoSuchProcess:
+                    pass
 
 
 if __name__ == '__main__':
