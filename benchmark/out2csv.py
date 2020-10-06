@@ -61,6 +61,14 @@ def properties_converter(path_outputs, instance, properties, path_oracles):
     if not (os.path.isfile('{}/{}/{}_with_reduction.out'.format(path_outputs, instance, properties)) and os.path.isfile('{}/{}/{}_without_reduction.out'.format(path_outputs, instance, properties))):
         return
 
+    # Read oracles, if they do not exist do nothing
+    try:
+        with open('{}/{}-{}.out'.format(path_oracles, instance, properties)) as fp_oracles:
+            oracles = fp_oracles.readlines()
+        fp_oracles.close()
+    except FileNotFoundError as e:
+        return
+
     # Open `{properties}_with_reduction.out`
     with open('{}/{}/{}_with_reduction.out'.format(path_outputs, instance, properties)) as out_with_reduction:
         properties_with_reduction = out_with_reduction.readlines()
@@ -68,14 +76,6 @@ def properties_converter(path_outputs, instance, properties, path_oracles):
     # Open `{properties}_with_reduction.out`
     with open('{}/{}/{}_without_reduction.out'.format(path_outputs, instance, properties)) as out_without_reduction:
         properties_without_reduction = out_without_reduction.readlines()
-
-    # Read oracles
-    try:
-        with open('{}/{}-{}.out'.format(path_oracles, instance, properties)) as fp_oracles:
-            oracles = fp_oracles.readlines()
-        fp_oracles.close()
-    except FileNotFoundError as e:
-        exit(e)
 
     # Write properties information to `{RC,RF,RD}.csv`
     with open("{}/{}/{}.csv".format(path_outputs, instance, properties), 'w') as result_file:
@@ -130,6 +130,7 @@ def merge_files(path_outputs):
     
     # Merge files
     for csv_filename in ['reduction.csv', 'RC.csv', 'RF.csv', 'RD.csv']:
+        print(csv_filename)
         csv_filenames = [filename for filename in glob.iglob('{}/**/*{}'.format(path_outputs, csv_filename), recursive=True)]
         if csv_filenames:
             merged_csv = pd.concat([pd.read_csv(filename) for filename in csv_filenames])
