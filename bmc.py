@@ -142,14 +142,17 @@ class BMC:
         if self.ptnet_reduced is None:
             order = self.prove_without_reduction()
         else:
-            self.prove_with_reduction()
-            order = None
+            order = self.prove_with_reduction()
 
         # Put the result in the queue
         model = None
-        if self.display_model:
-            model = self.solver.get_model(self.ptnet, order)
-        result.put([True, model])
+        if order == -1:
+            sat = False
+        else:
+            sat = True
+            if self.display_model:
+                model = self.solver.get_model(self.ptnet, order)
+        result.put([sat, model])
 
         # Kill parallelizer children
         if self.parallelizer_pid:
@@ -216,6 +219,9 @@ class BMC:
         log.info("[BMC] \t>> Link initial and reduced Petri nets")
         self.solver.write(self.system.smtlib_link_nets(0))
 
+        if not self.ptnet_reduced.places and not self.solver.check_sat():
+            return -1
+
         k = 0
         while not self.solver.check_sat():
             log.info("[BMC] > k = {}".format(k))
@@ -233,7 +239,7 @@ class BMC:
             self.solver.write(self.system.smtlib_link_nets(k + 1))
             k += 1
 
-        return k
+        return None
 
 
 if __name__ == '__main__':
