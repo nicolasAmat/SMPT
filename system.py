@@ -256,18 +256,21 @@ class Equation:
         """ Equation parser.
             Input format: .net (output of the `reduced` tool)
         """
-        inversed = False
+        left_parsing, inversed = True, False
 
-        for index, element in enumerate(eq):
+        for element in eq:
             if element != '+':
                 if element in ['=', '<=', '>=', '<', '>']:
                     self.operator = element
+                    left_parsing = False
                 else:
                     if '-1.' in element:
                         element = element.replace('-1.', '')  
                         inversed = True
+                    
                     self.check_variable(element, system)
-                    if index == 0:
+                    
+                    if left_parsing:
                         self.left.append(element)
                     else:
                         self.right.append(element)
