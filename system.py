@@ -145,7 +145,7 @@ class System:
                                     fp.read().replace('{', '').replace('}', '').replace('#', '.'), re.DOTALL)
                 if content:
                     for line in re.split('\n+', content.group())[1:-1]:
-                        if line.partition(' |- ')[0] not in [' O', ' C']:
+                        if line.partition(' |- ')[0] not in ['. O', '. C']:
                             self.equations.append(Equation(re.split(r'\s+', line.partition(' |- ')[2]), self))
             fp.close()
         except FileNotFoundError as e:
