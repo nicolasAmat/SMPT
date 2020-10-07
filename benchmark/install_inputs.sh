@@ -38,11 +38,17 @@ for D in *; do
         cd $D
         rm -v !(model.pnml|ReachabilityCardinality.xml|ReachabilityFireability.xml)
         ndrio model.pnml model.net
-        if [[ ($D == IBM*) ]]; then
+        if [[ ($D == IBM*) || ($D == HypertorusGrid*) || ($D == IOTPpurchase*) || ($D == NeighborGrid*) ]]; then
             sed -i 's/_/./g' ReachabilityCardinality.xml ReachabilityFireability.xml
         elif [[ ($D == Angiogenesis*) ]]; then
             sed -i 's/t0/k0/g' ReachabilityFireability.xml
             sed -i 's/t1/k1/g' ReachabilityFireability.xml
+        elif [[ ($D == NeoElection*) ]]; then
+            sed -i 's/P-//g' ReachabilityCardinality.xml
+            sed -i 's/T-//g' ReachabilityFireability.xml
+        elif [[ ($D == Solitaire*) ]]; then
+            sed -i 's/p23/T23/g' ReachabilityCardinality.xml
+            sed -i 's/p25/T25/g' ReachabilityCardinality.xml
         fi
         cd ..
     fi
