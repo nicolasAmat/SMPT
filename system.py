@@ -142,7 +142,7 @@ class System:
         try:
             with open(filename, 'r') as fp:
                 content = re.search(r'generated equations\n(.*)?\n\n',
-                                    fp.read().replace('{', '').replace('}', '').replace('#', ''), re.DOTALL)
+                                    fp.read().replace('{', '').replace('}', '').replace('#', '.'), re.DOTALL)
                 if content:
                     for line in re.split('\n+', content.group())[1:-1]:
                         if line.partition(' |- ')[0] not in [' O', ' C']:

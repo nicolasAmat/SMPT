@@ -106,7 +106,7 @@ class PetriNet:
         try:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
-                    content = re.split(r'\s+', line.strip().replace('#', ''))  # '#' forbidden in SMT-LIB
+                    content = re.split(r'\s+', line.strip().replace('#', '.'))  # '#' forbidden in SMT-LIB
                     element = content.pop(0)
                     if element == "net":
                         self.id = content[0].replace('{', '').replace('}', '')
@@ -125,7 +125,7 @@ class PetriNet:
         transition_id = content.pop(0).replace('{', '').replace('}', '')  # '{' and '}' forbidden in SMT-LIB
 
         if transition_id in self.transitions:
-            tr = self.transitions[tr.id]
+            tr = self.transitions[transition_id]
         else:
             tr = Transition(transition_id, self)
             self.transitions[transition_id] = tr

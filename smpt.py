@@ -205,7 +205,7 @@ def main():
     # Generate a quasi-liveness property if '--quasi-liveness' enabled
     if results.quasi_live_transitions is not None:
         property_id = "Quasi-liveness-{}".format(results.quasi_live_transitions)
-        transitions = results.quasi_live_transitions.replace('#', '').replace('{', '').replace('}', '').split(',')
+        transitions = results.quasi_live_transitions.replace('#', '.').replace('{', '').replace('}', '').split(',')
         formula = Formula(ptnet)
         formula.generate_quasi_liveness(transitions)
         properties.add_formula(formula, property_id)
@@ -213,7 +213,7 @@ def main():
     # Generate a reachability property if '--reachability' enabled
     if results.reachable_places is not None:
         property_id = "Reachability:-{}".format(results.reachable_places)
-        places = results.reachable_places.replace('#', '').replace('{', '').replace('}', '').split(',')
+        places = results.reachable_places.replace('#', '.').replace('{', '').replace('}', '').split(',')
         marking = {ptnet.places[pl]: 1 for pl in places}
         formula = Formula(ptnet)
         formula.generate_reachability(marking)
