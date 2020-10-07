@@ -37,24 +37,24 @@ for D in *; do
         echo $D
         cd $D
         rm -v !(model.pnml|ReachabilityCardinality.xml|ReachabilityFireability.xml)
-        if [[ ($D == IBM*) ]]; then
-            sed -i 's/__/&&/g' ReachabilityCardinality.xml ReachabilityFireability.xml
+        if [[ ($D == HypertorusGrid*) || ($D == IBM*) || ($D == NeighborGrid*) ]]; then
             sed -i 's/_/./g' ReachabilityCardinality.xml ReachabilityFireability.xml
-            sed -i 's/&&/__/g' ReachabilityCardinality.xml ReachabilityFireability.xml
-        elif [[ ($D == HypertorusGrid*) || ($D == IOTPpurchase*) || ($D == NeighborGrid*) ]]; then
-            sed -i 's/_/./g' ReachabilityCardinality.xml ReachabilityFireability.xml
+            if [[ ($D == IBMB2S565S3960-PT-none) ]]; then
+                sed -i 's/\.\./__/g' ReachabilityFireability.xml
+            fi
         elif [[ ($D == Angiogenesis*) ]]; then
             sed -i 's/t0/k0/g' ReachabilityFireability.xml
             sed -i 's/t1/k1/g' ReachabilityFireability.xml
         elif [[ ($D == NeoElection*) ]]; then
             sed -i 's/P-//g' ReachabilityCardinality.xml
             sed -i 's/T-//g' ReachabilityFireability.xml
+            sed -i 's/NeoElection-P/NeoElection-PT-/g' ReachabilityFireability.xml
         elif [[ ($D == Solitaire*) ]]; then
             sed -i 's/p23/T23/g' ReachabilityCardinality.xml
             sed -i 's/p25/T25/g' ReachabilityCardinality.xml
         fi
         ndrio model.pnml model.net
-        if [[ ($D == IOTIOTPpurchase*) ]]; then
+        if [[ ($D == IOTPpurchase*) ]]; then
             sed -i 's/,/./g' model.net
         fi
         cd ..
