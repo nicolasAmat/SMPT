@@ -37,7 +37,7 @@ for D in *; do
         echo $D
         cd $D
         rm -v !(model.pnml|ReachabilityCardinality.xml|ReachabilityFireability.xml)
-        if [[ ($D == HypertorusGrid-PT-d2k1p8b00) || ($D == IBM*) || ($D == NeighborGrid*) ]]; then
+        if [[ ($D == HypertorusGrid-PT-d2k1p8b00) || ($D == IBM*) || ($D == IOTPpurchase*) || ($D == NeighborGrid*) ]]; then
             sed -i 's/_/./g' ReachabilityCardinality.xml ReachabilityFireability.xml
             if [[ ($D == IBMB2S565S3960-PT-none) ]]; then
                 sed -i 's/\.\./__/g' ReachabilityFireability.xml
