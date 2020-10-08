@@ -162,6 +162,7 @@ def main():
     # Read the input Petri net
     ptnet = PetriNet(results.path_ptnet)
 
+    # By default no reduction
     ptnet_reduced = None
     system = None
 
@@ -181,6 +182,11 @@ def main():
     if results.path_ptnet_reduced is not None:
         ptnet_reduced = PetriNet(results.path_ptnet_reduced)
         system = System(results.path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
+
+    # Disable reduction is the Petri net is not reducible
+    if system is not None and not system.equations:
+        ptnet_reduced = None
+        system = None
 
     # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
@@ -273,9 +279,9 @@ def main():
                     if formula.non_monotonic:
                         print("(IC3_auto-disabled)", end='')
                 print()
-            # Display model if there is one
-            if results.display_model and model is not None:
-                model.display_model()
+                # Display model if there is one
+                if results.display_model and model is not None:
+                    model.display_model()
 
     # Close temporary files
     if results.auto_reduce:
