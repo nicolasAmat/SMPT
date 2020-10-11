@@ -85,10 +85,6 @@ def properties_converter(path_outputs, instance, properties, path_oracles):
 
         for prop_with_reduction, prop_without_reduction, prop_oracle in zip(properties_with_reduction[1:], properties_without_reduction[1:], oracles[1:]):
             prop_with_reduction, prop_without_reduction, prop_oracle = prop_with_reduction.strip().split(' '), prop_without_reduction.strip().split(' '), prop_oracle.strip().split(' ')
-            
-            # Assert property ids are equal
-            assert(prop_with_reduction[0] == prop_oracle[1])
-            assert(prop_without_reduction[0] == prop_oracle[1])
 
             # Get property data
             property_data = [instance, prop_oracle[1], prop_with_reduction[1] != 'SKIPPED' and prop_with_reduction[-1] != '(IC3_auto-disabled)']
