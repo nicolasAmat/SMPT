@@ -174,7 +174,7 @@ def main():
             fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
         start_time = time.time()
         subprocess.run(
-            ["reduce", "-rg,redundant,compact+,mg,4ti2,transitions", "-redundant-limit", "650", "-redundant-time", "10", "-inv-limit", "1000", "-inv-time", "10", results.path_ptnet, fp_ptnet_reduced.name])
+            ["reduce", "-rg,redundant,compact+,mg,4ti2", "-redundant-limit", "650", "-redundant-time", "10", "-inv-limit", "1000", "-inv-time", "10", results.path_ptnet, fp_ptnet_reduced.name])
         reduction_time = time.time() - start_time
         results.path_ptnet_reduced = fp_ptnet_reduced.name
 
