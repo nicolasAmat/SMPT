@@ -183,11 +183,6 @@ def main():
         ptnet_reduced = PetriNet(results.path_ptnet_reduced)
         system = System(results.path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
 
-    # Disable reduction is the Petri net is not reducible
-    if system is not None and not system.equations:
-        ptnet_reduced = None
-        system = None
-
     # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
         fp_markings = tempfile.NamedTemporaryFile(suffix='.aut')
@@ -239,6 +234,11 @@ def main():
     if results.display_time and results.auto_reduce:
         ptnet_info += " t~{}s".format(reduction_time)
     print(ptnet_info)
+
+    # Disable reduction is the Petri net is not reducible
+    if system is not None and not system.equations:
+        ptnet_reduced = None
+        system = None
 
     # Iterate over properties
     for property_id, formula in properties.formulas.items():
