@@ -49,7 +49,7 @@ $> jupyter notebook experimental_results.ipynb
 Fast experiment:
 ```bash
 $> ./install_inputs.sh
-$> echo "<instance_name>" > list; ./fast_check.sh list
+$> echo "<instance_name>" > list; ./fast_check.sh list; rm list
 ```
 
 
