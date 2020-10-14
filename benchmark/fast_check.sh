@@ -8,7 +8,7 @@ LIST=$1
 
 ./run_reductions.sh $1
 ./run_analysis.sh $1
-./out2csv.py "OUTPUTS/" "oracles/" --merge-files
+./out2csv.py "OUTPUTS/" "oracle/" --merge-files
 jupyter notebook experimental_results.ipynb
 
 # Exit
