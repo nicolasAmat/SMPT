@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Script to run SMPT for ReachabilityCardinality, ReachabilityFireability and Deadlock properties 
-# on a given list of instances with and without Petri net reduction.
+# Script to run SMPT for ReachabilityCardinality, ReachabilityFireability and ReachabilityDeadlock properties 
+# on a given list of instances with and without net reductions.
+
 
 # Set timeout
 TIMEOUT=60
@@ -13,7 +14,7 @@ PATH_OUTPUTS="OUTPUTS/"
 # Create ouputs directory if does not exist
 mkdir -p $PATH_OUTPUTS
 
-# Get instances list
+# Get list of instances
 LIST=$1
 
 # Read instances

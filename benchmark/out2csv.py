@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-OUT 2 CSV Script for SMPT Benchmarking.
+.out to .csv script.
 """
 
 import argparse
