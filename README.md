@@ -20,6 +20,8 @@ SMPT is an SMT-based model-checker for Petri nets that takes advantage of nets r
 ## Requirements
 
 * Python >= 3.5
+  + [psutil](https://pypi.org/project/psutil/) package
+  + (optional) [cx_Freeze](https://pypi.org/project/psutil/) package
 * [Z3](https://github.com/Z3Prover/z3)
 * (optional) [reduce](http://projects.laas.fr/tina/) (not released yet)
   + [struct](http://projects.laas.fr/tina/)
