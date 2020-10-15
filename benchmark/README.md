@@ -1,29 +1,29 @@
 # SMPT: Benchmarking Toolset
 
-`SMPT/benchmark` provides a set of scripts to perform a performance evaluation of the SMPT model-checker.
+`SMPT/benchmark/` provides a set of scripts to perform a performance evaluation of the SMPT model-checker.
 
 ## Usage
 
 - `install_inputs.sh`  
   Script to download models and properties from the MCC2020, as well as some oracles provided by Yann Thierry-Mieg.  
-  Create `INPUTS/` and `oracle/` directories.
+  Creates `INPUTS/` and `oracle/` directories.
 
 - `run_reductions.sh <path_to_instance_list>`  
   Script to reduce a given list of instances.  
-  Save reduced nets to the `INPUTS/` directory and write SMPT outputs to the `OUTPUTS/` directory. 
+  Saves reduced nets to the `INPUTS/` directory and writes SMPT outputs to the `OUTPUTS/` directory. 
 
 - `run_analysis.sh <path_to_instance_list>`  
-  Script to analyze ReachabilityCardinality, ReachablityFireability and ReacahbilityDeadlock properties
+  Script to analyze `ReachabilityCardinality`, `ReachabilityFireability` and `ReachabilityDeadlock` properties
   for a given list of instances.  
-  Write SMPT outputs in the `OUTPUTS/` directory.
+  Writes SMPT outputs in the `OUTPUTS/` directory.
 
 - `out2csv.py <path_to_OUTPUTS_dir> <path_to_oracle_dir> [--merge-files]`  
   Sript to summarize `.out` files to `.csv` format.  
   Enable option `--merge-files` to merge all `.csv` files in the `merged/` subdirectory.
 
 - `experimental_results.ipynb`  
-  Jupyter notebook to analyze outputs results.  
-  Dependencies: notebook, pandas, numpy, matplotlib, seaborn. 
+  Jupyter notebook to analyze output results.  
+  Dependencies:  `notebook`, `pandas`, `numpy`, `matplotlib`, `seaborn`. 
 
 - `instance_lists/`  
   Lists of instances as follows:
@@ -36,20 +36,26 @@
 
 ## Example
 
-Complete experiments:
-```bash
+Run complete experiments:
+```
 $> ./install_inputs.sh
 $> ./run_reductions.sh instance_lists/instances_all
 $> ./run_analysis.sh instance_lists/instances_30-50
 $> ./run_analysis.sh instance_lists/instances_50-100
 $> ./out2csv.py OUTPUTS/ oracle/ --merge-files
-$> jupyter notebook experimental_results.ipynb
+$> jupyter notebook
+
+# Open the output URL in a web browser.
+# Open `experimental_results.ipynb` notebook.
+# Click on `Cell -> Run all`.
 ```
 
-Fast experiment:
-```bash
+Run fast experiments:
+```
 $> ./install_inputs.sh
 $> echo "<instance_name>" > list; ./fast_check.sh list; rm list
+
+# Open the output URL in a web browser.
+# Open `experimental_results.ipynb` notebook.
+# Click on `Cell -> Run all`.
 ```
-
-
