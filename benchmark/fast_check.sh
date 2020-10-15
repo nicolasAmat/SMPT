@@ -16,7 +16,7 @@ echo "Convert .out files to .csv"
 ./out2csv.py "OUTPUTS/" "oracle/" --merge-files
 
 echo "Start Jupyter notebook"
-jupyter notebook experimental_results.ipynb
+jupyter notebook
 
 # Exit
 echo DONE
