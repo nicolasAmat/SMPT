@@ -34,6 +34,12 @@
 - `fast_check.sh <path_to_instance_list>`  
   Run `install_inputs.sh`, `run_reductions.sh`, `run_analysis.sh` and `experimental_results.ipynb` consecutively on a given list of instances.
 
+- `run_analysis_sequential.sh <path_to_instance_list>`  
+  Similar to `run_analysis.sh` without SMPT parallel executions (for weak hardware configurations).
+
+- `fast_check_sequential.sh <path_to_instance_list>`  
+  Similar to `fast_check.sh` without SMPT parellel executions (for weak hardware configurations).
+  
 ## Example
 
 Run complete experiments:
