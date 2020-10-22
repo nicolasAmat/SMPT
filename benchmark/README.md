@@ -30,7 +30,7 @@
   + `instances_all`: all instances,
   + `instances_30-49`: selection of 55 instances with a reduction ratio between 30% and 49%,
   + `instances_50-100`: selection of 179 instances with a reduction ratio between 50% and 100%,
-  + `instances_selection`: small selection of instances from `instances_30-49` and `instances_50-100` (only one instance per model).  
+  + `instances_selection`: short selection of instances from `instances_30-49` and `instances_50-100` (only one instance per model).  
   
 - `fast_check.sh <path_to_instance_list>`  
   Run `install_inputs.sh`, `run_reductions.sh`, `run_analysis.sh` and `experimental_results.ipynb` consecutively on a given list of instances.

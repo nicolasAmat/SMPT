@@ -15,7 +15,7 @@ Y8a     a8P  88    `888'    88   Y8,   88       d8"           ,8P      88
 
 ## About
 
-SMPT is an SMT-based model-checker for Petri nets that takes advantage of nets reduction.
+SMPT is an SMT-based model-checker for Petri nets that takes advantage of net reductions.
 
 ## Requirements
 
