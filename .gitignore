@@ -132,6 +132,7 @@ dmypy.json
 benchmark/INPUTS/
 benchmark/OUTPUTS/
 benchmark/oracle/
+benchmark/pics/
 
 # Dependencies
 bin/
