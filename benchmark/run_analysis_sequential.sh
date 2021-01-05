@@ -6,7 +6,7 @@
 
 
 # Set timeout
-TIMEOUT=60
+TIMEOUT=120
 
 # Set paths
 PATH_INPUTS="INPUTS/"
