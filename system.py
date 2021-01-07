@@ -312,7 +312,7 @@ class Variable:
         """ Variable to .net format.
         """
         text = ""
-        if self.multiplier:
+        if self.multiplier is not None:
             text += "{}.".format(self.multiplier)
         return text + self.id
 
@@ -322,9 +322,9 @@ class Variable:
             SMT-LIB format
         """
         smtlib = self.id
-        if k:
+        if k is not None:
             smtlib += "@{}".format(k)
-        if self.multiplier:
+        if self.multiplier is not None:
             smtlib = "(* {} {})".format(self.multiplier, smtlib)
         return " {}".format(smtlib)
 
