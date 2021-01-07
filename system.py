@@ -155,7 +155,7 @@ class System:
 class Equation:
     """
     Equation defined by:
-    - a left member,
+    - left members,
     - right members,
     - an operator,
     - a boolean indicating whether the equation
@@ -176,7 +176,7 @@ class Equation:
     def __str__(self):
         """ Equation to .net format.
         """
-        return ' + '.join(self.left) + ' = ' + ' + '.join(self.right)
+        return ' + '.join(map(str, self.left)) + ' = ' + ' + '.join(map(str, self.right))
 
     def smtlib(self, k_initial=None, other_vars=[]):
         """ Assert the equation.
@@ -201,11 +201,11 @@ class Equation:
         """
         smt_input = ""
 
-        for elem in member:
-            if k_initial is None or elem not in other_vars:
-                smt_input += " {}".format(elem)
+        for var in member:
+            if k_initial is None or var.id not in other_vars:
+                smt_input += var.smtlib()
             else:
-                smt_input += " {}@{}".format(elem, k_initial)
+                smt_input += var.smtlib(k_initial)
 
         if len(member) > 1:
             smt_input = " (+{})".format(smt_input)
@@ -238,17 +238,16 @@ class Equation:
             SMTLIB format
         """
         smt_input = ""
-
-        for elem in member:
-            if elem in places_reduced:
-                smt_input += " {}@{}".format(elem, k)
-            elif k_initial is not None and elem in other_vars:
-                smt_input += " {}@{}".format(elem, k_initial)
+        for var in member:
+            if var.id in places_reduced:
+                smt_input += var.smtlib(k)
+            elif k_initial is not None and var.id in other_vars:
+                smt_input += var.smtlib(k_initial)
             else:
-                smt_input += " {}".format(elem)
+                smt_input += var.smtlib()
 
         if len(member) > 1:
-            smt_input = "(+{})".format(smt_input)
+            smt_input = " (+{})".format(smt_input)
 
         return smt_input
 
@@ -264,16 +263,22 @@ class Equation:
                     self.operator = element
                     left_parsing = False
                 else:
+                    multiplier = None
+
                     if '-1.' in element:
                         element = element.replace('-1.', '')  
                         inversed = True
                     
+                    elif '.' in element:
+                        multiplication = element.split('.')
+                        element, multiplier = multiplication[1], multiplication[0] 
+
                     self.check_variable(element, system)
-                    
+
                     if left_parsing:
-                        self.left.append(element)
+                        self.left.append(Variable(element, multiplier))
                     else:
-                        self.right.append(element)
+                        self.right.append(Variable(element, multiplier))
 
         if inversed:
             self.left.append(self.right.pop(0))
@@ -288,6 +293,40 @@ class Equation:
                 system.additional_vars.append(element)
             if element in system.places_reduced:
                 self.contain_reduced = True
+
+
+class Variable:
+    """
+    Variable defined by:
+    - an identifier,
+    - a multiplier (if there is one).
+    """
+
+    def __init__(self, id, multiplier=None):
+        """ Initializer.
+        """
+        self.id = id
+        self.multiplier = multiplier
+
+    def __str__(self):
+        """ Variable to .net format.
+        """
+        text = ""
+        if self.multiplier:
+            text += "{}.".format(self.multiplier)
+        return text + self.id
+
+    def smtlib(self, k=None):
+        """ Variable, and its multiplication if needed.
+
+            SMT-LIB format
+        """
+        smtlib = self.id
+        if k:
+            smtlib += "@{}".format(k)
+        if self.multiplier:
+            smtlib = "(* {} {})".format(self.multiplier, smtlib)
+        return " {}".format(smtlib)
 
 
 if __name__ == "__main__":
