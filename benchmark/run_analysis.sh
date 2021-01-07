@@ -34,12 +34,12 @@ while IFS= read instance; do
     mkdir -p $PATH_OUTPUT
 
     # Run smpt
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityCardinality.xml >  ${PATH_OUTPUT}RC_without_reduction.out" >> $TEMP_FILE
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityFireability.xml >  ${PATH_OUTPUT}RF_without_reduction.out" >> $TEMP_FILE
+    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityCardinality.xml > ${PATH_OUTPUT}RC_without_reduction.out" >> $TEMP_FILE
+    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityFireability.xml > ${PATH_OUTPUT}RF_without_reduction.out" >> $TEMP_FILE
     echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --deadlock >  ${PATH_OUTPUT}RD_without_reduction.out" >> $TEMP_FILE
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityCardinality.xml --reduce ${PATH_INSTANCE}model_reduced.net >  ${PATH_OUTPUT}RC_with_reduction.out" >> $TEMP_FILE
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityFireability.xml --reduce ${PATH_INSTANCE}model_reduced.net >  ${PATH_OUTPUT}RF_with_reduction.out" >> $TEMP_FILE
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --deadlock --reduce ${PATH_INSTANCE}model_reduced.net >  ${PATH_OUTPUT}RD_with_reduction.out" >> $TEMP_FILE
+    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityCardinality.xml --reduce ${PATH_INSTANCE}model_reduced.net > ${PATH_OUTPUT}RC_with_reduction.out" >> $TEMP_FILE
+    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityFireability.xml --reduce ${PATH_INSTANCE}model_reduced.net > ${PATH_OUTPUT}RF_with_reduction.out" >> $TEMP_FILE
+    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --deadlock --reduce ${PATH_INSTANCE}model_reduced.net > ${PATH_OUTPUT}RD_with_reduction.out" >> $TEMP_FILE
 
 done <$LIST
 
