@@ -35,7 +35,7 @@ class CP:
     Constraint Programming method.
     """
 
-    def __init__(self, ptnet, formula, system, display_model=False, debug=False, minizinc=False):
+    def __init__(self, ptnet, formula, system, timeout, display_model=False, debug=False, minizinc=False):
         """ Initializer.
         """
         self.ptnet = ptnet
@@ -43,17 +43,19 @@ class CP:
         self.formula = formula
 
         self.system = system
+        
+        self.timeout = timeout
 
         self.display_model = display_model
-    
+
         self.minizinc = minizinc
 
         if minizinc:
-            self.solver = MiniZinc(debug)
+            self.solver = MiniZinc(debug, timeout)
         else:
-            self.solver = Solver(debug)
+            self.solver = Solver(debug, timeout)
 
-    def prove(self, timeout):
+    def prove(self):
         """ Prover.
         """
         model = None
@@ -67,7 +69,12 @@ class CP:
         if sat and self.display_model:
             model = self.solver.get_model(self.ptnet)
 
-        return sat, model, time.time() - start_time
+        execution_time = time.time() - start_time
+
+        if execution_time >= self.timeout:
+            sat = None
+
+        return sat, model, execution_time
 
     def prove_minizinc(self):
         """ Solve constraints using MiniZinc.

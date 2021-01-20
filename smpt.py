@@ -273,8 +273,8 @@ def main():
 
                 else:
                     # Use CP (Constraint Programming) method
-                    cp = CP(ptnet, formula, system, results.display_model, results.debug, results.minizinc)
-                    sat, model, execution_time = cp.prove(results.timeout)
+                    cp = CP(ptnet, formula, system, results.timeout, results.display_model, results.debug, results.minizinc)
+                    sat, model, execution_time = cp.prove()
                     method = "CP"
 
                 # Display analysis result

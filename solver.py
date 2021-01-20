@@ -44,10 +44,13 @@ class Solver:
     - a debug option.
     """
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, timeout=0):
         """ Initializer.
         """
-        self.solver = Popen(['z3', '-in'], stdin=PIPE, stdout=PIPE)
+        process = ['z3', '-in']
+        if timeout:
+            process.append('-T:{}'.format(timeout))
+        self.solver = Popen(process, stdin=PIPE, stdout=PIPE)
         self.debug = debug
 
     def kill(self):
@@ -167,10 +170,13 @@ class MiniZinc:
         - a debug option.
     """
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, timeout=0):
         """ Initializer.
         """
-        self.solver = Popen(['minizinc', '-'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        process = ['minizinc', '-']
+        if timeout:
+            process.extend(['--time-limit', str(timeout * 1000)])
+        self.solver = Popen(process, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         self.debug = debug
 
         self.first_value = ""
@@ -214,7 +220,11 @@ class MiniZinc:
         """ Check the satisfiability.
         """
         self.write("solve satisfy;\n")
-        self.solver.stdin.close()
+        try:
+            self.solver.stdin.close()
+        except BrokenPipeError:
+            return False
+        
         minizinc_output = self.readline()
 
         if ';' in minizinc_output:
