@@ -354,7 +354,7 @@ class Variable:
         if k is not None:
             smtlib_input += "@{}".format(k)
         if self.multiplier is not None:
-            smtlib = "(* {} {})".format(self.multiplier, smtlib_input)
+            smtlib_input = "(* {} {})".format(self.multiplier, smtlib_input)
         return " {}".format(smtlib_input)
 
     def minizinc(self):
