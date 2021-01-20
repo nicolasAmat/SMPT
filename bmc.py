@@ -276,5 +276,6 @@ if __name__ == '__main__':
     if not result.empty():
         sat, model = result.get()
         print(formula.result(sat))
-        model.display_model()
+        if model is not None:
+            model.display_model()
 
