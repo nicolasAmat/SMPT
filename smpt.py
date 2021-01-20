@@ -33,6 +33,7 @@ import sys
 import tempfile
 import time
 
+from cp import CP
 from enumerative import Enumerative
 from parallelizer import Parallelizer
 from properties import Formula, Properties
@@ -123,6 +124,10 @@ def main():
                                    dest='path_markings',
                                    type=str,
                                    help='path to the state-space (.aut format)')
+
+    group_methods.add_argument('--minizinc',
+                                   action='store_true',
+                                   help='use MiniZinc in case of fully reducible nets')
 
     parser.add_argument('--timeout',
                         action='store',
@@ -257,28 +262,39 @@ def main():
             if len(result) > 1:
                 result[1].display_model()
         else:
-            # Use BMC and IC3 methods in parallel
-            parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.display_model, results.debug, method_disabled)
             # Check non-monotonic analysis
             if results.skip_non_monotonic and formula.non_monotonic:
                 print("SKIPPED")
             else:
-                sat, model, execution_time, method = parallelizer.run(results.timeout)
+                if ptnet_reduced is not None and len(ptnet_reduced.places):
+                    # Use BMC and IC3 methods in parallel
+                    parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.display_model, results.debug, method_disabled)
+                    sat, model, execution_time, method = parallelizer.run(results.timeout)
+
+                else:
+                    # Use CP (Constraint Programming) method
+                    cp = CP(ptnet, formula, system, results.display_model, results.debug, results.minizinc)
+                    sat, model, execution_time = cp.prove(results.timeout)
+                    method = "CP"
+
                 # Display analysis result
                 if sat is not None:
                     print(formula.result(sat), end=' ')
                 else:
                     print("TIMEOUT", end=' ')
+
                 # Display execution time
                 if results.display_time:
                     print(execution_time, end=' ')
+
                 # Display method
                 if results.display_method:
                     if method != '':
                         print(method, end= ' ')
-                    if formula.non_monotonic:
+                    if ptnet_reduced.places and formula.non_monotonic:
                         print("(IC3_auto-disabled)", end='')
                 print()
+
                 # Display model if there is one
                 if results.display_model and model is not None:
                     model.display_model()

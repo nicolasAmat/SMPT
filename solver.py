@@ -32,8 +32,6 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "2.0.0"
 
-import os
-import signal
 from subprocess import PIPE, Popen
 
 from properties import Atom, IntegerConstant, StateFormula, TokenCount
@@ -161,3 +159,93 @@ class Solver:
         self.flush()
 
         return self.readline().replace('(', '').replace(')', '').split(' ')
+
+
+class MiniZinc:
+    """ Specific MiniZinc interface defined by:
+        - a MiniZinc process,
+        - a debug option.
+    """
+
+    def __init__(self, debug=False):
+        """ Initializer.
+        """
+        self.solver = Popen(['minizinc', '-'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        self.debug = debug
+
+        self.first_value = ""
+
+    def kill(self):
+        """" Kill the process.
+        """
+        self.solver.kill()
+
+    def write(self, minizinc_input, debug=False):
+        """ Write instructions into the standard input.
+        """
+        if self.debug or debug:
+            print(minizinc_input)
+
+        if minizinc_input != "":
+            try:
+                self.solver.stdin.write(bytes(minizinc_input, 'utf-8'))
+            except BrokenPipeError:
+                return ""
+
+    def readline(self, debug=False):
+        """ Read a line from the standard output.
+        """
+        try:
+            minizinc_output = self.solver.stdout.readline().decode('utf-8').strip()
+        except BrokenPipeError:
+            return ""
+
+        if self.debug or debug:
+            print(minizinc_output)
+
+        return minizinc_output
+
+    def set_bound(self):
+        """ Set integer bound.
+        """
+        self.write("int: MAX = 1000;\n")
+
+    def check_sat(self):
+        """ Check the satisfiability.
+        """
+        self.write("solve satisfy;\n")
+        self.solver.stdin.close()
+        minizinc_output = self.readline()
+
+        if ';' in minizinc_output:
+            self.first_value = minizinc_output
+
+        return minizinc_output != "=====UNSATISFIABLE====="
+
+    def get_model(self, ptnet):
+        """ Get a model.
+            Return a cube (conjunction of equalities).
+        """
+        model = []
+
+        place_content = self.first_value.split(' = ')
+        self.parse_value(ptnet, place_content, model)
+
+        while True:
+            place_content = self.readline().split(' = ')
+
+            if len(place_content) < 2:
+                break
+
+            self.parse_value(ptnet, place_content, model)
+
+        return StateFormula(model, 'and')
+
+    def parse_value(self, ptnet, place_content, model):
+        """ Parse a place from the model.
+        """
+        place_marking = int(place_content[1].replace(';', ''))
+        place = place_content[0]
+
+        if place_marking and place in ptnet.places:
+            model.append(Atom(TokenCount([ptnet.places[place]]), IntegerConstant(int(place_marking)), '='))
