@@ -31,6 +31,12 @@ import xml.etree.ElementTree as ET
 from ptnet import PetriNet
 
 
+MINIZINC_OPERATORS = {
+    "and": "/\\",
+    "or": "\\/"
+}
+
+
 class Properties:
     """
     Properties defined by:
@@ -63,6 +69,15 @@ class Properties:
         for formula_id, formula in self.formulas.items():
             smt_input += "; -> Property {}\n{}\n".format(formula_id, formula.smtlib())
         return smt_input
+
+    def smtlib(self):
+        """ Assert properties.
+            MiniZinc format
+        """
+        minizinc_input = ""
+        for formula_id, formula in self.formulas.items():
+            minizinc_input += "; -> Property {}\n{}\n".format(formula_id, formula.minizinc())
+        return minizinc_input
 
     def parse_xml(self, filename):
         """ Properties parser.
@@ -188,6 +203,12 @@ class Formula:
             SMT-LIB format
         """
         return "; --> R\n{}\n; --> P\n{}".format(self.R.smtlib(assertion=True), self.P.smtlib(assertion=True))
+
+    def minizinc(self):
+        """ Formula.
+            MiniZinc format
+        """
+        return "; --> R\n{}\n; --> P\n{}".format(self.R.minizinc(assertion=True), self.P.minizinc(assertion=True))
 
     def generate_deadlock(self):
         """ `deadlock` formula generator.
@@ -317,6 +338,28 @@ class StateFormula:
 
         return smt_input
 
+    def minizinc(self, assertion=False):
+        """ State formula.
+            MiniZinc format
+        """
+        if len(self.operands) > 1:
+            operator = MINIZINC_OPERATORS[self.operator]
+        else:
+            operator = ''
+
+        minizinc_input = ' {} '.format(operator).join(map(lambda operand: operand.minizinc(), self.operands))
+
+        if len(self.operands) > 1 or self.operator == 'not':
+            minizinc_input = "({})".format(minizinc_input)
+
+        if self.operator == 'not':
+            minizinc_input = "(not {})".format(minizinc_input)
+
+        if assertion:
+            minizinc_input = "constraint {};\n".format(minizinc_input)
+
+        return minizinc_input
+
     def display_model(self):
         """ Display a model.
         """
@@ -370,6 +413,17 @@ class Atom:
 
         return smt_input
 
+    def minizinc(self, assertion=False):
+        """ Atom.
+            MiniZinc format
+        """
+        minizinc_input = "({} {} {})".format(self.left_operand.minizinc(), self.operator, self.right_operand.minizinc())
+
+        if assertion:
+            minizinc_input = "constraint {};\n".format(minizinc_input)
+
+        return minizinc_input
+
 
 class TokenCount:
     """
@@ -406,6 +460,17 @@ class TokenCount:
 
         return smt_input
 
+    def minizinc(self):
+        """ Token count.
+            MiniZinc format
+        """
+        minizinc_input = ' + '.join(map(lambda pl: pl.id, self.places))
+
+        if len(self.places) > 1:
+            minizinc_input = "({})".format(minizinc_input)
+
+        return minizinc_input
+
 
 class IntegerConstant:
     """ 
@@ -426,7 +491,13 @@ class IntegerConstant:
         """ Integer constant.
             SMT-LIB format
         """
-        return str(self.value)
+        return str(self)
+
+    def minizinc(self):
+        """ Integer constant.
+            MiniZinc format
+        """
+        return str(self)
 
 
 if __name__ == '__main__':

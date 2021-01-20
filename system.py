@@ -68,6 +68,20 @@ class System:
 
         return smt_input
 
+    def minizinc(self):
+        """ Declare additional variables and assert equations.
+            SMT-LIB format
+        """
+        minizinc_input = ""
+
+        for var in self.additional_vars:
+            if var not in self.places_reduced:
+                minizinc_input += "var 0..MAX: {};\n".format(var)
+
+        minizinc_input += ''.join(map(lambda eq: eq.minizinc(), self.equations))
+
+        return minizinc_input
+
     def smtlib_declare_additional_variables(self, k_initial=None):
         """ Declare additional variables.
 
@@ -86,7 +100,7 @@ class System:
 
     def smtlib_equations_without_places_from_reduced_net(self, k_initial=None):
         """ Assert equations not involving places in the reduced net.
-        
+
             k_initial: used by IC3.
 
             SMT-LIB format
@@ -104,7 +118,7 @@ class System:
 
             k:         used by BMC and IC3,
             k_initial: used by IC3.
-            
+
             SMT-LIB format
         """
         smt_input = ""
@@ -121,7 +135,7 @@ class System:
 
             k:         used by BMC and IC3,
             k_initial: used by IC3.
-            
+
             SMT-LIB format
         """
         smt_input = ""
@@ -191,6 +205,16 @@ class Equation:
                + self.member_smtlib(self.right, k_initial, other_vars) \
                + "))"
 
+    def minizinc(self):
+        """ Assert the equation.
+            MiniZinc format
+        """
+        return "constraint " \
+               + self.member_minizinc(self.left) \
+               + " {} ".format(self.operator) \
+               + self.member_minizinc(self.right) \
+               + ";\n"
+
     def member_smtlib(self, member, k_initial, other_vars):
         """ Helper to assert a member (left or right).
 
@@ -211,6 +235,12 @@ class Equation:
             smt_input = " (+{})".format(smt_input)
 
         return smt_input
+
+    def member_minizinc(self, member):
+        """ Helper to assert a member (left or right).
+            MiniZinc format
+        """
+        return ' + '.join(map(lambda var: var.minizinc(), member))
 
     def smtlib_with_order(self, k, k_initial, places_reduced, other_vars=[]):
         """ Assert equations with order.
@@ -317,16 +347,24 @@ class Variable:
         return text + self.id
 
     def smtlib(self, k=None):
-        """ Variable, and its multiplication if needed.
-
+        """ Variable and its multiplier if needed.
             SMT-LIB format
         """
-        smtlib = self.id
+        smtlib_input = self.id
         if k is not None:
-            smtlib += "@{}".format(k)
+            smtlib_input += "@{}".format(k)
         if self.multiplier is not None:
-            smtlib = "(* {} {})".format(self.multiplier, smtlib)
-        return " {}".format(smtlib)
+            smtlib = "(* {} {})".format(self.multiplier, smtlib_input)
+        return " {}".format(smtlib_input)
+
+    def minizinc(self):
+        """ Variable and its multiplier if needed.
+            MiniZinc format
+        """
+        minizinc_input = self.id
+        if self.multiplier:
+            minizinc_input = "({} * {})".format(self.multiplier, minizinc_input)
+        return minizinc_input
 
 
 if __name__ == "__main__":

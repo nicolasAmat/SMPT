@@ -64,6 +64,12 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.smtlib_declare(k), self.places.values()))
 
+    def minizinc_declare_places(self):
+        """ Declare places.
+            MiniZinc format
+        """
+        return ''.join(map(lambda pl: pl.minizinc_declare(), self.places.values()))
+
     def smtlib_initial_marking(self, k=None):
         """ Assert the initial marking.
             SMT-LIB format
@@ -251,6 +257,12 @@ class Place:
             return "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(self.id, k, self.id, k)
         else:
             return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
+
+    def minizinc_declare(self):
+        """ Declare a place.
+            MiniZinc format
+        """
+        return "var 0..MAX: {};\n".format(self.id)
 
     def smtlib_initial_marking(self, k=None):
         """ Assertions to set the initial marking.
