@@ -214,7 +214,7 @@ class MiniZinc:
     def set_bound(self):
         """ Set integer bound.
         """
-        self.write("int: MAX = 1000;\n")
+        self.write("int: MAX = 1000000;\n")
 
     def check_sat(self):
         """ Check the satisfiability.
