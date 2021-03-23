@@ -266,7 +266,7 @@ def main():
             if results.skip_non_monotonic and formula.non_monotonic:
                 print("SKIPPED")
             else:
-                if ptnet_reduced is not None and len(ptnet_reduced.places):
+                if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
                     # Use BMC and IC3 methods in parallel
                     parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.display_model, results.debug, method_disabled)
                     sat, model, execution_time, method = parallelizer.run(results.timeout)
