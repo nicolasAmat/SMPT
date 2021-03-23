@@ -24,16 +24,25 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "2.0.0"
 
+import itertools
 import sys
 import uuid
 import xml.etree.ElementTree as ET
 
 from ptnet import PetriNet
 
+NEGATION_OPERATORS = {
+    '=': 'distinct',
+    '<=': '>',
+    '>=': '<',
+    '<': '>=',
+    '>': '<=',
+    'distinct': '='
+}
 
 MINIZINC_OPERATORS = {
-    "and": "/\\",
-    "or": "\\/"
+    'and': '/\\',
+    'or': '\\/'
 }
 
 
@@ -55,6 +64,7 @@ class Properties:
 
     def __str__(self):
         """ Properties to textual format.
+            (debugging function)
         """
         text = ""
         for formula_id, formula in self.formulas.items():
@@ -63,6 +73,7 @@ class Properties:
 
     def smtlib(self):
         """ Assert properties.
+            (debugging function)
             SMT-LIB format
         """
         smt_input = ""
@@ -70,8 +81,9 @@ class Properties:
             smt_input += "; -> Property {}\n{}\n".format(formula_id, formula.smtlib())
         return smt_input
 
-    def smtlib(self):
+    def minizinc(self):
         """ Assert properties.
+            (debugging function)
             MiniZinc format
         """
         minizinc_input = ""
@@ -93,19 +105,26 @@ class Properties:
 
     def add_formula(self, formula, property_id=None):
         """ Add a formula.
-            Generate a random property id if necessary.
+            Generate a random property id if not provided.
         """
         if property_id is None:
             property_id = uuid.uuid4()
 
         self.formulas[property_id] = formula
 
+    def dnf(self):
+        """ Convert to Disjunctive Normal Form.
+        """
+        for formula_id in self.formulas:
+            self.formulas[formula_id] = self.formulas[formula_id].dnf()
+        return self
 
 class Formula:
     """
     Formula defined by:
-    - R and P,
-    - a property definition.
+    - R: feared events,
+    - P: invariant property,
+    - a property definition (exists-paths finally, all-paths globally).
     """
 
     def __init__(self, ptnet, formula_xml=None):
@@ -200,12 +219,14 @@ class Formula:
 
     def smtlib(self):
         """ Formula.
+            (debugging function)
             SMT-LIB format
         """
         return "; --> R\n{}\n; --> P\n{}".format(self.R.smtlib(assertion=True), self.P.smtlib(assertion=True))
 
     def minizinc(self):
         """ Formula.
+            (debugging function)
             MiniZinc format
         """
         return "; --> R\n{}\n; --> P\n{}".format(self.R.minizinc(assertion=True), self.P.minizinc(assertion=True))
@@ -284,6 +305,14 @@ class Formula:
             else:
                 return "TRUE"
 
+    def dnf(self):
+        """ Convert to Disjunctive Normal Form.
+            (debugging function)
+        """
+        formula = Formula(self.ptnet)
+        formula.P, formula.R = self.P.dnf(), self.R.dnf()
+        return formula
+
 
 class StateFormula:
     """
@@ -310,6 +339,7 @@ class StateFormula:
 
     def __str__(self):
         """ State formula to textual format.
+            (debugging function)
         """
         if self.operator == 'not':
             return "(not {})".format(self.operands[0])
@@ -374,6 +404,55 @@ class StateFormula:
 
         print("# Model:", model, sep='')
 
+    def dnf(self, negation_propagation=False):
+        """ Convert to Disjunctive Normal Form.
+        """
+        if self.operator == 'not':
+            if negation_propagation:
+                # DNF(not (not P)) <-> DNF(P)
+                return self.operands[0].dnf()
+            else:
+                # DNF(not P)
+                return self.operands[0].dnf(negation_propagation=True)
+
+        elif self.operator == 'and':
+            if negation_propagation:
+                # DNF(not (P and Q)) <-> DNF((not P) or (not Q))
+                return StateFormula([operand.dnf(negation_propagation) for operand in self.operands], 'or').dnf()
+            else:
+                # DNF(P and Q) <-> DNF(P) and DNF(Q)
+                operands = []
+                for operand in self.operands:
+                    operand_dnf = operand.dnf()
+                    if isinstance(operand_dnf, StateFormula):
+                        operands += operand_dnf.operands
+                    else:
+                        operands.append(operand_dnf)
+                return StateFormula(operands, 'and')
+        
+        elif self.operator == 'or':
+            if negation_propagation:
+                # DNF(not (P or Q)) <-> DNF((not P) and (not Q))
+                return StateFormula([operand.dnf(negation_propagation) for operand in self.operands], 'and').dnf()
+            else:
+                # DNF(P or Q) <-> (P1 or Q1) and ... and (Pm or Q1) and ... and (Pm or Qn)
+                # with (DNF P) = (P1 and ... and Pm) and (DNF Q) = (Q1 and ... and Qn)
+                operands = []
+                for operand in self.operands:
+                    operand_dnf = operand.dnf()
+                    if isinstance(operand_dnf, StateFormula):
+                        operands.append(operand_dnf.operands)
+                    else:
+                        operands.append([operand_dnf])
+
+                clauses = []
+                for combination in itertools.product(*operands):
+                    clauses.append(StateFormula(list(combination), 'or'))
+
+            return StateFormula(clauses, 'and')
+
+        else:
+            raise ValueError("Invalid operator for a state formula")
 
 class Atom:
     """
@@ -396,6 +475,7 @@ class Atom:
 
     def __str__(self):
         """ Atom to textual format.
+            (debugging function)
         """
         return "({} {} {})".format(self.left_operand, self.operator, self.right_operand)
 
@@ -424,6 +504,16 @@ class Atom:
 
         return minizinc_input
 
+    def dnf(self, negation_propagation=False):
+        """ Convert to Disjunctive Normal Form.
+        """
+        if negation_propagation:
+            # DNF(not (P comp Q)) <-> P (not comp) Q
+            return Atom(self.left_operand, self.right_operand, NEGATION_OPERATORS[self.operator])
+        else:
+            # DNF(P comp Q) <-> P comp Q 
+            return self
+
 
 class TokenCount:
     """
@@ -438,6 +528,7 @@ class TokenCount:
 
     def __str__(self):
         """ Token count to textual format.
+            (debugging function)
         """
         smt_input = ' + '.join(map(lambda pl: pl.id, self.places))
 
@@ -471,6 +562,12 @@ class TokenCount:
 
         return minizinc_input
 
+    def dnf(self, negation_propagation=False):
+        """ Convert to Disjunctive Normal Form.
+        """
+        # DNF(P1 + ... + Pn) = P1 + ... + Pn
+        return self
+
 
 class IntegerConstant:
     """ 
@@ -484,6 +581,7 @@ class IntegerConstant:
 
     def __str__(self):
         """ Integer constant to textual format.
+            (debugging function)
         """
         return str(self.value)
 
@@ -498,6 +596,12 @@ class IntegerConstant:
             MiniZinc format
         """
         return str(self)
+
+    def dnf(self, negation_propagation=False):
+        """ Convert to Disjunctive Normal Form.
+        """
+        # DNF(k) = k
+        return self
 
 
 if __name__ == '__main__':
@@ -522,3 +626,7 @@ if __name__ == '__main__':
     print("> Generated SMT-LIB")
     print("-------------------")
     print(properties.smtlib())
+
+    print("> Disjunctive Normal Form")
+    print("-------------------------")
+    print(properties.dnf())
