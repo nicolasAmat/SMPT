@@ -76,7 +76,7 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.smtlib_initial_marking(k), self.places.values()))
 
-    def smtlib_transition_relation(self, k):
+    def smtlib_transition_relation(self, k, eq=True):
         """ Transition relation from places at order k to order k + 1.
             SMT-LIB format
         """
@@ -85,9 +85,11 @@ class PetriNet:
 
         smt_input = "(assert (or \n"
         smt_input += ''.join(map(lambda tr: tr.smtlib(k), self.transitions.values()))
-        smt_input += "\t(and\n\t\t"
-        smt_input += ''.join(map(lambda pl: "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k), self.places.values()))
-        smt_input += "\n\t)\n))\n"
+        if eq:
+            smt_input += "\t(and\n\t\t"
+            smt_input += ''.join(map(lambda pl: "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k), self.places.values()))
+            smt_input += "\n\t)"
+        smt_input += "\n))\n"
 
         return smt_input
 
