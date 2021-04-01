@@ -278,4 +278,3 @@ if __name__ == '__main__':
         print(formula.result(sat))
         if model is not None:
             model.display_model()
-
