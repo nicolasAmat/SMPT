@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Z3 Interface
+z3 Interface
 
 Uses SMT-LIB v2 format
 Standard: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf
@@ -30,7 +30,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 from subprocess import PIPE, Popen
 
@@ -117,10 +117,12 @@ class Solver:
 
         return self.readline() == 'sat'
 
+    # TODO: return a dictionnary to be consistent with `get_step` method
     def get_model(self, ptnet, order=None):
         """ Get a model from the current SAT stack.
             Return a cube (conjunction of equalities).
         """
+        # Solver instruction
         self.write("(get-model)\n")
         self.flush()
 
@@ -132,6 +134,7 @@ class Solver:
         while True:
             place_content = self.readline().split(' ')
             
+            # Check if parsing done
             if len(place_content) < 2:
                 break
 
@@ -147,6 +150,36 @@ class Solver:
                 model.append(Atom(TokenCount([ptnet.places[place]]), IntegerConstant(int(place_marking)), '='))
 
         return StateFormula(model, 'and')
+
+    def get_step(self, ptnet):
+        """ Get a step from the current SAT stack,
+            meaning a pair of markings (m, m') s.t. m -> m'
+        """
+        # Solver instruction
+        self.write("(get-model)\n")
+        self.flush()
+
+        # Read '(model '
+        self.readline()
+
+        # Parse the model
+        markings = [{}, {}]
+        while True:
+            place_content = self.readline().split(' ')
+
+            # Check if parsing done
+            if len(place_content) < 2:
+                break
+
+            # Get place marking and place id
+            place_marking = int(self.readline().replace(' ', '').replace(')', ''))
+            place_content = place_content[1].split('@')
+            place_id = place_content[0]
+
+            # Add the place marking in the corresponding dictionnary
+            markings[int(place_content[1])][ptnet.places[place_id]] = place_marking
+
+        return markings[0], markings[1]
 
     def enable_unsat_core(self):
         """ Enable generation of unsat cores.
