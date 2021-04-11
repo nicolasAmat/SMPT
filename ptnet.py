@@ -25,10 +25,11 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 import re
 import sys
+import xml.etree.ElementTree as ET
 
 
 class PetriNet:
@@ -39,13 +40,16 @@ class PetriNet:
     - a finite set of transitions (identified by names).
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, pnml_filename=None):
         """ Initializer.
         """
         self.id = ""
 
         self.places = {}
         self.transitions = {}
+
+        if pnml_filename is not None:
+            self.map_ids(pnml_filename)
 
         self.parse_net(filename)
 
@@ -76,7 +80,7 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.smtlib_initial_marking(k), self.places.values()))
 
-    def smtlib_transition_relation(self, k, eq=True):
+    def smtlib_transition_relation(self, k, eq=False):
         """ Transition relation from places at order k to order k + 1.
             SMT-LIB format
         """
@@ -106,6 +110,24 @@ class PetriNet:
         smt_input += "))\n"
 
         return smt_input
+
+    def map_ids(self, pnml_filename):
+        """ Map `names` to `ids` from the PNML file.
+        """
+        xmlns = "{http://www.pnml.org/version-2009/grammar/pnml}"
+
+        tree = ET.parse(pnml_filename)
+        root = tree.getroot()
+
+        for place_node in root.iter(xmlns + 'place'):
+            place_id = place_node.attrib['id']
+            place_name = place_node.find(xmlns + 'name/' + xmlns + 'text').text
+            self.places_mapping[place_id] = place_name
+
+        for transition_node in root.iter(xmlns + 'transition'):
+            transition_id = transition_node.attrib['id']
+            transition_name = transition_node.find(xmlns + 'name/' + xmlns + 'text').text
+            self.transitions_mapping[transition_id] = transition_name
 
     def parse_net(self, filename):
         """ Petri net parser.
@@ -149,6 +171,9 @@ class PetriNet:
 
         for arc in outputs:
             tr.connected_places.append(self.parse_arc(arc, tr.outputs))
+
+        tr.normalize_test_arcs()
+        tr.compute_pre_vector()
 
     def parse_arc(self, arc, arcs, opposite_arcs=[]):
         """ Arc parser.
@@ -229,6 +254,26 @@ class PetriNet:
                 index += 1
         return content[index:]
 
+    def get_transition_from_step(self, m_1, m_2):
+        """ Return an associate transition to a step m_1 -> m_2.
+        """
+        # Get inputs and outputs
+        inputs, outputs = {}, {}
+        for place in self.places.values():
+            # Inputs
+            if m_1[place] > m_2[place]:
+                inputs[place] = m_1[place] - m_2[place]
+            # Outpus
+            if m_1[place] < m_2[place]:
+                outputs[place] = m_2[place] - m_1[place]
+
+        # Return the corresponding transition
+        for transition in self.transitions.values():
+            if transition.inputs == inputs and transition.outputs == outputs and all(m_1[place] >= pre for place, pre in transition.pre.items()):
+                return transition
+
+        return None
+
 
 class Place:
     """
@@ -280,12 +325,14 @@ class Transition:
     """
     Transition defined by:
     - an identifier
-    - a set of input places (keys),
-      associated to the weight of the arc (values)
-    - a list of output places (keys),
-      associated to the weight of the arc (values)
+    - input places (flow)
+      associated to the weight of the arc,
+    - output places (flow)
+      associated to the weight of the arc,
+    - test places (null flow),
+      associated to the weight of the arc,
+    - pre vector (firing condition),
     - a list of the places connected to the transition.
-
     """
 
     def __init__(self, transition_id, ptnet):
@@ -295,9 +342,10 @@ class Transition:
 
         self.inputs = {}
         self.outputs = {}
+        self.tests = {}
+        self.pre = {}
 
         self.connected_places = []
-
         self.ptnet = ptnet
 
     def __str__(self):
@@ -305,12 +353,18 @@ class Transition:
         """
         text = "tr {} ".format(self.id)
 
-        for src, weight in self.inputs.items():
+        for src, weight in self.pre.items():
             text += ' ' + self.str_arc(src, weight)
 
         text += ' ->'
 
         for dest, weight in self.outputs.items():
+            if dest not in self.tests:
+                text += ' ' + self.str_arc(dest, weight)
+
+        for dest, weight in self.tests.items():
+            if dest in self.outputs:
+                weight += self.outputs[dest]
             text += ' ' + self.str_arc(dest, weight)
 
         text += '\n'
@@ -336,7 +390,7 @@ class Transition:
         smt_input = "\t(and\n\t\t"
 
         # Firing condition on input places
-        for pl, weight in self.inputs.items():
+        for pl, weight in self.pre.items():
             if weight > 0:
                 smt_input += "(>= {}@{} {})".format(pl.id, k, weight)
             else:
@@ -360,8 +414,9 @@ class Transition:
 
         # Unconnected places must not be changed
         for pl in self.ptnet.places.values():
-            if pl not in self.connected_places:
+            if pl not in self.connected_places or (pl in self.tests and pl not in self.inputs and pl not in self.outputs):
                 smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
+
         smt_input += "\n\t)\n"
 
         return smt_input
@@ -374,7 +429,7 @@ class Transition:
         smt_input = "\t(and\n\t\t(=>\n\t\t\t(and "
 
         # Firing condition on input places
-        for pl, weight in self.inputs.items():
+        for pl, weight in self.pre.items():
             if weight > 0:
                 smt_input += "(>= {}@{} {})".format(pl.id, k, weight)
             else:
@@ -397,12 +452,12 @@ class Transition:
 
         # Unconnected places must not be changed
         for pl in self.ptnet.places.values():
-            if pl not in self.connected_places:
+            if pl not in self.connected_places or (pl in self.tests and pl not in self.inputs and pl not in self.outputs):
                 smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += ")\n\t\t)\n\t\t(=>\n\t\t\t(or "
 
         # Dead condition on input places
-        for pl, weight in self.inputs.items():
+        for pl, weight in self.pre.items():
             if weight > 0:
                 smt_input += "(< {}@{} {})".format(pl.id, k, weight)
             else:
@@ -415,6 +470,52 @@ class Transition:
         smt_input += ")\n\t\t)\n\t)\n"
 
         return smt_input
+
+    def normalize_test_arcs(self):
+        """ Normalize test arcs.
+            If pre(t,p) > 0 and post(t,p) > 0 then
+            - test(t,p) = |pre(t,p) - post(t,p)|,
+            - input(t,p) = max(0, pre(t,p) - |pre(t,p) - post(t,p)|),
+            - output(t,p) = max(0, post(t,p) - |pre(t,p) - post(t,p)|).
+        """
+        for place in set(self.inputs.keys()) & set(self.outputs.keys()):
+            
+            if self.inputs[place] == self.outputs[place]:
+                self.tests[place] = self.inputs[place]
+                del self.inputs[place]
+                del self.outputs[place]
+
+            elif self.inputs[place] > self.outputs[place]:
+                self.tests[place] = self.outputs[place]
+                self.inputs[place] = self.inputs[place] - self.outputs[place]
+                del self.outputs[place]
+
+            elif self.inputs[place] < self.outputs[place]:
+                self.outputs[place] = self.outputs[place] - self.inputs[place]
+                self.tests[place] = self.inputs[place]
+                del self.inputs[place]
+
+    def compute_pre_vector(self):
+        """ Compute pre(t).
+        """
+        for place, weight in self.inputs.items():
+            if place in self.tests:
+                weight += self.tests
+            self.pre[place] = weight
+
+        for place, weight in self.tests.items():
+            if place not in self.inputs:
+                self.pre[place] = weight
+
+
+class Marking:
+    """ TODO: to implement 
+    """
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return ""
 
 
 if __name__ == "__main__":
