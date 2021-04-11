@@ -24,7 +24,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 import argparse
 import logging as log
@@ -63,7 +63,7 @@ def main():
     parser.add_argument('path_ptnet',
                         metavar='ptnet',
                         type=str,
-                        help='path to Petri Net (.net format)')
+                        help='path to Petri Net (.net or .pnml format)')
 
     group_properties = parser.add_mutually_exclusive_group()
 
@@ -164,8 +164,16 @@ def main():
     else:
         log.basicConfig(format="%(message)s")
 
+    # Check if extension is .pnml
+    if results.path_ptnet.lower().endswith('.pnml'):
+        path_pnml = results.path_ptnet
+        results.path_ptnet = tempfile.NamedTemporaryFile(suffix='.net').name
+        subprocess.run(["ndrio", path_pnml, results.path_ptnet])
+    else:
+        path_pnml = None
+
     # Read the input Petri net
-    ptnet = PetriNet(results.path_ptnet)
+    ptnet = PetriNet(results.path_ptnet, path_pnml)
 
     # By default no reduction
     ptnet_reduced = None
@@ -238,7 +246,7 @@ def main():
         ptnet_info += " RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
     if results.display_time and results.auto_reduce:
         ptnet_info += " t~{}s".format(reduction_time)
-    print(ptnet_info)
+    log.info(ptnet_info)
 
     # Disable reduction is the Petri net is not reducible
     if system is not None and not system.equations:
@@ -247,7 +255,7 @@ def main():
 
     # Iterate over properties
     for property_id, formula in properties.formulas.items():
-        print(property_id, end=' ')
+        print('FORMULA', property_id, end=' ')
 
         if results.path_markings is not None:
             # Use enumerative method
