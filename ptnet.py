@@ -125,12 +125,12 @@ class PetriNet:
 
         for place_node in root.iter(xmlns + 'place'):
             place_id = place_node.attrib['id']
-            place_name = place_node.find(xmlns + 'name/' + xmlns + 'text').text
+            place_name = place_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.')  # '#' forbidden in SMT-LIB
             self.places_mapping[place_id] = place_name
 
         for transition_node in root.iter(xmlns + 'transition'):
             transition_id = transition_node.attrib['id']
-            transition_name = transition_node.find(xmlns + 'name/' + xmlns + 'text').text
+            transition_name = transition_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.')  # '#' forbidden in SMT-LIB
             self.transitions_mapping[transition_id] = transition_name
 
     def parse_net(self, filename):
