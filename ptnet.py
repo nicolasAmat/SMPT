@@ -48,8 +48,12 @@ class PetriNet:
         self.places = {}
         self.transitions = {}
 
+        self.pnml_mapping = False
+        self.places_mapping = {}
+        self.transitions_mapping = {}
         if pnml_filename is not None:
-            self.map_ids(pnml_filename)
+            self.pnml_mapping = True
+            self.ids_mapping(pnml_filename)
 
         self.parse_net(filename)
 
@@ -111,7 +115,7 @@ class PetriNet:
 
         return smt_input
 
-    def map_ids(self, pnml_filename):
+    def ids_mapping(self, pnml_filename):
         """ Map `names` to `ids` from the PNML file.
         """
         xmlns = "{http://www.pnml.org/version-2009/grammar/pnml}"
