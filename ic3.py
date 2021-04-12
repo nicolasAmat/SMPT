@@ -36,7 +36,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 import copy
 import logging as log
@@ -64,32 +64,50 @@ class IC3:
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, parallelizer_pid=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, method='REACH', parallelizer_pid=None):
         """ Initializer.
 
             By default the IC3 method uses the unsat core of the solver.
             Option to use the MIC algorithm: `unsat_core=False`.
         """
+        # Set method: `REACH` or `COV`
+        self.method = method
+
+        # Initial Petri net
         self.ptnet = ptnet
+
+        # Reduced Petri net
         self.ptnet_reduced = ptnet_reduced
 
+        # System of linear equations
         self.system = system
 
-        self.formula = formula
+        # Formula to study
+        if self.method == 'REACH':
+            self.formula = formula.dnf()
+        else:
+            self.formula = formula
 
+        # Use of reductions
         self.reduction = ptnet_reduced is not None
+
+        # Petri net to unfold
         self.ptnet_current = self.ptnet_reduced if self.reduction else self.ptnet
 
-        self.oars = []  # list of CNFs
+        # Over Approximated Reachability Sequences (OARS) - list of CNFs
+        self.oars = []
 
+        # SMT solver
         self.solver = Solver(debug)
+
+        # PID of the parallelizer
         self.parallelizer_pid = parallelizer_pid
         
+        # Used method to obtain minimal inductive cubes
         if unsat_core:
             self.sub_clause_finder = self.sub_clause_finder_unsat_core
         else:
             self.sub_clause_finder = self.sub_clause_finder_mic
-
 
     def declare_places(self, init=False):
         """ Declare places.
@@ -248,6 +266,25 @@ class IC3:
 
         return self.solver.check_sat()
 
+    # TODO: remove?
+    def oars_equivalence(self, i, j):
+        """ Check if F_j => F_i.
+        """
+        self.solver.reset()
+
+        self.solver.write(self.declare_places())
+
+        smt_input = ""
+        for clause in self.oars[i]:
+            smt_input += clause.smtlib(0, negation=True)
+        smt_input = "(assert (or {}))".format(smt_input)
+        self.solver.write(smt_input)
+
+        for clause in self.oars[j]:
+            self.solver.write(clause.smtlib(0, assertion=True))
+
+        return not self.solver.check_sat()
+
     def sub_clause_finder_unsat_core(self, i, s):
         """ unsat core (-s and Fi and T and s')
         """
@@ -259,25 +296,29 @@ class IC3:
         self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
         self.solver.write(self.assert_equations())
-        for eq in s.operands:
-            self.solver.write("(assert (! {} :named {}))\n".format(eq.smtlib(1), eq.left_operand))
+        for index, eq in enumerate(s.operands):
+            self.solver.write("(assert (! {} :named lit@{}))\n".format(eq.smtlib(1), index))
 
         # Read Unsatisfiable Core
         unsat_core = self.solver.get_unsat_core()
-
         inequalities = []
-        for eq in s.operands:
-            if str(eq.left_operand) in unsat_core:
-                if eq.right_operand.value == 0:
-                    inequalities.append(Atom(eq.left_operand, eq.right_operand, ">"))
+        for index, eq in enumerate(s.operands):
+            if "lit@{}".format(index) in unsat_core:
+                if self.method == 'REACH':
+                    inequalities.append(eq.negation())
                 else:
-                    inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
+                    if eq.right_operand.value == 0:
+                        # TODO: remove
+                        inequalities.append(Atom(eq.left_operand, eq.right_operand, ">"))
+                    else:
+                        inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
         cl = StateFormula(inequalities, "or")
 
         log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
 
         return cl
 
+    # TODO: To fix
     def sub_clause_finder_mic(self, i, s):
         """ Minimal inductive clause (MIC).
         """
@@ -314,16 +355,74 @@ class IC3:
 
         return cl
 
-    def cube_filter(self, s):
+    def unsat_cubes_removal(self):
+        """ Remove UNSAT cubes in R.
+            If no cubes are satisfiable return True.
+        """
+        log.info("[IC3] > Remove unsat cubes from R")
+
+        self.solver.reset()
+        self.solver.write(self.ptnet.smtlib_declare_places())
+        
+        if self.formula.R.operator == 'or':
+            sat_cubes = []
+
+            for cube in self.formula.R.operands:
+                self.solver.push()
+                
+                self.solver.write(cube.smtlib(assertion=True))
+                
+                if self.solver.check_sat():
+                    sat_cubes.append(cube)
+                
+                self.solver.pop()
+
+            if not sat_cubes:
+                return True
+
+            self.formula.R.operands = sat_cubes
+            self.formula.P = StateFormula([self.formula.R], 'not')
+
+        else:
+            self.solver.write(self.formula.R.smtlib(assertion=True))
+
+            if not self.solver.check_sat():
+                return True
+
+        return False
+
+    def cube_filter(self):
         """ Extract a sub-cube with only non-null equalities,
             replace equalities by "greater or equal than".
         """
+        s = self.solver.get_model(self.ptnet_current, order=0)
+
         non_zero = []
         for eq in s.operands:
             if eq.right_operand.value != 0:
                 non_zero.append(Atom(eq.left_operand, eq.right_operand, ">="))
 
         return StateFormula(non_zero, "and")
+
+    def witness_generalizer(self, states):
+        """ Generalize a witness by blocking the fired transition.
+        """
+        log.info("[IC3] \t\t\t>> Generalization (s = {})".format(states))
+
+        # Get a marking sequence m_1 -> m_2
+        m_1, m_2 = self.solver.get_step(self.ptnet_current)
+
+        # Get the corresponding fired transition
+        tr = self.ptnet_current.get_transition_from_step(m_1, m_2)
+
+        # Get reached clause (cl in CL(R) s.t. m_2 |= c)
+        cl = states.reached_cube(m_2)
+
+        # Return the generalized reached cube according the fired transition
+        generalization = cl.generalization(tr)
+
+        log.info("[IC3] \t\t\t   {}".format(generalization))
+        return generalization
 
     def prove(self, result=[]):
         """ Prover.
@@ -333,6 +432,13 @@ class IC3:
         if self.initial_marking_bad_state() or self.initial_marking_reach_bad_state():
             self.exit_helper(False, result)
             return False
+
+        if self.method == 'REACH' and self.unsat_cubes_removal():
+            self.exit_helper(True, result)
+            return True
+
+        log.info("[IC3] > R = {}".format(self.formula.R))
+        log.info("[IC3] > P = {}".format(self.formula.P))
 
         self.oars_initialization()
 
@@ -349,7 +455,7 @@ class IC3:
             self.propagate_clauses(k)
 
             for i in range(1, k + 1):
-                if set(self.oars[i]) == set(self.oars[i + 1]):
+                if self.oars_equivalence(i, i + 1):
                     self.exit_helper(True, result)
                     return True
 
@@ -363,7 +469,10 @@ class IC3:
 
         try:
             while self.formula_reach_bad_state(k):
-                s = self.cube_filter(self.solver.get_model(self.ptnet_current, 0))
+                if self.method == 'REACH':
+                    s = self.witness_generalizer(self.formula.R)
+                else:
+                    s = self.cube_filter()
                 n = self.inductively_generalize(s, k - 2, k)
 
                 log.info("[IC3] \t\t>> s: {}".format(s))
@@ -431,7 +540,10 @@ class IC3:
                 return
 
             if self.formula_reach_state(n, s):
-                p = self.cube_filter(self.solver.get_model(self.ptnet_current, order=0))
+                if self.method == 'REACH':
+                    p = self.witness_generalizer(s)
+                else:
+                    p = self.cube_filter()
                 m = self.inductively_generalize(p, n - 2, k)
                 states.append((m + 1, p))
             else:
@@ -444,7 +556,7 @@ class IC3:
             and stop the concurrent method if there is one.
         """
         # Put the result in the queue
-        result_output.put([result])
+        result_output.put([not result, None])
 
         # Kill parallelizer children
         if self.parallelizer_pid:
