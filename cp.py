@@ -25,9 +25,9 @@ __license__ = "GPLv3"
 __version__ = "2.0.0"
 
 import logging as log
-import time
 
 from solver import MiniZinc, Solver
+from utils import STOP, send_signal
 
 
 class CP:
@@ -35,7 +35,7 @@ class CP:
     Constraint Programming method.
     """
 
-    def __init__(self, ptnet, formula, system, timeout, display_model=False, debug=False, minizinc=False):
+    def __init__(self, ptnet, formula, system, display_model=False, debug=False, minizinc=False):
         """ Initializer.
         """
         self.ptnet = ptnet
@@ -44,22 +44,18 @@ class CP:
 
         self.system = system
         
-        self.timeout = timeout
-
         self.display_model = display_model
-
         self.minizinc = minizinc
 
         if minizinc:
-            self.solver = MiniZinc(debug, timeout)
+            self.solver = MiniZinc(debug)
         else:
-            self.solver = Solver(debug, timeout)
+            self.solver = Solver(debug)
 
-    def prove(self):
+    def prove(self, results, concurrent_pids):
         """ Prover.
         """
         model = None
-        start_time = time.time()
 
         if self.minizinc:
             sat = self.prove_minizinc()
@@ -69,12 +65,14 @@ class CP:
         if sat and self.display_model:
             model = self.solver.get_model(self.ptnet)
 
-        execution_time = time.time() - start_time
+        results.put([sat, model])
 
-        if execution_time >= self.timeout:
-            sat = None
+        # Kill the solver
+        self.solver.kill()
 
-        return sat, model, execution_time
+        # Terminate concurrent methods
+        if not concurrent_pids.empty():
+            send_signal(concurrent_pids.get(), STOP)
 
     def prove_minizinc(self):
         """ Solve constraints using MiniZinc.
@@ -104,4 +102,5 @@ class CP:
 
 
 if __name__ == '__main__':
+    # TODO
     pass

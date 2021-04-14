@@ -36,6 +36,9 @@ from subprocess import PIPE, Popen
 
 from properties import Atom, IntegerConstant, StateFormula, TokenCount
 
+from utils import send_signal, RESUME, SUSPEND, STOP
+
+# TODO: abstract class
 
 class Solver:
     """
@@ -50,13 +53,27 @@ class Solver:
         process = ['z3', '-in']
         if timeout:
             process.append('-T:{}'.format(timeout))
+
         self.solver = Popen(process, stdin=PIPE, stdout=PIPE)
+
         self.debug = debug
 
     def kill(self):
         """" Kill the process.
         """
+        # TODO: choose one line
         self.solver.kill()
+        # send_signal([self.solver.pid], STOP)
+
+    def suspend(self):
+        """ Suspend the process.
+        """
+        send_signal([self.solver.pid], SUSPEND)
+
+    def resume(self):
+        """ Resume the process.
+        """
+        send_signal([self.solver.pid], RESUME)
 
     def write(self, smt_input, debug=False):
         """ Write instructions into the standard input.
@@ -218,6 +235,16 @@ class MiniZinc:
         """" Kill the process.
         """
         self.solver.kill()
+
+    def suspend(self):
+        """ Suspend the process.
+        """
+        send_signal([self.solver.pid], SUSPEND)
+
+    def resume(self):
+        """ Resume the process.
+        """
+        send_signal([self.solver.pid], RESUME)
 
     def write(self, minizinc_input, debug=False):
         """ Write instructions into the standard input.

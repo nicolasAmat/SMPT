@@ -35,13 +35,14 @@ from properties import Formula
 from ptnet import PetriNet
 from solver import Solver
 from system import System
+from utils import STOP, send_signal
 
 
 class Enumerative:
     """ Enumerative markings method.
     """
 
-    def __init__(self, filename, ptnet, formula, ptnet_reduced, system, debug=False):
+    def __init__(self, path_markings, ptnet, formula, ptnet_reduced, system, debug=False):
         """ Initializer.
         """
         self.ptnet = ptnet
@@ -52,7 +53,7 @@ class Enumerative:
         self.formula = formula
 
         self.markings = []
-        self.parse_markings(filename)
+        self.parse_markings(path_markings)
 
         self.solver = Solver(debug)
 
@@ -124,7 +125,7 @@ class Enumerative:
         except FileNotFoundError as e:
             sys.exit(e)
 
-    def prove(self, result=[]):
+    def prove(self, result, concurrent_pids):
         """ Prover.
         """
         log.info("[ENUMERATIVE] RUNNING")
@@ -134,13 +135,19 @@ class Enumerative:
         else:
             self.prove_with_reduction()
 
+        sat, model = False, None
         if self.solver.check_sat():
-            result.append(True)
-            result.append(self.solver.get_model(self.ptnet))
-        else:
-            result.append(False)
+            sat = True
+            model = self.solver.get_model(self.ptnet)
 
+        result.put([sat, model])
+
+        # Kill the solver
         self.solver.kill()
+
+        # Terminate concurrent methods
+        if not concurrent_pids.empty():
+            send_signal(concurrent_pids.get(), STOP)
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri net.

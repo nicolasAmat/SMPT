@@ -22,106 +22,159 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
-import os
-import signal
+from enumerative import Enumerative
 import sys
 import time
 from multiprocessing import Process, Queue
 
-import psutil
-
 from bmc import BMC
+from cp import CP
 from ic3 import IC3
 from properties import Formula
 from ptnet import PetriNet
 from system import System
+from utils import RESUME, STOP, SUSPEND, send_signal
 
 
 class Parallelizer:
     """ Analysis methods parallelizer.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, display_model=False, debug=False, method_disabled=''):
+    def __init__(self, property_id, ptnet, formula, ptnet_reduced=None, system=None, display_method=False, display_time=False, display_model=False, debug=False, methods=[], path_markings=None):
         """ Initializer.
         """
-        self.bmc, self.ic3 = None, None
+        # Property id and corresponding formula
+        self.property_id = property_id
+        self.formula = formula
 
-        # Create a BMC instance if not disabled
-        if method_disabled != 'BMC':
-            self.bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, display_model=display_model, debug=debug, parallelizer_pid=os.getpid())
+        # Output flags
+        self.display_method = display_method
+        self.display_time = display_time
+        self.display_model = display_model
 
-        # Create an IC3 instance if not disabled and if the formula is monotonic
-        if method_disabled != 'IC3' and not formula.non_monotonic:
-            self.ic3 = IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, parallelizer_pid=os.getpid())
+        # Process information
+        self.methods, self.process, self.techniques  = [], [], []
+        self.computation_time = 0
 
-        self.proc_bmc, self.proc_ic3 = None, None
+        # Create queues to store the results
+        self.results = [Queue() for _ in methods]
 
-    def run(self, timeout=60):
-        """ Run BMC and IC3 analysis in parrallel.
+        # Initialize methods
+        for method in methods:
+            if method == 'BMC':
+                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, display_model=display_model, debug=debug))
+                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'BMC'])
 
-            Return:
-            -`True` if a counterexample is found and `False` otherwise,
-            - a counterexample if there is one,
-            - execution time.
+            if method == 'PDR-COV':
+                self.methods.append(IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, method='COV'))
+                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'PDR-COV'])
+
+            if method == 'PDR-REACH':
+                self.methods.append(IC3(ptnet, formula, debug=debug, method='REACH'))
+                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
+
+            if method == 'SMT':
+                self.methods.append(CP(ptnet, formula, system, display_model=display_model, debug=debug, minizinc=False))
+                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'SMT'])
+
+            if method == 'CP':
+                self.methods.append(CP(ptnet, formula, system, display_model=display_model, debug=debug, minizinc=True))
+                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'CP'])
+
+            if method == 'ENUM':
+                self.methods.append(Enumerative(path_markings, ptnet, formula, ptnet_reduced, system, debug))
+                self.techniques.append(['COLLATERAL PROCESSING', 'EXPLICIT', 'SAT-SMT'])
+
+    def run(self, timeout=225):
+        """ Run analysis in parrallel.
+
+            Return `True` if computation is done, `False` otherwise.
         """
-        # Create queues to store the result
-        result_bmc, result_ic3 = Queue(), Queue()
+        concurrent_pids = Queue()
 
-        # Create daemon processes
-        if self.bmc:
-            self.proc_bmc = Process(target=self.bmc.prove, args=(result_bmc,))
-        if self.ic3:
-            self.proc_ic3 = Process(target=self.ic3.prove, args=(result_ic3,))
+        # Create daemon process
+        self.process = [Process(target=method.prove, args=(result,concurrent_pids,)) for method, result in zip(self.methods, self.results)]
 
+        # Start process
+        pids = []
+        for proc in self.process:
+            proc.start()
+            pids.append(proc.pid)
+        concurrent_pids.put(pids)
+
+        return self.handle(timeout)
+
+    def resume(self, timeout):
+        """ Resume the methods.
+        """
+        # Resume methods
+        for method in self.methods:
+            method.solver.resume()
+
+        # Resume process
+        send_signal([proc.pid for proc in self.process], RESUME)
+        return self.handle(timeout)
+
+    def handle(self, timeout):
+        """ Handle the methods.
+        """
         # Get the starting time
         start_time = time.time()
 
-        # Start processes
-        if self.proc_bmc:
-            self.proc_bmc.start()
-        if self.proc_ic3:
-            self.proc_ic3.start()
-
-        # Join the BMC process, if it finishes it will kill the IC3 process
-        if self.proc_bmc:
-            self.proc_bmc.join(timeout=timeout)
-
-        # Join the IC3 process if BMC is disabled
-        if self.proc_ic3 and not self.proc_bmc:
-            self.proc_ic3.join(timeout=timeout)
-
-        # Get the execution time
-        execution_time = time.time() - start_time
-
-        # Get the BMC result if there is one
-        if not result_bmc.empty():
-            sat, model = result_bmc.get()
-            return sat, model, execution_time, 'BMC'
-
-        # Get the IC3 result if there is one
-        if not result_ic3.empty():
-            sat = not result_ic3.get()[0]
-            return sat, None, execution_time, 'IC3'
+        # Join process
+        self.process[0].join(timeout=timeout)
         
-        # Otherwise exit
-        self.stop()
-        return None, None, execution_time, ''
+        # Get the computation time
+        self.computation_time += time.time() - start_time
+
+        # Return result data if one method finished
+        for result_method, techniques in zip(self.results, self.techniques):
+            if not result_method.empty():
+
+                sat, model = result_method.get()
+                print('FORMULA', self.property_id, self.formula.result(sat), end=' ')
+                
+                # Show techniques
+                if self.display_method:
+                    print('TECHNIQUES', ' '.join(techniques), end=' ')
+
+                # Show computation time
+                if self.display_time:
+                    print('TIME', self.computation_time, end=' ')
+
+                print()
+
+                # Show model
+                if self.display_model and model is not None:
+                    model.display_model()
+                
+                self.stop()
+                return True
+
+        # TODO: to remove
+        print(self.property_id, self.computation_time)
+
+        # Otherwise pause the methods
+        self.suspend()
+
+        return False
+
+    def suspend(self):
+        """ Suspend the methods.
+        """
+        for method in self.methods:
+            method.solver.suspend()
+        send_signal([proc.pid for proc in self.process], SUSPEND)
 
     def stop(self):
-        """ Stop BMC and IC3 methods.
+        """ Stop the methods.
         """
-        # Kill children
-        parallelizer_pid = os.getpid()
-        parent = psutil.Process(parallelizer_pid)
-        children = parent.children(recursive=True)
-        for process in children:
-            if process.pid != parallelizer_pid:
-                try:
-                    process.send_signal(signal.SIGTERM)
-                except psutil.NoSuchProcess:
-                    pass
+        for method in self.methods:
+            method.solver.kill()
+        send_signal([proc.pid for proc in self.process], RESUME)
+        send_signal([proc.pid for proc in self.process], STOP)
 
 
 if __name__ == '__main__':

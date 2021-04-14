@@ -25,17 +25,14 @@ __license__ = "GPLv3"
 __version__ = "2.0.0"
 
 import logging as log
-import os
-import signal
 import sys
 from multiprocessing import Process, Queue
-
-import psutil
 
 from properties import Formula
 from ptnet import PetriNet
 from solver import Solver
 from system import System
+from utils import STOP, send_signal
 
 
 class BMC:
@@ -43,7 +40,7 @@ class BMC:
     Bounded Model Checking method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, display_model=False, debug=False, parallelizer_pid=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, display_model=False, debug=False):
         """ Initializer.
         """
         self.ptnet = ptnet
@@ -56,8 +53,6 @@ class BMC:
         self.display_model = display_model
 
         self.solver = Solver(debug)
-
-        self.parallelizer_pid = parallelizer_pid
 
     def smtlib(self, k):
         """ SMT-LIB format for understanding.
@@ -134,7 +129,7 @@ class BMC:
 
         return smt_input
 
-    def prove(self, result=[]):
+    def prove(self, result, concurrent_pids):
         """ Prover.
         """
         log.info("[BMC] RUNNING")
@@ -154,17 +149,12 @@ class BMC:
                 model = self.solver.get_model(self.ptnet, order)
         result.put([sat, model])
 
-        # Kill parallelizer children
-        if self.parallelizer_pid:
-            bmc_pid = os.getpid()
-            parent = psutil.Process(self.parallelizer_pid)
-            children = parent.children(recursive=True)
-            for process in children:
-                if process.pid != bmc_pid:
-                    try:
-                        process.send_signal(signal.SIGTERM)
-                    except psutil.NoSuchProcess:
-                        pass
+        # Kill the solver
+        self.solver.kill()
+
+        # Terminate concurrent methods
+        if not concurrent_pids.empty():
+            send_signal(concurrent_pids.get(), STOP)
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.
@@ -261,7 +251,7 @@ if __name__ == '__main__':
         ptnet_reduced = None
         system = None
 
-    bmc = BMC(ptnet, formula, ptnet_reduced, system)
+    bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, display_model=True)
 
     print("> Generated SMT-LIB")
     print("-------------------")
@@ -269,8 +259,8 @@ if __name__ == '__main__':
 
     print("> Result computed using z3")
     print("--------------------------")
-    result = Queue()
-    proc = Process(target=bmc.prove, args=(result,))
+    result, concurrent_pids = Queue(), Queue()
+    proc = Process(target=bmc.prove, args=(result, concurrent_pids,))
     proc.start()
     proc.join(timeout=60)
     if not result.empty():

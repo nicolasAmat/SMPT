@@ -40,17 +40,14 @@ __version__ = "3.0.0"
 
 import copy
 import logging as log
-import os
-import signal
 import sys
 from multiprocessing import Process, Queue
-
-import psutil
 
 from properties import Atom, Formula, IntegerConstant, StateFormula, TokenCount
 from ptnet import PetriNet
 from solver import Solver
 from system import System
+from utils import STOP, send_signal
 
 
 class Counterexample(Exception):
@@ -424,17 +421,17 @@ class IC3:
         log.info("[IC3] \t\t\t   {}".format(generalization))
         return generalization
 
-    def prove(self, result=[]):
+    def prove(self, result, concurrent_pids):
         """ Prover.
         """
         log.info("[IC3] RUNNING")
 
         if self.initial_marking_bad_state() or self.initial_marking_reach_bad_state():
-            self.exit_helper(False, result)
+            self.exit_helper(False, result, concurrent_pids)
             return False
 
         if self.method == 'REACH' and self.unsat_cubes_removal():
-            self.exit_helper(True, result)
+            self.exit_helper(True, result, concurrent_pids)
             return True
 
         log.info("[IC3] > R = {}".format(self.formula.R))
@@ -449,14 +446,14 @@ class IC3:
 
             self.oars.append([self.formula.P])
             if not self.strengthen(k):
-                self.exit_helper(False, result)
+                self.exit_helper(False, result, concurrent_pids)
                 return False
 
             self.propagate_clauses(k)
 
             for i in range(1, k + 1):
                 if self.oars_equivalence(i, i + 1):
-                    self.exit_helper(True, result)
+                    self.exit_helper(True, result, concurrent_pids)
                     return True
 
             k += 1
@@ -551,24 +548,19 @@ class IC3:
                 states.remove((n, s))
                 states.append((m + 1, s))
 
-    def exit_helper(self, result, result_output):
+    def exit_helper(self, result, result_output, concurrent_pids):
         """ Helper function to put the result to the output queue,
             and stop the concurrent method if there is one.
         """
         # Put the result in the queue
         result_output.put([not result, None])
 
-        # Kill parallelizer children
-        if self.parallelizer_pid:
-            ic3_pid = os.getpid()
-            parent = psutil.Process(self.parallelizer_pid)
-            children = parent.children(recursive=True)
-            for process in children:
-                if process.pid != ic3_pid:
-                    try:
-                        process.send_signal(signal.SIGTERM)
-                    except psutil.NoSuchProcess:
-                        pass
+        # Kill the solver
+        self.solver.kill()
+
+        # Terminate concurrent methods
+        if not concurrent_pids.empty():
+            send_signal(concurrent_pids.get(), STOP)
 
 if __name__ == '__main__':
 
@@ -594,8 +586,8 @@ if __name__ == '__main__':
 
     print("> Result computed using z3")
     print("--------------------------")
-    result = Queue()
-    proc = Process(target=ic3.prove, args=(result,))
+    result, concurrent_pids = Queue(), Queue()
+    proc = Process(target=ic3.prove, args=(result, concurrent_pids,))
     proc.start()
     proc.join(timeout=60)
     if not result.empty():

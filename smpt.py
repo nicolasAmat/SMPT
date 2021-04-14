@@ -33,7 +33,6 @@ import sys
 import tempfile
 import time
 
-from cp import CP
 from enumerative import Enumerative
 from parallelizer import Parallelizer
 from properties import Formula, Properties
@@ -129,11 +128,19 @@ def main():
                                    action='store_true',
                                    help='use MiniZinc in case of fully reducible nets')
 
-    parser.add_argument('--timeout',
+    group_timeout = parser.add_mutually_exclusive_group()
+
+    group_timeout.add_argument('--timeout',
                         action='store',
                         dest='timeout',
                         type=int,
-                        default=60,
+                        default=225,
+                        help='a limit per property on execution time')
+
+    group_timeout.add_argument('--global-timeout',
+                        action='store',
+                        dest='global_timeout',
+                        type=int,
                         help='a limit on execution time')
 
     parser.add_argument('--skip-non-monotonic',
@@ -164,7 +171,7 @@ def main():
     else:
         log.basicConfig(format="%(message)s")
 
-    # Check if extension is .pnml
+    # Check if extension is `.pnml`
     if results.path_ptnet.lower().endswith('.pnml'):
         path_pnml = results.path_ptnet
         results.path_ptnet = tempfile.NamedTemporaryFile(suffix='.net').name
@@ -234,11 +241,12 @@ def main():
         properties.add_formula(formula, property_id)
 
     # Read the method restriction
-    method_disabled = ''
-    if results.no_ic3:
-        method_disabled = 'IC3'
-    if results.no_bmc:
-        method_disabled = 'BMC'
+    # TODO: whitelist instead of blacklist
+    methods = []
+    if not results.no_bmc:
+        methods.append('BMC')
+    if not results.no_ic3:
+        methods.append('IC3')
 
     # Display net informations
     ptnet_info = '#' + ptnet.id
@@ -246,66 +254,64 @@ def main():
         ptnet_info += " RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
     if results.display_time and results.auto_reduce:
         ptnet_info += " t~{}s".format(reduction_time)
-    log.info(ptnet_info)
+    if results.display_reduction_ratio or results.display_time:
+        print(ptnet_info)
 
     # Disable reduction is the Petri net is not reducible
     if system is not None and not system.equations:
         ptnet_reduced = None
         system = None
 
+    # List of suspended process
+    suspended_process = []
+
+    # Set timeout value
+    if results.global_timeout is not None:
+        timeout = results.global_timeout / len(properties.formulas)
+    else:
+        timeout = results.timeout
+
     # Iterate over properties
     for property_id, formula in properties.formulas.items():
-        print('FORMULA', property_id, end=' ')
+        
+        methods = []
 
         if results.path_markings is not None:
-            # Use enumerative method
-            result = []
-            enumerative = Enumerative(results.path_markings, ptnet, formula, ptnet_reduced, system, results.debug)
-            enumerative.prove(result)
-            print(formula.result(result[0]), end=' ')
-            # Display method
-            if results.display_method:
-                print('ENNUMERATIVE', end= '')
-            print()
-            if len(result) > 1:
-                result[1].display_model()
+            methods.append('ENUM')
+
+        # Check non-monotonic analysis
+        if results.skip_non_monotonic and formula.non_monotonic:
+            print('FORMULA', property_id, 'SKIPPED')
+
         else:
-            # Check non-monotonic analysis
-            if results.skip_non_monotonic and formula.non_monotonic:
-                print("SKIPPED")
+
+            if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
+                # Use BMC and IC3 methods in parallel
+                methods += ['BMC', 'PDR-REACH']
+                
+                if not formula.non_monotonic:
+                    methods.append('PDR-COV')
+            
             else:
-                if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
-                    # Use BMC and IC3 methods in parallel
-                    parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system, results.display_model, results.debug, method_disabled)
-                    sat, model, execution_time, method = parallelizer.run(results.timeout)
+                # Run SMT / CP methods
+                methods = ['SMT', 'CP']
 
-                else:
-                    # Use CP (Constraint Programming) method
-                    cp = CP(ptnet, formula, system, results.timeout, results.display_model, results.debug, results.minizinc)
-                    sat, model, execution_time = cp.prove()
-                    method = "CP"
+        # Run methods in parallel and get results
+        parallelizer = Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.display_method, results.display_time, results.display_model, results.debug, methods)
+        
+        if not parallelizer.run(timeout):
+            suspended_process.append(parallelizer)
+        else:
+            parallelizer.stop()
 
-                # Display analysis result
-                if sat is not None:
-                    print(formula.result(sat), end=' ')
-                else:
-                    print("TIMEOUT", end=' ')
+    # TODO: write the resume management
+    print("continue...")
+    for proc in suspended_process:
+        proc.resume(3)
 
-                # Display execution time
-                if results.display_time:
-                    print(execution_time, end=' ')
-
-                # Display method
-                if results.display_method:
-                    if method != '':
-                        print(method, end= ' ')
-                    if ptnet_reduced.places and formula.non_monotonic:
-                        print("(IC3_auto-disabled)", end='')
-                print()
-
-                # Display model if there is one
-                if results.display_model and model is not None:
-                    model.display_model()
+    for proc in suspended_process:
+        proc.stop()
+        
 
     # Close temporary files
     if results.auto_reduce:
