@@ -64,6 +64,10 @@ def main():
                         type=str,
                         help='path to Petri Net (.net or .pnml format)')
 
+    parser.add_argument('--colored',
+                               action='store_true',
+                               help='colored input Petri net')
+
     group_properties = parser.add_mutually_exclusive_group()
 
     group_properties.add_argument('--xml',
@@ -171,16 +175,24 @@ def main():
     else:
         log.basicConfig(format="%(message)s")
 
+    colored, path_pnml = False, None
+
+    # Check if colored net
+    if results.colored:
+        colored = True
+        path_ptnet = tempfile.NamedTemporaryFile().name
+        subprocess.run(["mcc", "smpt", "-i", results.path_ptnet, '-o', path_ptnet])
+        print(' '.join(["mcc", "smpt", "-i", results.path_ptnet, '-o', path_ptnet]))
+        results.path_ptnet = path_ptnet + '.net'
+
     # Check if extension is `.pnml`
-    if results.path_ptnet.lower().endswith('.pnml'):
+    elif results.path_ptnet.lower().endswith('.pnml'):
         path_pnml = results.path_ptnet
         results.path_ptnet = tempfile.NamedTemporaryFile(suffix='.net').name
         subprocess.run(["ndrio", path_pnml, results.path_ptnet])
-    else:
-        path_pnml = None
 
     # Read the input Petri net
-    ptnet = PetriNet(results.path_ptnet, path_pnml)
+    ptnet = PetriNet(results.path_ptnet, path_pnml, colored)
 
     # By default no reduction
     ptnet_reduced = None

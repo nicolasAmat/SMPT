@@ -40,7 +40,7 @@ class PetriNet:
     - a finite set of transitions (identified by names).
     """
 
-    def __init__(self, filename, pnml_filename=None):
+    def __init__(self, filename, pnml_filename=None, colored=False):
         """ Initializer.
         """
         self.id = ""
@@ -48,11 +48,15 @@ class PetriNet:
         self.places = {}
         self.transitions = {}
 
-        self.pnml_mapping = False
-        self.places_mapping = {}
-        self.transitions_mapping = {}
-        if pnml_filename is not None:
-            self.pnml_mapping = True
+        # Mapping for colored and `.pnml`
+        self.places_mapping, self.transitions_mapping = {}, {}
+
+        # Colored management
+        self.colored = colored
+
+        # `.pnml` management 
+        self.pnml_mapping = pnml_filename is not None
+        if self.pnml_mapping:
             self.ids_mapping(pnml_filename)
 
         self.parse_net(filename)
@@ -140,12 +144,27 @@ class PetriNet:
         try:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
+
                     content = re.split(r'\s+', line.strip().replace('#', '.'))  # '#' forbidden in SMT-LIB
                     element = content.pop(0)
+
+                    # Colored Petri net
+                    if element == '.':
+                        kind_mapping = content.pop(0)
+                        if kind_mapping == 'pl':
+                            self.places_mapping[content.pop(0)] = content
+                        if kind_mapping == 'tr':
+                            self.transitions_mapping[content.pop(0)] = content
+
+                    # Net id
                     if element == "net":
                         self.id = content[0].replace('{', '').replace('}', '')
+
+                    # Transition arcs
                     if element == "tr":
                         self.parse_transition(content)
+
+                    # Place
                     if element == "pl":
                         self.parse_place(content)
             fp.close()

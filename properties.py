@@ -205,10 +205,21 @@ class Formula:
 
         if node == 'is-fireable':
             clauses = []
-            if self.ptnet.ids_mapping:
+
+            if self.ptnet.colored:
+                # colored `.pnml` input Petri net
+                transitions = []
+                for colored_transition in formula_xml:
+                    transitions += [self.ptnet.transitions[tr] for tr in self.petnet.transitions_mapping[colored_transition.text.replace('#', '.')]]
+
+            if self.ptnet.pnml_mappping:
+                # `.pnml` input Petri net
                 transitions = [self.ptnet.transitions[self.ptnet.transitions_mapping[tr.text.replace('#', '.')]] for tr in formula_xml]
+
             else:
+                # `.net` input Petri net
                 transitions = [self.ptnet.transitions[tr.text.replace('#', '.')] for tr in formula_xml]
+
             for tr in transitions:
                 inequalities = []
                 for pl, weight in tr.inputs.items():
@@ -241,9 +252,18 @@ class Formula:
             return Atom(left_operand, right_operand, '<=')
 
         if node == 'tokens-count':
-            if self.ptnet.ids_mapping:
+            if self.ptnet.colored:
+                # colored `.pnml` input Petri net
+                places = []
+                for colored_place in formula_xml:
+                    places += [self.ptnet.places[pl] for pl in self.ptnet.places_mapping[colored_place.text.replace('#', '.')]]
+
+            elif self.ptnet.pnml_mapping:
+                # `.pnml` input Petri net
                 places = [self.ptnet.places[self.ptnet.places_mapping[place.text.replace('#', '.')]] for place in formula_xml]
+
             else:
+                # `.net` input Petri net
                 places = [self.ptnet.places[place.text.replace('#', '.')] for place in formula_xml]
             return TokenCount(places)
 
