@@ -28,12 +28,12 @@ __version__ = "3.0.0"
 
 import argparse
 import logging as log
+import queue
 import subprocess
 import sys
 import tempfile
 import time
 
-from enumerative import Enumerative
 from parallelizer import Parallelizer
 from properties import Formula, Properties
 from ptnet import PetriNet
@@ -43,6 +43,9 @@ from system import System
 def main():
     """ Main function.
     """
+    # Start time
+    start_time = time.time()
+
     # Arguments parser
     parser = argparse.ArgumentParser(description='SMPT: Satisfiability Modulo Petri Net')
 
@@ -204,10 +207,10 @@ def main():
             fp_ptnet_reduced = open(results.path_ptnet.replace('.net', '_reduced.net'), 'w+')
         else:
             fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
-        start_time = time.time()
+        reduce_start_time = time.time()
         subprocess.run(
             ["reduce", "-rg,redundant,compact+,mg,4ti2", "-redundant-limit", "650", "-redundant-time", "10", "-inv-limit", "1000", "-inv-time", "10", results.path_ptnet, fp_ptnet_reduced.name])
-        reduction_time = time.time() - start_time
+        reduce_time = time.time() - reduce_start_time
         results.path_ptnet_reduced = fp_ptnet_reduced.name
 
     # Read the reduced Petri net and the system of equations linking both nets 
@@ -265,7 +268,7 @@ def main():
     if results.display_reduction_ratio and ptnet_reduced is not None:
         ptnet_info += " RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
     if results.display_time and results.auto_reduce:
-        ptnet_info += " t~{}s".format(reduction_time)
+        ptnet_info += " t~{}s".format(reduce_time)
     if results.display_reduction_ratio or results.display_time:
         print(ptnet_info)
 
@@ -274,18 +277,31 @@ def main():
         ptnet_reduced = None
         system = None
 
-    # List of suspended process
-    suspended_process = []
-
     # Set timeout value
     if results.global_timeout is not None:
         timeout = results.global_timeout / len(properties.formulas)
+        global_timeout = results.global_timeout
     else:
         timeout = results.timeout
+        global_timeout = timeout * len(properties.formulas)
 
     # Iterate over properties
+    computations = queue.Queue()
     for property_id, formula in properties.formulas.items():
-        
+        computations.put((property_id, formula))
+
+    # Counter, number of propeties to be runned for the first pass
+    counter, nb_properties = 0, computations.qsize()
+
+    while not computations.empty() and time.time() - start_time < global_timeout:
+
+        # Update the number of properties and the timeout for the next passes
+        if counter > nb_properties:
+            counter, nb_properties = 0, len(computations)
+            timeout = (global_timeout - (time.time() - start_time)) / nb_properties
+
+        property_id, formula = computations.get()
+
         methods = []
 
         if results.path_markings is not None:
@@ -303,27 +319,23 @@ def main():
                 
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')
-            
+
             else:
                 # Run SMT / CP methods
                 methods = ['SMT', 'CP']
 
         # Run methods in parallel and get results
         parallelizer = Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.display_method, results.display_time, results.display_model, results.debug, methods)
-        
-        if not parallelizer.run(timeout):
-            suspended_process.append(parallelizer)
-        else:
-            parallelizer.stop()
 
-    # TODO: write the resume management
-    print("continue...")
-    for proc in suspended_process:
-        proc.resume(3)
+        # If computation is uncomplete add it to the queue
+        if not parallelizer.run(timeout) and results.global_timeout is not None:
+            computations.put((property_id, formula))
 
-    for proc in suspended_process:
-        proc.stop()
-        
+        # Stop computations
+        parallelizer.stop()
+
+        # Increment counter
+        counter += 1
 
     # Close temporary files
     if results.auto_reduce:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Some Utils Functions.
+Utils to manage process.
 
 This file is part of SMPT.
 
