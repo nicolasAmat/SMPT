@@ -156,7 +156,7 @@ class System:
         try:
             with open(filename, 'r') as fp:
                 content = re.search(r'generated equations\n(.*)?\n\n',
-                                    fp.read().replace('{', '').replace('}', '').replace('#', '.'), re.DOTALL)
+                                    fp.read().replace('#', '.'), re.DOTALL)
                 if content:
                     for line in re.split('\n+', content.group())[1:-1]:
                         if line.partition(' |- ')[0] not in ['. O', '. C']:
@@ -299,16 +299,17 @@ class Equation:
                         element = element.replace('-1.', '')  
                         inversed = True
                     
-                    elif '.' in element:
-                        multiplication = element.split('.')
-                        element, multiplier = multiplication[1], multiplication[0] 
+                    elif element.rfind('.') > element.rfind('}'):
+                        index = element.rfind('.')
+                        element, multiplier = element[:index], element[index+1:] 
 
-                    self.check_variable(element, system)
+                    variable = element.replace('{', '').replace('}','')
+                    self.check_variable(variable, system)
 
                     if left_parsing:
-                        self.left.append(Variable(element, multiplier))
+                        self.left.append(Variable(variable, multiplier))
                     else:
-                        self.right.append(Variable(element, multiplier))
+                        self.right.append(Variable(variable, multiplier))
 
         if inversed:
             self.left.append(self.right.pop(0))
