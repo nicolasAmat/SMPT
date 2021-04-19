@@ -154,21 +154,21 @@ def main():
                         action='store_true',
                         help="skip non-monotonic properties")
 
-    parser.add_argument('--display-method',
+    parser.add_argument('--show-techniques',
                         action='store_true',
-                        help="display the method returning the result")
+                        help="show the method returning the result")
 
-    parser.add_argument('--display-model',
+    parser.add_argument('--show-model',
                         action='store_true',
-                        help="display a counterexample if there is one")
+                        help="show a counterexample if there is one")
 
-    parser.add_argument('--display-time',
+    parser.add_argument('--show-time',
                         action='store_true',
-                        help="display execution times")
+                        help="show execution times")
 
-    parser.add_argument('--display-reduction-ratio',
+    parser.add_argument('--show-reduction-ratio',
                         action='store_true',
-                        help="display the reduction ratio")
+                        help="show the reduction ratio")
 
     results = parser.parse_args()
 
@@ -263,13 +263,13 @@ def main():
     if not results.no_ic3:
         methods.append('IC3')
 
-    # Display net informations
+    # show net informations
     ptnet_info = '#' + ptnet.id
-    if results.display_reduction_ratio and ptnet_reduced is not None:
+    if results.show_reduction_ratio and ptnet_reduced is not None:
         ptnet_info += " RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
-    if results.display_time and results.auto_reduce:
+    if results.show_time and results.auto_reduce:
         ptnet_info += " t~{}s".format(reduce_time)
-    if results.display_reduction_ratio or results.display_time:
+    if results.show_reduction_ratio or results.show_time:
         print(ptnet_info)
 
     # Disable reduction is the Petri net is not reducible
@@ -325,7 +325,7 @@ def main():
                 methods = ['SMT', 'CP']
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.display_method, results.display_time, results.display_model, results.debug, methods)
+        parallelizer = Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, methods)
 
         # If computation is uncomplete add it to the queue
         if not parallelizer.run(timeout) and results.global_timeout is not None:

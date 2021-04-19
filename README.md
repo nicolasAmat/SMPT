@@ -23,6 +23,7 @@ SMPT is an SMT-based model-checker for Petri nets that takes advantage of net re
   + [psutil](https://pypi.org/project/psutil/) package
   + (optional) [cx_Freeze](https://pypi.org/project/psutil/) package
 * [Z3](https://github.com/Z3Prover/z3)
+* [MiniZinc](https://www.minizinc.org/)
 * (optional) [reduce](http://projects.laas.fr/tina/) (not released yet)
   + [struct](http://projects.laas.fr/tina/)
   + [4ti2](https://github.com/4ti2/4ti2) or [LattE integrale](https://github.com/latte-int/latte-distro)
@@ -66,34 +67,32 @@ of [TINA](http://projects.laas.fr/tina/) does not contain this tool yet.
 You can list all the options by using the *help* option:
 ```
 $> smpt --help
-usage: smpt [-h] [--version] [-v] [--debug]
-            [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
-            [--auto-reduce | --reduced PATH_PTNET_REDUCED]
-            [--save-reduced-net]
-            [--no-bmc | --no-ic3 | --auto-enumerative | --enumerative PATH_MARKINGS]
-            [--timeout TIMEOUT] [--skip-non-monotonic] [--display-method]
-            [--display-model] [--display-time] [--display-reduction-ratio]
-            ptnet
+usage: smpt.py [-h] [--version] [-v] [--debug] [--colored]
+               [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
+               [--auto-reduce | --reduced PATH_PTNET_REDUCED] [--save-reduced-net]
+               [--no-bmc | --no-ic3 | --auto-enumerative | --enumerative PATH_MARKINGS | --minizinc]
+               [--timeout TIMEOUT | --global-timeout GLOBAL_TIMEOUT] [--skip-non-monotonic] [--show-techniques]
+               [--show-model] [--show-time] [--show-reduction-ratio]
+               ptnet
 
 SMPT: Satisfiability Modulo Petri Net
 
 positional arguments:
-  ptnet                 path to Petri Net (.net format)
+  ptnet                 path to Petri Net (.net or .pnml format)
 
 optional arguments:
   -h, --help            show this help message and exit
   --version             show the version number and exit
   -v, --verbose         increase output verbosity
   --debug               print the SMT-LIB input/ouput
+  --colored             colored input Petri net
   --xml PATH_PROPERTIES
                         use XML format for properties
   --deadlock            deadlock analysis
   --quasi-liveness QUASI_LIVE_TRANSITIONS
-                        liveness analysis (comma separated list of transition
-                        names)
+                        liveness analysis (comma separated list of transition names)
   --reachability REACHABLE_PLACES
-                        reachibility analysis (comma separated list of place
-                        names)
+                        reachibility analysis (comma separated list of place names)
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PTNET_REDUCED
                         path to reduced Petri Net (.net format)
@@ -103,13 +102,16 @@ optional arguments:
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
-  --timeout TIMEOUT     a limit on execution time
+  --minizinc            use MiniZinc in case of fully reducible nets
+  --timeout TIMEOUT     a limit per property on execution time
+  --global-timeout GLOBAL_TIMEOUT
+                        a limit on execution time
   --skip-non-monotonic  skip non-monotonic properties
-  --display-method      display the method returning the result
-  --display-model       display a counterexample if there is one
-  --display-time        display execution times
-  --display-reduction-ratio
-                        display the reduction ratio
+  --show-techniques     show the method returning the result
+  --show-model          show a counterexample if there is one
+  --show-time           show execution times
+  --show-reduction-ratio
+                        show the reduction ratio
 ```
 
 ## Dependencies

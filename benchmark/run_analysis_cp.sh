@@ -23,7 +23,7 @@ TEMP_FILE=$(mktemp)
 # Read instances
 while IFS= read instance; do
 
-    # Display instance name
+    # show instance name
     echo $instance
 
     # Get relative paths
@@ -34,12 +34,12 @@ while IFS= read instance; do
     mkdir -p $PATH_OUTPUT
 
     # Run smpt
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityCardinality.xml --reduce ${PATH_INSTANCE}model_reduced.net > ${PATH_OUTPUT}RC_with_reduction.out" >> $TEMP_FILE
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityFireability.xml --reduce ${PATH_INSTANCE}model_reduced.net > ${PATH_OUTPUT}RF_with_reduction.out" >> $TEMP_FILE
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --deadlock --reduce ${PATH_INSTANCE}model_reduced.net > ${PATH_OUTPUT}RD_with_reduction.out" >> $TEMP_FILE
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityCardinality.xml --reduce ${PATH_INSTANCE}model_reduced.net --minizinc > ${PATH_OUTPUT}RC_with_reduction_cp.out" >> $TEMP_FILE
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityFireability.xml --reduce ${PATH_INSTANCE}model_reduced.net --minizinc > ${PATH_OUTPUT}RF_with_reduction_cp.out" >> $TEMP_FILE
-    echo "smpt --display-method --display-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --deadlock --reduce ${PATH_INSTANCE}model_reduced.net --minizinc > ${PATH_OUTPUT}RD_with_reduction_cp.out" >> $TEMP_FILE
+    echo "smpt --show-techniques --show-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityCardinality.xml --reduce ${PATH_INSTANCE}model_reduced.net > ${PATH_OUTPUT}RC_with_reduction.out" >> $TEMP_FILE
+    echo "smpt --show-techniques --show-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityFireability.xml --reduce ${PATH_INSTANCE}model_reduced.net > ${PATH_OUTPUT}RF_with_reduction.out" >> $TEMP_FILE
+    echo "smpt --show-techniques --show-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --deadlock --reduce ${PATH_INSTANCE}model_reduced.net > ${PATH_OUTPUT}RD_with_reduction.out" >> $TEMP_FILE
+    echo "smpt --show-techniques --show-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityCardinality.xml --reduce ${PATH_INSTANCE}model_reduced.net --minizinc > ${PATH_OUTPUT}RC_with_reduction_cp.out" >> $TEMP_FILE
+    echo "smpt --show-techniques --show-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --xml ${PATH_INSTANCE}ReachabilityFireability.xml --reduce ${PATH_INSTANCE}model_reduced.net --minizinc > ${PATH_OUTPUT}RF_with_reduction_cp.out" >> $TEMP_FILE
+    echo "smpt --show-techniques --show-time --timeout $TIMEOUT ${PATH_INSTANCE}model.net --deadlock --reduce ${PATH_INSTANCE}model_reduced.net --minizinc > ${PATH_OUTPUT}RD_with_reduction_cp.out" >> $TEMP_FILE
 
 done <$LIST
 

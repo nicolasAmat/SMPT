@@ -35,7 +35,7 @@ class CP:
     Constraint Programming method.
     """
 
-    def __init__(self, ptnet, formula, system, display_model=False, debug=False, minizinc=False):
+    def __init__(self, ptnet, formula, system, show_model=False, debug=False, minizinc=False):
         """ Initializer.
         """
         self.ptnet = ptnet
@@ -44,7 +44,7 @@ class CP:
 
         self.system = system
         
-        self.display_model = display_model
+        self.show_model = show_model
         self.minizinc = minizinc
 
         if minizinc:
@@ -62,7 +62,7 @@ class CP:
         else:
             sat = self.prove_smt()
 
-        if sat and self.display_model:
+        if sat and self.show_model:
             model = self.solver.get_model(self.ptnet)
 
         results.put([sat, model])

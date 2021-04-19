@@ -40,7 +40,7 @@ class BMC:
     Bounded Model Checking method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, display_model=False, debug=False):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False):
         """ Initializer.
         """
         self.ptnet = ptnet
@@ -50,7 +50,7 @@ class BMC:
 
         self.formula = formula
 
-        self.display_model = display_model
+        self.show_model = show_model
 
         self.solver = Solver(debug)
 
@@ -145,7 +145,7 @@ class BMC:
             sat = False
         else:
             sat = True
-            if self.display_model:
+            if self.show_model:
                 model = self.solver.get_model(self.ptnet, order)
         result.put([sat, model])
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
         ptnet_reduced = None
         system = None
 
-    bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, display_model=True)
+    bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=True)
 
     print("> Generated SMT-LIB")
     print("-------------------")
@@ -267,4 +267,4 @@ if __name__ == '__main__':
         sat, model = result.get()
         print(formula.result(sat))
         if model is not None:
-            model.display_model()
+            model.show_model()

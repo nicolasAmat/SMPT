@@ -207,4 +207,4 @@ if __name__ == '__main__':
     enumerative.prove(result)
     formula.result(result[0])
     if len(result) > 1:
-        result[1].display_model()
+        result[1].show_model()

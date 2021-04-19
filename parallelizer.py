@@ -42,7 +42,7 @@ class Parallelizer:
     """ Analysis methods parallelizer.
     """
 
-    def __init__(self, property_id, ptnet, formula, ptnet_reduced=None, system=None, display_method=False, display_time=False, display_model=False, debug=False, methods=[], path_markings=None):
+    def __init__(self, property_id, ptnet, formula, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, methods=[], path_markings=None):
         """ Initializer.
         """
         # Property id and corresponding formula
@@ -50,9 +50,9 @@ class Parallelizer:
         self.formula = formula
 
         # Output flags
-        self.display_method = display_method
-        self.display_time = display_time
-        self.display_model = display_model
+        self.show_techniques = show_techniques
+        self.show_time = show_time
+        self.show_model = show_model
 
         # Process information
         self.methods, self.process, self.techniques  = [], [], []
@@ -64,7 +64,7 @@ class Parallelizer:
         # Initialize methods
         for method in methods:
             if method == 'BMC':
-                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, display_model=display_model, debug=debug))
+                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug))
                 self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'BMC'])
 
             if method == 'PDR-COV':
@@ -76,11 +76,11 @@ class Parallelizer:
                 self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
 
             if method == 'SMT':
-                self.methods.append(CP(ptnet, formula, system, display_model=display_model, debug=debug, minizinc=False))
+                self.methods.append(CP(ptnet, formula, system, show_model=show_model, debug=debug, minizinc=False))
                 self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'SMT'])
 
             if method == 'CP':
-                self.methods.append(CP(ptnet, formula, system, display_model=display_model, debug=debug, minizinc=True))
+                self.methods.append(CP(ptnet, formula, system, show_model=show_model, debug=debug, minizinc=True))
                 self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'CP'])
 
             if method == 'ENUM':
@@ -137,18 +137,18 @@ class Parallelizer:
                 print('FORMULA', self.property_id, self.formula.result(sat), end=' ')
                 
                 # Show techniques
-                if self.display_method:
+                if self.show_techniques:
                     print('TECHNIQUES', ' '.join(techniques), end=' ')
 
                 # Show computation time
-                if self.display_time:
+                if self.show_time:
                     print('TIME', self.computation_time, end=' ')
 
                 print()
 
                 # Show model
-                if self.display_model and model is not None:
-                    model.display_model()
+                if self.show_model and model is not None:
+                    model.show_model()
                 
                 self.stop()
                 return True

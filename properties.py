@@ -353,7 +353,7 @@ class Formula:
         self.property_def = 'finally'
 
     def result(self, reachable):
-        """ Display the result according to the reachability of the feared events R.
+        """ Return the result according to the reachability of the feared events R.
         """
         if self.property_def == 'finally':
             if reachable:
@@ -466,8 +466,8 @@ class StateFormula(Expression):
 
         return minizinc_input
 
-    def display_model(self):
-        """ Display a model.
+    def show_model(self):
+        """ Show a model.
         """
         model = ""
 

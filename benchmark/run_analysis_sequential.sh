@@ -21,7 +21,7 @@ LIST=$1
 # Read instances
 while IFS= read instance; do
 
-    # Display instance name
+    # show instance name
     echo $instance
 
     # Get relative paths
@@ -32,12 +32,12 @@ while IFS= read instance; do
     mkdir -p $PATH_OUTPUT
 
     # Run smpt
-    smpt --display-method --display-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --xml "${PATH_INSTANCE}ReachabilityCardinality.xml" >  "${PATH_OUTPUT}RC_without_reduction.out"
-    smpt --display-method --display-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --xml "${PATH_INSTANCE}ReachabilityFireability.xml" >  "${PATH_OUTPUT}RF_without_reduction.out"
-    smpt --display-method --display-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --deadlock >  "${PATH_OUTPUT}RD_without_reduction.out"
-    smpt --display-method --display-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --xml "${PATH_INSTANCE}ReachabilityCardinality.xml" --reduce "${PATH_INSTANCE}model_reduced.net" >  "${PATH_OUTPUT}RC_with_reduction.out"
-    smpt --display-method --display-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --xml "${PATH_INSTANCE}ReachabilityFireability.xml" --reduce "${PATH_INSTANCE}model_reduced.net" >  "${PATH_OUTPUT}RF_with_reduction.out"
-    smpt --display-method --display-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --deadlock --reduce "${PATH_INSTANCE}model_reduced.net" >  "${PATH_OUTPUT}RD_with_reduction.out"
+    smpt --show-techniques --show-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --xml "${PATH_INSTANCE}ReachabilityCardinality.xml" >  "${PATH_OUTPUT}RC_without_reduction.out"
+    smpt --show-techniques --show-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --xml "${PATH_INSTANCE}ReachabilityFireability.xml" >  "${PATH_OUTPUT}RF_without_reduction.out"
+    smpt --show-techniques --show-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --deadlock >  "${PATH_OUTPUT}RD_without_reduction.out"
+    smpt --show-techniques --show-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --xml "${PATH_INSTANCE}ReachabilityCardinality.xml" --reduce "${PATH_INSTANCE}model_reduced.net" >  "${PATH_OUTPUT}RC_with_reduction.out"
+    smpt --show-techniques --show-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --xml "${PATH_INSTANCE}ReachabilityFireability.xml" --reduce "${PATH_INSTANCE}model_reduced.net" >  "${PATH_OUTPUT}RF_with_reduction.out"
+    smpt --show-techniques --show-time --timeout $TIMEOUT "${PATH_INSTANCE}model.net" --deadlock --reduce "${PATH_INSTANCE}model_reduced.net" >  "${PATH_OUTPUT}RD_with_reduction.out"
 
 done <$LIST
 
