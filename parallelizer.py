@@ -54,6 +54,15 @@ class Parallelizer:
         self.show_time = show_time
         self.show_model = show_model
 
+        # Common techniques
+        collateral_processing, unfolding_to_pt, structural_reduction = [], [], []
+        if len(methods) > 1:
+            collateral_processing = ['COLLATERAL_PROCESSING']
+        if ptnet.colored:
+            unfolding_to_pt = ['UNFOLDING_TO_PT']
+        if ptnet_reduced is not None:
+            structural_reduction = ['STRUCTURAL_REDUCTION']
+
         # Process information
         self.methods, self.process, self.techniques  = [], [], []
         self.computation_time = 0
@@ -65,27 +74,27 @@ class Parallelizer:
         for method in methods:
             if method == 'BMC':
                 self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug))
-                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'BMC'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'PDR-COV':
                 self.methods.append(IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, method='COV'))
-                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'PDR-COV'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
 
             if method == 'PDR-REACH':
                 self.methods.append(IC3(ptnet, formula, debug=debug, method='REACH'))
-                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT'])
 
             if method == 'SMT':
                 self.methods.append(CP(ptnet, formula, system, show_model=show_model, debug=debug, minizinc=False))
-                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'SMT'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
 
             if method == 'CP':
                 self.methods.append(CP(ptnet, formula, system, show_model=show_model, debug=debug, minizinc=True))
-                self.techniques.append(['COLLATERAL PROCESSING', 'IMPLICIT', 'SAT-SMT', 'CP'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'CONSTAINT_PROGRAMMING'])
 
             if method == 'ENUM':
                 self.methods.append(Enumerative(path_markings, ptnet, formula, ptnet_reduced, system, debug))
-                self.techniques.append(['COLLATERAL PROCESSING', 'EXPLICIT', 'SAT-SMT'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT-SMT'])
 
     def run(self, timeout=225):
         """ Run analysis in parrallel.
@@ -153,8 +162,10 @@ class Parallelizer:
                 self.stop()
                 return True
 
-        # Otherwise pause the methods
-        self.suspend()
+        # TODO v4: suspend
+        # Otherwise stop the methods
+        self.stop()
+
 
         return False
 
