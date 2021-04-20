@@ -212,7 +212,7 @@ class Formula:
                 for colored_transition in formula_xml:
                     transitions += [self.ptnet.transitions[tr] for tr in self.petnet.transitions_mapping[colored_transition.text.replace('#', '.')]]
 
-            if self.ptnet.pnml_mappping:
+            if self.ptnet.pnml_mapping:
                 # `.pnml` input Petri net
                 transitions = [self.ptnet.transitions[self.ptnet.transitions_mapping[tr.text.replace('#', '.')]] for tr in formula_xml]
 
