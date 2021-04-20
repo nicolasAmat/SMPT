@@ -185,7 +185,6 @@ def main():
         colored = True
         path_ptnet = tempfile.NamedTemporaryFile().name
         subprocess.run(["mcc", "smpt", "-i", results.path_ptnet, '-o', path_ptnet])
-        print(' '.join(["mcc", "smpt", "-i", results.path_ptnet, '-o', path_ptnet]))
         results.path_ptnet = path_ptnet + '.net'
 
     # Check if extension is `.pnml`
@@ -297,7 +296,7 @@ def main():
 
         # Update the number of properties and the timeout for the next passes
         if counter > nb_properties:
-            counter, nb_properties = 0, len(computations)
+            counter, nb_properties = 0, computations.qsize()
             timeout = (global_timeout - (time.time() - start_time)) / nb_properties
 
         property_id, formula = computations.get()
