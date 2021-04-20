@@ -153,9 +153,6 @@ class Parallelizer:
                 self.stop()
                 return True
 
-        # TODO: to remove
-        print(self.property_id, self.computation_time)
-
         # Otherwise pause the methods
         self.suspend()
 

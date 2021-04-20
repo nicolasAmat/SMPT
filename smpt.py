@@ -256,7 +256,7 @@ def main():
         properties.add_formula(formula, property_id)
 
     # Read the method restriction
-    # TODO: whitelist instead of blacklist
+    # TODO v4: whitelist instead of blacklist
     methods = []
     if not results.no_bmc:
         methods.append('BMC')

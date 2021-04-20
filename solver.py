@@ -36,9 +36,9 @@ from subprocess import PIPE, Popen
 
 from properties import Atom, IntegerConstant, StateFormula, TokenCount
 
-from utils import send_signal, RESUME, SUSPEND, STOP
+from utils import send_signal, RESUME, SUSPEND
 
-# TODO: abstract class
+# TODO v4: abstract class
 
 class Solver:
     """
@@ -61,9 +61,7 @@ class Solver:
     def kill(self):
         """" Kill the process.
         """
-        # TODO: choose one line
         self.solver.kill()
-        # send_signal([self.solver.pid], STOP)
 
     def suspend(self):
         """ Suspend the process.
@@ -134,7 +132,7 @@ class Solver:
 
         return self.readline() == 'sat'
 
-    # TODO: return a dictionnary to be consistent with `get_step` method
+    # TODO v4: return a dictionnary to be consistent with `get_step` method
     def get_model(self, ptnet, order=None):
         """ Get a model from the current SAT stack.
             Return a cube (conjunction of equalities).

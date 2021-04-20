@@ -377,7 +377,7 @@ class Formula:
 
 
 class Expression(ABC):
-    """ TODO
+    """ TODO v4: to implement
     """
 
 

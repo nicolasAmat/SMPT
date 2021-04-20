@@ -61,7 +61,7 @@ class IC3:
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, method='REACH', parallelizer_pid=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, unsat_core=True, method='REACH'):
         """ Initializer.
 
             By default the IC3 method uses the unsat core of the solver.
@@ -97,9 +97,6 @@ class IC3:
         # SMT solver
         self.solver = Solver(debug)
 
-        # PID of the parallelizer
-        self.parallelizer_pid = parallelizer_pid
-        
         # Used method to obtain minimal inductive cubes
         if unsat_core:
             self.sub_clause_finder = self.sub_clause_finder_unsat_core
@@ -315,7 +312,7 @@ class IC3:
 
         return cl
 
-    # TODO: To fix
+    # TODO v4: To fix
     def sub_clause_finder_mic(self, i, s):
         """ Minimal inductive clause (MIC).
         """
