@@ -19,7 +19,7 @@ rm -rv oracles 2> /dev/null
 
 # Get 2020 MCC models and properties
 mkdir INPUTS
-wget --no-check-certificate --progress=dot:mega http://mcc.lip6.fr/archives/mcc2020-input.vmdk.tar.bz2
+wget --no-check-certificate --progress=dot:mega http://mcc.lip6.fr/2020/archives/mcc2020-input.vmdk.tar.bz2
 tar -xvjf mcc2020-input.vmdk.tar.bz2
 ./bin/7z e mcc2020-input.vmdk
 ./bin/ext2rd 0.img ./:INPUTS
@@ -27,34 +27,15 @@ rm -f *.vmdk 0.img *.bz2 1
 
 # Extract archives and remove useless files
 cd INPUTS/
-rm -v *-COL-*
 rm -rv lost+found
 ls *.tgz | xargs -n1 tar -xzvf
 rm -v *.tgz
 for D in *; do
-    if [[ ($D == GPPP-PT-C0010N1000000000) || ($D == LamportFastMutEx-PT-*) ||  ($D == FamilyReunion-PT-L00200M0020C010P010G005) || ($D == FamilyReunion-PT-L00400M0040C020P020G001) || ($D == ViralEpidemic-PT-S16D2C4A03) ]]; then
-        rm -rv $D
-    elif [ -d $D ]; then
+    if [ -d $D ]; then
         echo $D
         cd $D
         rm -v !(model.pnml|ReachabilityCardinality.xml|ReachabilityFireability.xml)
-        if [[ ($D == HypertorusGrid-PT-d2k1p8b00) || ($D == IBM*) || ($D == IOTPpurchase*) || ($D == NeighborGrid*) ]]; then
-            sed -i 's/_/./g' ReachabilityCardinality.xml ReachabilityFireability.xml
-            if [[ ($D == IBMB2S565S3960-PT-none) ]]; then
-                sed -i 's/\.\./__/g' ReachabilityFireability.xml
-            fi
-        elif [[ ($D == Angiogenesis*) ]]; then
-            sed -i 's/t0/k0/g' ReachabilityFireability.xml
-            sed -i 's/t1/k1/g' ReachabilityFireability.xml
-        elif [[ ($D == NeoElection*) ]]; then
-            sed -i 's/P-//g' ReachabilityCardinality.xml
-            sed -i 's/T-//g' ReachabilityFireability.xml
-            sed -i 's/NeoElection-P/NeoElection-PT-/g' ReachabilityFireability.xml
-        fi
         ndrio model.pnml model.net
-        if [[ ($D == IOTPpurchase*) ]]; then
-            sed -i 's/,/./g' model.net
-        fi
         cd ..
     fi
 done
@@ -67,7 +48,6 @@ rm oracle.tar.gz
 
 # Remove useless files
 cd oracle/
-rm -v *-COL-*
 rm -v !(*-RC.out|*-RF.out|*-RD.out)
 cd ..
 
