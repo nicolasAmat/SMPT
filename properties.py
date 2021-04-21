@@ -210,15 +210,15 @@ class Formula:
                 # colored `.pnml` input Petri net
                 transitions = []
                 for colored_transition in formula_xml:
-                    transitions += [self.ptnet.transitions[tr] for tr in self.ptnet.transitions_mapping[colored_transition.text.replace('#', '.')]]
+                    transitions += [self.ptnet.transitions[tr] for tr in self.ptnet.transitions_mapping[colored_transition.text]]
 
             elif self.ptnet.pnml_mapping:
                 # `.pnml` input Petri net
-                transitions = [self.ptnet.transitions[self.ptnet.transitions_mapping[tr.text.replace('#', '.')]] for tr in formula_xml]
+                transitions = [self.ptnet.transitions[self.ptnet.transitions_mapping[tr.text]] for tr in formula_xml]
 
             else:
                 # `.net` input Petri net
-                transitions = [self.ptnet.transitions[tr.text.replace('#', '.')] for tr in formula_xml]
+                transitions = [self.ptnet.transitions[tr.text.replace('#', '.').replace(',', '.')] for tr in formula_xml]
 
             for tr in transitions:
                 inequalities = []

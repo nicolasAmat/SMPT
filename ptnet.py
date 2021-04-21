@@ -129,12 +129,12 @@ class PetriNet:
 
         for place_node in root.iter(xmlns + 'place'):
             place_id = place_node.attrib['id']
-            place_name = place_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.')  # '#' forbidden in SMT-LIB
+            place_name = place_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
             self.places_mapping[place_id] = place_name
 
         for transition_node in root.iter(xmlns + 'transition'):
             transition_id = transition_node.attrib['id']
-            transition_name = transition_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.')  # '#' forbidden in SMT-LIB
+            transition_name = transition_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
             self.transitions_mapping[transition_id] = transition_name
 
     def parse_net(self, filename):
@@ -145,7 +145,7 @@ class PetriNet:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
 
-                    content = re.split(r'\s+', line.strip().replace('#', '.'))  # '#' forbidden in SMT-LIB
+                    content = re.split(r'\s+', line.strip().replace('#', '.').replace(',', '.'))  # '#' and ',' forbidden in SMT-LIB
                     element = content.pop(0)
 
                     # Colored Petri net
