@@ -5,7 +5,7 @@
 # Thanks to Yann Thierry-Mieg.
 # This file is inspired from https://github.com/yanntm/pnmcc-models-2020/install_inputs.sh.
 # Dependencies:
-# - http://mcc.lip6.fr/archives/mcc2020-input.vmdk.tar.bz2
+# - http://mcc.lip6.fr/2020/archives/mcc2020-input.vmdk.tar.bz2
 # - https://github.com/yanntm/pnmcc-models-2020
 
 
