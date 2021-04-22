@@ -179,6 +179,7 @@ def main():
         log.basicConfig(format="%(message)s")
 
     colored, path_pnml = False, None
+    original_net = results.path_ptnet
 
     # Check if colored net
     if results.colored:
@@ -186,12 +187,20 @@ def main():
         path_ptnet = tempfile.NamedTemporaryFile().name
         subprocess.run(["mcc", "smpt", "-i", results.path_ptnet, '-o', path_ptnet])
         results.path_ptnet = path_ptnet + '.net'
+        original_net = results.path_ptnet
 
     # Check if extension is `.pnml`
     elif results.path_ptnet.lower().endswith('.pnml'):
         path_pnml = results.path_ptnet
-        results.path_ptnet = tempfile.NamedTemporaryFile(suffix='.net').name
-        subprocess.run(["ndrio", path_pnml, results.path_ptnet])
+        ptnet_file = tempfile.NamedTemporaryFile(suffix='.net')
+        results.path_ptnet = ptnet_file.name
+        original_net = results.path_ptnet
+
+        if subprocess.run(["ndrio", path_pnml, results.path_ptnet], stderr=subprocess.DEVNULL).returncode:
+            tina_output = subprocess.run(["tina", "-p", path_pnml], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines()
+            ptnet_file.writelines("{}\n".format(line).encode() for line in tina_output[10:-5])
+            ptnet_file.flush()
+            original_net = path_pnml
 
     # Read the input Petri net
     ptnet = PetriNet(results.path_ptnet, path_pnml, colored)
@@ -208,7 +217,7 @@ def main():
             fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
         reduce_start_time = time.time()
         subprocess.run(
-            ["reduce", "-rg,redundant,compact+,mg,4ti2", "-redundant-limit", "650", "-redundant-time", "10", "-inv-limit", "1000", "-inv-time", "10", results.path_ptnet, fp_ptnet_reduced.name])
+            ["reduce", "-rg,redundant,compact+,mg,4ti2", "-redundant-limit", "650", "-redundant-time", "10", "-inv-limit", "1000", "-inv-time", "10", original_net, fp_ptnet_reduced.name])
         reduce_time = time.time() - reduce_start_time
         results.path_ptnet_reduced = fp_ptnet_reduced.name
 
