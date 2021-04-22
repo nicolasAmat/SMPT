@@ -523,7 +523,7 @@ class Transition:
         """
         for place, weight in self.inputs.items():
             if place in self.tests:
-                weight += self.tests
+                weight += self.tests[place]
             self.pre[place] = weight
 
         for place, weight in self.tests.items():
