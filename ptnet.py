@@ -59,6 +59,7 @@ class PetriNet:
         if self.pnml_mapping:
             self.ids_mapping(pnml_filename)
 
+        # Parse the `.net` file
         self.parse_net(filename)
 
     def __str__(self):
@@ -170,6 +171,14 @@ class PetriNet:
             fp.close()
         except FileNotFoundError as e:
             sys.exit(e)
+
+        if self.colored:
+            # Remove trivial dead places
+            for place, mapped_places in self.places_mapping.items():
+                self.places_mapping[place] = [pl for pl in mapped_places if pl in self.places]
+            # Remove trivial dead transitions
+            for transition, mapped_transitions in self.transitions_mapping.items():
+                self.transitions_mapping[transition] = [tr for tr in mapped_transitions if tr in self.transitions]
 
     def parse_transition(self, content):
         """ Transition parser.
