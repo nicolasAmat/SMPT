@@ -139,6 +139,13 @@ class BMC:
         else:
             order = self.prove_with_reduction()
 
+        # Kill the solver
+        self.solver.kill()
+
+        # Quit if the solver has aborted
+        if self.solver.aborted:
+            return
+
         # Put the result in the queue
         model = None
         if order == -1:
@@ -148,9 +155,6 @@ class BMC:
             if self.show_model:
                 model = self.solver.get_model(self.ptnet, order)
         result.put([sat, model])
-
-        # Kill the solver
-        self.solver.kill()
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():

@@ -44,6 +44,7 @@ class Solver:
     """
     Solver interface defined by:
     - a z3 process,
+    - an 'aborted' flag,
     - a debug option.
     """
 
@@ -55,6 +56,7 @@ class Solver:
             process.append('-T:{}'.format(timeout))
 
         self.solver = Popen(process, stdin=PIPE, stdout=PIPE)
+        self.aborted = False
 
         self.debug = debug
 
@@ -137,6 +139,7 @@ class Solver:
         elif sat == 'unsat':
             return False
         else:
+            self.aborted = True
             return None
 
     # TODO v4: return a dictionnary to be consistent with `get_step` method
@@ -232,6 +235,7 @@ class MiniZinc:
 
         self.debug = debug
         self.timeout = timeout
+        self.aborted = False
 
         self.model = []
 

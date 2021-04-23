@@ -65,14 +65,18 @@ class CP:
         if sat and self.show_model:
             model = self.solver.get_model(self.ptnet)
 
-        if sat is not None:
-            results.put([sat, model])
-
         # Kill the solver
         self.solver.kill()
 
+        # Quit if the solver has aborted
+        if self.solver.aborted:
+            return        
+
+        # Put the result in the queue
+        results.put([sat, model])
+
         # Terminate concurrent methods
-        if sat is not None and not concurrent_pids.empty():
+        if not concurrent_pids.empty():
             send_signal(concurrent_pids.get(), STOP)
 
     def prove_minizinc(self):

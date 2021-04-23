@@ -135,15 +135,19 @@ class Enumerative:
         else:
             self.prove_with_reduction()
 
+        # Kill the solver
+        self.solver.kill()
+
+        # Quit if the solver has aborted
+        if self.solver.aborted:
+            return
+
+        # Put the result in the queue 
         sat, model = False, None
         if self.solver.check_sat():
             sat = True
             model = self.solver.get_model(self.ptnet)
-
         result.put([sat, model])
-
-        # Kill the solver
-        self.solver.kill()
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():

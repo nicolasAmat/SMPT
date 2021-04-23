@@ -133,7 +133,12 @@ class Parallelizer:
         start_time = time.time()
 
         # Join process
+        # Wait for the first process
         self.process[0].join(timeout=timeout)
+        # Wait for the other process (in case of aborted method)
+        if len(self.process) > 1:
+            for proc in self.process[1:]:
+                proc.join(timeout=timeout - (time.time() - start_time))
         
         # Get the computation time
         self.computation_time += time.time() - start_time

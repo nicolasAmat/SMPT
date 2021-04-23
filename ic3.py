@@ -549,11 +549,15 @@ class IC3:
         """ Helper function to put the result to the output queue,
             and stop the concurrent method if there is one.
         """
-        # Put the result in the queue
-        result_output.put([not result, None])
-
         # Kill the solver
         self.solver.kill()
+
+        # Quit if the solver has aborted
+        if self.solver.aborted:
+            return
+
+        # Put the result in the queue
+        result_output.put([not result, None])
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
