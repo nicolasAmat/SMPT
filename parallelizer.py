@@ -166,7 +166,6 @@ class Parallelizer:
         # Otherwise stop the methods
         self.stop()
 
-
         return False
 
     def suspend(self):
