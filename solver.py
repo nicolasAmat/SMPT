@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-z3 Interface
+Interface for z3 and MiniZinc solvers.
 
 Uses SMT-LIB v2 format
 Standard: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf
@@ -32,11 +32,11 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "3.0.0"
 
-from subprocess import PIPE, Popen
+from subprocess import DEVNULL, PIPE, Popen, run
+from tempfile import NamedTemporaryFile
 
 from properties import Atom, IntegerConstant, StateFormula, TokenCount
-
-from utils import send_signal, RESUME, SUSPEND
+from utils import RESUME, SUSPEND, send_signal
 
 # TODO v4: abstract class
 
@@ -221,28 +221,27 @@ class MiniZinc:
     def __init__(self, debug=False, timeout=0):
         """ Initializer.
         """
-        process = ['minizinc', '-']
-        if timeout:
-            process.extend(['--time-limit', str(timeout * 1000)])
-        self.solver = Popen(process, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        self.debug = debug
+        self.file = NamedTemporaryFile('w', suffix='.mzn')
 
-        self.first_value = ""
+        self.debug = debug
+        self.timeout = timeout
+
+        self.model = []
 
     def kill(self):
         """" Kill the process.
         """
-        self.solver.kill()
+        pass
 
     def suspend(self):
         """ Suspend the process.
         """
-        send_signal([self.solver.pid], SUSPEND)
+        pass
 
     def resume(self):
         """ Resume the process.
         """
-        send_signal([self.solver.pid], RESUME)
+        pass
 
     def write(self, minizinc_input, debug=False):
         """ Write instructions into the standard input.
@@ -250,11 +249,8 @@ class MiniZinc:
         if self.debug or debug:
             print(minizinc_input)
 
-        if minizinc_input != "":
-            try:
-                self.solver.stdin.write(bytes(minizinc_input, 'utf-8'))
-            except BrokenPipeError:
-                return ""
+        self.file.write(minizinc_input)
+        self.file.flush()
 
     def readline(self, debug=False):
         """ Read a line from the standard output.
@@ -278,17 +274,13 @@ class MiniZinc:
         """ Check the satisfiability.
         """
         self.write("solve satisfy;\n")
-        try:
-            self.solver.stdin.close()
-        except BrokenPipeError:
-            return False
-        
-        minizinc_output = self.readline()
 
-        if ';' in minizinc_output:
-            self.first_value = minizinc_output
+        process = ['minizinc', self.file.name]
+        if self.timeout:
+            process.extend(['--time-limit', str(self.timeout * 1000)])
+        self.model = run(process, stdout=PIPE, stderr=DEVNULL).stdout.decode('utf-8').splitlines()
 
-        return minizinc_output != "=====UNSATISFIABLE====="
+        return self.model[0] != "=====UNSATISFIABLE====="
 
     def get_model(self, ptnet):
         """ Get a model.
@@ -296,11 +288,8 @@ class MiniZinc:
         """
         model = []
 
-        place_content = self.first_value.split(' = ')
-        self.parse_value(ptnet, place_content, model)
-
-        while True:
-            place_content = self.readline().split(' = ')
+        for line in self.model:
+            place_content = line.split(' = ')
 
             if len(place_content) < 2:
                 break
