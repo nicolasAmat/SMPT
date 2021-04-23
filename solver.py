@@ -130,7 +130,14 @@ class Solver:
         self.write("(check-sat)\n")
         self.flush()
 
-        return self.readline() == 'sat'
+        sat = self.readline()
+        
+        if sat == 'sat':
+            return True
+        elif sat == 'unsat':
+            return False
+        else:
+            return None
 
     # TODO v4: return a dictionnary to be consistent with `get_step` method
     def get_model(self, ptnet, order=None):
@@ -252,18 +259,6 @@ class MiniZinc:
         self.file.write(minizinc_input)
         self.file.flush()
 
-    def readline(self, debug=False):
-        """ Read a line from the standard output.
-        """
-        try:
-            minizinc_output = self.solver.stdout.readline().decode('utf-8').strip()
-        except BrokenPipeError:
-            return ""
-
-        if self.debug or debug:
-            print(minizinc_output)
-
-        return minizinc_output
 
     def set_bound(self):
         """ Set integer bound.
@@ -279,6 +274,9 @@ class MiniZinc:
         if self.timeout:
             process.extend(['--time-limit', str(self.timeout * 1000)])
         self.model = run(process, stdout=PIPE, stderr=DEVNULL).stdout.decode('utf-8').splitlines()
+
+        if self.debug:
+            print(self.model)
 
         return self.model[0] != "=====UNSATISFIABLE====="
 

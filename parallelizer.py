@@ -90,7 +90,7 @@ class Parallelizer:
 
             if method == 'CP':
                 self.methods.append(CP(ptnet, formula, system, show_model=show_model, debug=debug, minizinc=True))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'CONSTAINT_PROGRAMMING'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
 
             if method == 'ENUM':
                 self.methods.append(Enumerative(path_markings, ptnet, formula, ptnet_reduced, system, debug))
