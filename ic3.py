@@ -260,25 +260,6 @@ class IC3:
 
         return self.solver.check_sat()
 
-    # TODO: remove?
-    def oars_equivalence(self, i, j):
-        """ Check if F_j => F_i.
-        """
-        self.solver.reset()
-
-        self.solver.write(self.declare_places())
-
-        smt_input = ""
-        for clause in self.oars[i]:
-            smt_input += clause.smtlib(0, negation=True)
-        smt_input = "(assert (or {}))".format(smt_input)
-        self.solver.write(smt_input)
-
-        for clause in self.oars[j]:
-            self.solver.write(clause.smtlib(0, assertion=True))
-
-        return not self.solver.check_sat()
-
     def sub_clause_finder_unsat_core(self, i, s):
         """ unsat core (-s and Fi and T and s')
         """
@@ -449,7 +430,7 @@ class IC3:
             self.propagate_clauses(k)
 
             for i in range(1, k + 1):
-                if self.oars_equivalence(i, i + 1):
+                if set(self.oars[i]) == set(self.oars[i + 1]):
                     self.exit_helper(True, result, concurrent_pids)
                     return True
 
