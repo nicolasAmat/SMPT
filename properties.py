@@ -222,7 +222,7 @@ class Formula:
 
             for tr in transitions:
                 inequalities = []
-                for pl, weight in tr.inputs.items():
+                for pl, weight in tr.pre.items():
                     if weight > 0:
                         inequality = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
                         if (self.property_def == 'finally' and negation) or (self.property_def == 'globally' and not negation):
