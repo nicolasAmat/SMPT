@@ -32,11 +32,13 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "3.0.0"
 
-from subprocess import DEVNULL, PIPE, Popen, run
+from subprocess import DEVNULL, PIPE, Popen
 from tempfile import NamedTemporaryFile
 
+import psutil
+
 from properties import Atom, IntegerConstant, StateFormula, TokenCount
-from utils import RESUME, SUSPEND, send_signal
+from utils import RESUME, STOP, SUSPEND, send_signal
 
 # TODO v4: abstract class
 
@@ -232,27 +234,35 @@ class MiniZinc:
         """ Initializer.
         """
         self.file = NamedTemporaryFile('w', suffix='.mzn')
+        self.solver = None
+        self.aborted = False
 
         self.debug = debug
         self.timeout = timeout
-        self.aborted = False
 
         self.model = []
 
     def kill(self):
         """" Kill the process.
         """
-        pass
+        if self.solver is not None:
+            send_signal([self.solver.pid], STOP)
+
+        for proc in psutil.process_iter():
+            if 'fzn-gecode' in proc.name():
+                send_signal([proc.pid], STOP)
 
     def suspend(self):
         """ Suspend the process.
         """
-        pass
+        if self.solver is not None:
+            send_signal([self.solver.pid], SUSPEND)
 
     def resume(self):
         """ Resume the process.
         """
-        pass
+        if self.solver is not None:
+            send_signal([self.solver.pid], RESUME)
 
     def write(self, minizinc_input, debug=False):
         """ Write instructions into the standard input.
@@ -277,12 +287,19 @@ class MiniZinc:
         process = ['minizinc', self.file.name]
         if self.timeout:
             process.extend(['--time-limit', str(self.timeout * 1000)])
-        self.model = run(process, stdout=PIPE, stderr=DEVNULL).stdout.decode('utf-8').splitlines()
+        self.solver = Popen(process, stdout=PIPE, stderr=DEVNULL)
+
+        minizinc_output = self.solver.stdout.readline().decode('utf-8').strip()
+        self.model = [minizinc_output]
 
         if self.debug:
             print(self.model)
 
-        return self.model[0] != "=====UNSATISFIABLE====="
+        if minizinc_output == "=====ERROR=====":
+            self.aborted = True
+            return None
+        else:
+            return minizinc_output != "=====UNSATISFIABLE====="
 
     def get_model(self, ptnet):
         """ Get a model.
