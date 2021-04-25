@@ -240,7 +240,7 @@ class MiniZinc:
         self.debug = debug
         self.timeout = timeout
 
-        self.model = []
+        self.first_line = ""
 
     def kill(self):
         """" Kill the process.
@@ -273,6 +273,21 @@ class MiniZinc:
         self.file.write(minizinc_input)
         self.file.flush()
 
+    def readline(self, debug=False):
+        """ Read a line from the standard output.
+        """
+        if self.solver is None:
+            return ""
+
+        try:
+            minizinc_output = self.solver.stdout.readline().decode('utf-8').strip()
+        except BrokenPipeError:
+            return ""
+
+        if self.debug or debug:
+            print(minizinc_output)
+
+        return minizinc_output
 
     def set_bound(self):
         """ Set integer bound.
@@ -289,13 +304,13 @@ class MiniZinc:
             process.extend(['--time-limit', str(self.timeout * 1000)])
         self.solver = Popen(process, stdout=PIPE, stderr=DEVNULL)
 
-        minizinc_output = self.solver.stdout.readline().decode('utf-8').strip()
-        self.model = [minizinc_output]
+        minizinc_output = self.readline()
+        self.first_line = minizinc_output
 
         if self.debug:
-            print(self.model)
+            print(minizinc_output)
 
-        if minizinc_output == "=====ERROR=====":
+        if minizinc_output in ["=====ERROR=====", "=====UNKNOWN====="]:
             self.aborted = True
             return None
         else:
@@ -306,14 +321,17 @@ class MiniZinc:
             Return a cube (conjunction of equalities).
         """
         model = []
+        line = self.first_line
 
-        for line in self.model:
+        while line and line != '----------':
             place_content = line.split(' = ')
 
             if len(place_content) < 2:
                 break
 
             self.parse_value(ptnet, place_content, model)
+
+            line = self.readline()
 
         return StateFormula(model, 'and')
 
