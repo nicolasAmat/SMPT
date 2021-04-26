@@ -113,14 +113,6 @@ def main():
 
     group_methods = parser.add_mutually_exclusive_group()
 
-    group_methods.add_argument('--no-bmc',
-                               action='store_true',
-                               help='disable BMC method')
-
-    group_methods.add_argument('--no-ic3',
-                               action='store_true',
-                               help='disable IC3 method')
-
     group_methods.add_argument('--auto-enumerative',
                                    action='store_true',
                                    help="enumerate automatically the states (using `tina`)")
@@ -130,10 +122,6 @@ def main():
                                    dest='path_markings',
                                    type=str,
                                    help='path to the state-space (.aut format)')
-
-    group_methods.add_argument('--minizinc',
-                                   action='store_true',
-                                   help='use MiniZinc in case of fully reducible nets')
 
     group_timeout = parser.add_mutually_exclusive_group()
 
@@ -265,11 +253,6 @@ def main():
 
     # Read the method restriction
     # TODO v4: whitelist instead of blacklist
-    methods = []
-    if not results.no_bmc:
-        methods.append('BMC')
-    if not results.no_ic3:
-        methods.append('IC3')
 
     # show net informations
     ptnet_info = '#' + ptnet.id
