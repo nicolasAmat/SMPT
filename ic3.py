@@ -40,6 +40,7 @@ __version__ = "3.0.0"
 
 import copy
 import logging as log
+import resource
 import sys
 from multiprocessing import Process, Queue
 
@@ -80,10 +81,7 @@ class IC3:
         self.system = system
 
         # Formula to study
-        if self.method == 'REACH':
-            self.formula = formula.dnf()
-        else:
-            self.formula = formula
+        self.formula = formula
 
         # Use of reductions
         self.reduction = ptnet_reduced is not None
@@ -408,9 +406,21 @@ class IC3:
             self.exit_helper(False, result, concurrent_pids)
             return False
 
-        if self.method == 'REACH' and self.unsat_cubes_removal():
-            self.exit_helper(True, result, concurrent_pids)
-            return True
+        if self.method == 'REACH':
+            # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
+            resource.setrlimit(resource.RLIMIT_AS, (4294967296, 4294967296))
+
+            # Transform R into DFN
+            try:
+                self.formula = self.formula.dnf()
+            except MemoryError:
+                self.solver.kill()
+                return
+
+            # Remove UNSAT cubes, and exit if R UNSAT
+            if self.unsat_cubes_removal():
+                self.exit_helper(True, result, concurrent_pids)
+                return True
 
         log.info("[IC3] > R = {}".format(self.formula.R))
         log.info("[IC3] > P = {}".format(self.formula.P))
