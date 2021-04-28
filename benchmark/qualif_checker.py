@@ -30,8 +30,14 @@ def main():
     parser_results = parser.parse_args()
 
     with open(parser_results.path_summary) as csvfile:
+
+        print('-----------------------------------')
+        print('INPUT EXAMINATION #CORRECT / #WRONG')
+        print('-----------------------------------')
+
         summary_reader = csv.reader(csvfile)
 
+        did_not_finished, cannot_compute = [], []
         total_correct_values, total_error_values = 0, 0
 
         for row in summary_reader:
@@ -47,6 +53,10 @@ def main():
                 results = row[6].split(' ')
 
                 if results[0] != '16':
+                    if results[0] == 'DNF':
+                        did_not_finished.append(input + ' ' + examination)
+                    if results[0] == 'CC':
+                        cannot_compute.append(input + ' ' + examination)
                     continue
 
                 results.pop(0)
@@ -57,7 +67,8 @@ def main():
                         oracles = fp_oracles.readlines()
                         oracles.pop(0)
                     fp_oracles.close()
-                except FileNotFoundError as e:
+                except FileNotFoundError:
+                    print("# No oracles on {} for {}".format(input, examination))
                     continue
 
                 correct_values, error_values = 0, 0
@@ -74,9 +85,20 @@ def main():
                 total_correct_values += correct_values
                 total_error_values += error_values
 
-        print('-------------------------------')
-        print(total_correct_values, '/', total_error_values)
+        print('----------------')
+        print('Did Not Finished')
+        print('----------------')
+        print('\n'.join(did_not_finished))
 
+        print('--------------')
+        print('Cannot Compute')
+        print('--------------')
+        print('\n'.join(cannot_compute))
+
+        print('------------------------')
+        print('      #CORRECT / #WRONG')
+        print('TOTAL', total_correct_values, '/', total_error_values)
+        print('-----------------------')
 
 if __name__ == "__main__":
     main()
