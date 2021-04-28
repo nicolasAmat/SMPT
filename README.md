@@ -70,7 +70,7 @@ $> smpt --help
 usage: smpt.py [-h] [--version] [-v] [--debug] [--colored]
                [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
                [--auto-reduce | --reduced PATH_PTNET_REDUCED] [--save-reduced-net]
-               [--no-bmc | --no-ic3 | --auto-enumerative | --enumerative PATH_MARKINGS | --minizinc]
+               [--auto-enumerative | --enumerative PATH_MARKINGS]
                [--timeout TIMEOUT | --global-timeout GLOBAL_TIMEOUT] [--skip-non-monotonic] [--show-techniques]
                [--show-model] [--show-time] [--show-reduction-ratio]
                ptnet
@@ -97,12 +97,9 @@ optional arguments:
   --reduced PATH_PTNET_REDUCED
                         path to reduced Petri Net (.net format)
   --save-reduced-net    save the reduced net
-  --no-bmc              disable BMC method
-  --no-ic3              disable IC3 method
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
-  --minizinc            use MiniZinc in case of fully reducible nets
   --timeout TIMEOUT     a limit per property on execution time
   --global-timeout GLOBAL_TIMEOUT
                         a limit on execution time
