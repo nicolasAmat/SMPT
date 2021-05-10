@@ -259,7 +259,7 @@ def main():
         formula.generate_reachability(marking)
         properties.add_formula(formula, property_id)
 
-    # show net informations
+    # Show net informations
     ptnet_info = '#' + ptnet.id
     if results.show_reduction_ratio and ptnet_reduced is not None:
         ptnet_info += " RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
