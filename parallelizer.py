@@ -101,8 +101,8 @@ class Parallelizer:
 
             Return `True` if computation is done, `False` otherwise.
         """
-        # Exit if no process to run
-        if not self.process:
+        # Exit if no methods to run
+        if not self.methods:
             return True
 
         # Create a queue to share the pids of the concurrent methods
