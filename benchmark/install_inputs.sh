@@ -14,7 +14,6 @@ shopt -s extglob
 
 # Delete old files and directories
 rm -rv INPUTS/ 2> /dev/null
-rm -v inputs_list 2> /dev/null
 rm -rv oracles 2> /dev/null
 
 # Get 2020 MCC models and properties
@@ -35,7 +34,6 @@ for D in *; do
         echo $D
         cd $D
         rm -v !(model.pnml|ReachabilityCardinality.xml|ReachabilityFireability.xml)
-        ndrio model.pnml model.net
         cd ..
     fi
 done
