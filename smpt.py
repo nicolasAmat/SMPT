@@ -259,9 +259,6 @@ def main():
         formula.generate_reachability(marking)
         properties.add_formula(formula, property_id)
 
-    # Read the method restriction
-    # TODO v4: whitelist instead of blacklist
-
     # show net informations
     ptnet_info = '#' + ptnet.id
     if results.show_reduction_ratio and ptnet_reduced is not None:
