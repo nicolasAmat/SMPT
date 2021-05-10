@@ -113,7 +113,7 @@ def main():
 
     group_methods = parser.add_mutually_exclusive_group()
 
-    methods = ['BMC', 'PDR-Cov', 'PDR-Reach', 'SMT', 'CP']
+    methods = ['BMC', 'PDR-COV', 'PDR-REACH', 'SMT', 'CP']
 
     group_methods.add_argument('--authorized-methods',
                                default=methods,
