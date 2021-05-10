@@ -101,6 +101,11 @@ class Parallelizer:
 
             Return `True` if computation is done, `False` otherwise.
         """
+        # Exit if no process to run
+        if not self.process:
+            return True
+
+        # Create a queue to share the pids of the concurrent methods
         concurrent_pids = Queue()
 
         # Create daemon process

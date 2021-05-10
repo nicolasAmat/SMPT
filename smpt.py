@@ -68,32 +68,32 @@ def main():
                         help='path to Petri Net (.net or .pnml format)')
 
     parser.add_argument('--colored',
-                               action='store_true',
-                               help='colored input Petri net')
+                        action='store_true',
+                        help='colored input Petri net')
 
     group_properties = parser.add_mutually_exclusive_group()
 
     group_properties.add_argument('--xml',
-                               action='store',
-                               dest='path_properties',
-                               type=str,
-                               help='use XML format for properties')
+                                  action='store',
+                                  dest='path_properties',
+                                  type=str,
+                                  help='use XML format for properties')
 
     group_properties.add_argument('--deadlock',
-                               action='store_true',
-                               help='deadlock analysis')
+                                  action='store_true',
+                                  help='deadlock analysis')
 
     group_properties.add_argument('--quasi-liveness',
-                               action='store',
-                               dest='quasi_live_transitions',
-                               type=str,
-                               help='liveness analysis (comma separated list of transition names)')
+                                  action='store',
+                                  dest='quasi_live_transitions',
+                                  type=str,
+                                  help='liveness analysis (comma separated list of transition names)')
 
     group_properties.add_argument('--reachability',
-                               action='store',
-                               dest='reachable_places',
-                               type=str,
-                               help='reachibility analysis (comma separated list of place names)')
+                                  action='store',
+                                  dest='reachable_places',
+                                  type=str,
+                                  help='reachibility analysis (comma separated list of place names)')
 
     group_reduce = parser.add_mutually_exclusive_group()
 
@@ -108,35 +108,43 @@ def main():
                               help='path to reduced Petri Net (.net format)')
 
     parser.add_argument('--save-reduced-net',
-                               action='store_true',
-                               help='save the reduced net')
+                        action='store_true',
+                        help='save the reduced net')
 
     group_methods = parser.add_mutually_exclusive_group()
 
+    methods = ['BMC', 'PDR-Cov', 'PDR-Reach', 'SMT', 'CP']
+
+    group_methods.add_argument('--authorized-methods',
+                               default=methods,
+                               nargs='*',
+                               choices=methods,
+                               help='authorized methods among {}'.format(' '.join(methods)))
+
     group_methods.add_argument('--auto-enumerative',
-                                   action='store_true',
-                                   help="enumerate automatically the states (using `tina`)")
+                               action='store_true',
+                               help="enumerate automatically the states (using `tina`)")
 
     group_methods.add_argument('--enumerative',
-                                   action='store',
-                                   dest='path_markings',
-                                   type=str,
-                                   help='path to the state-space (.aut format)')
+                               action='store',
+                               dest='path_markings',
+                               type=str,
+                               help='path to the state-space (.aut format)')
 
     group_timeout = parser.add_mutually_exclusive_group()
 
     group_timeout.add_argument('--timeout',
-                        action='store',
-                        dest='timeout',
-                        type=int,
-                        default=225,
-                        help='a limit per property on execution time')
+                               action='store',
+                               dest='timeout',
+                               type=int,
+                               default=225,
+                               help='a limit per property on execution time')
 
     group_timeout.add_argument('--global-timeout',
-                        action='store',
-                        dest='global_timeout',
-                        type=int,
-                        help='a limit on execution time')
+                               action='store',
+                               dest='global_timeout',
+                               type=int,
+                               help='a limit on execution time')
 
     parser.add_argument('--skip-non-monotonic',
                         action='store_true',
@@ -314,6 +322,9 @@ def main():
             else:
                 # Run SMT / CP methods
                 methods = ['SMT', 'CP']
+
+        # Keep only authorized metods
+        methods = list(set(methods) & set(results.authorized_methods))
 
         # Run methods in parallel and get results
         parallelizer = Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, methods)
