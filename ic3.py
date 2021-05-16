@@ -498,7 +498,6 @@ class IC3:
                 return i - 1
 
         self.generate_clause(s, k, k)
-
         return k
 
     def generate_clause(self, s, i, k):
@@ -515,11 +514,10 @@ class IC3:
         """ Apply inductive generalization of a dangerous state s 
             to its Fi state predecessors.
         """
-        log.info("[IC3] \t> Push generalization (k = {})".format(k))
+        log.info("[IC3] \t> Push generalization (states = ({}, {}) / k = {})".format(states[0][0], states[0][1], k))
 
         while True:
-            state = min(states, key=lambda t: t[0])
-            n, s = state[0], state[1]
+            n, s = min(states, key=lambda t: t[0])
 
             if n > k:
                 return
