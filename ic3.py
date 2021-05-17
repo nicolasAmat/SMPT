@@ -410,7 +410,7 @@ class IC3:
             # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
             resource.setrlimit(resource.RLIMIT_AS, (4294967296, 4294967296))
 
-            # Transform R into DFN
+            # Transform R into DNF
             try:
                 self.formula = self.formula.dnf()
             except MemoryError:
