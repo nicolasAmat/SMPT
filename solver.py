@@ -178,6 +178,41 @@ class Solver:
 
         return StateFormula(model, 'and')
 
+
+    # TODO v4: merge get_model and get_marking
+    def get_marking(self, ptnet, order=None):
+        """ Get a marking from the current SAT stack.
+            Return a hashmap (keys: places and values: number of tokens).
+        """
+        # Solver instruction
+        self.write("(get-model)\n")
+        self.flush()
+
+        # Read '(model '
+        self.readline()
+
+        # Parse the model
+        model = {}
+        while True:
+            place_content = self.readline().split(' ')
+            
+            # Check if parsing done
+            if len(place_content) < 2:
+                break
+
+            place_marking = self.readline().replace(' ', '').replace(')', '')
+            place = ""
+            if order is None:
+                place = place_content[1]
+            else:
+                place_content = place_content[1].split('@')
+                if int(place_content[1]) == order:
+                    place = place_content[0]
+            if place_marking and place in ptnet.places:
+                model[ptnet.places[place]] = int(place_marking)
+
+        return model
+
     def get_step(self, ptnet):
         """ Get a step from the current SAT stack,
             meaning a pair of markings (m, m') s.t. m -> m'
