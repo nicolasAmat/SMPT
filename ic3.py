@@ -287,7 +287,7 @@ class IC3:
                         inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
         cl = StateFormula(inequalities, "or")
 
-        log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
+        log.info("[IC3] \t>> Clause learned: {}".format(cl))
 
         return cl
 
@@ -316,7 +316,7 @@ class IC3:
                     if int(eq.right_operand.value) == 0:
                         inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
                 cl = StateFormula(inequalities, "or")
-                log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
+                log.info("[IC3] \t>> Clause learned: {}".format(cl))
                 return cl
 
         inequalities = []
@@ -324,7 +324,7 @@ class IC3:
             inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
         cl = StateFormula(inequalities, "or")
 
-        log.info("[IC3] \t\t\t>> Clause learned: {}".format(cl))
+        log.info("[IC3] \t>> Clause learned: {}".format(cl))
 
         return cl
 
@@ -380,7 +380,7 @@ class IC3:
     def witness_generalizer(self, states):
         """ Generalize a witness by blocking the fired transition.
         """
-        log.info("[IC3] \t\t\t>> Generalization (s = {})".format(states))
+        log.info("[IC3] \t>> Generalization (s = {})".format(states))
 
         # Get a marking sequence m_1 -> m_2
         m_1, m_2 = self.solver.get_step(self.ptnet_current)
@@ -394,7 +394,7 @@ class IC3:
         # Return the generalized reached cube according the fired transition
         generalization = cl.generalization(tr)
 
-        log.info("[IC3] \t\t\t   {}".format(generalization))
+        log.info("[IC3] \t   {}".format(generalization))
         return generalization
 
     def prove(self, result, concurrent_pids):
@@ -463,7 +463,7 @@ class IC3:
                 log.info("[IC3] \t\t>> s: {}".format(s))
                 log.info("[IC3] \t\t>> n: {}".format(n))
 
-                self.push_generalization([(n + 1, s)], k)
+                self.push_generalization({(n + 1, s)}, k)
             return True
 
         except Counterexample:
@@ -487,13 +487,14 @@ class IC3:
         """ Strengthen the invariants in F,
             by adding cubes generated during the `push_generalization`.
         """
-        log.info("[IC3] \t> Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
+        log.info("[IC3] > Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
 
         if minimum < 0 and self.state_reachable(0, s):
             raise Counterexample
 
         for i in range(max(1, minimum + 1), k + 1):
             if self.state_reachable(i, s):
+                log.info('[IC3] \t>> F{} reach {}'.format(i, s))
                 self.generate_clause(s, i - 1, k)
                 return i - 1
 
@@ -504,7 +505,7 @@ class IC3:
         """ Find a minimal inductive cube `c` that is inductive relative to Fi.
             Add c to CL(Fi) for all 1 <= j <= i.
         """
-        log.info("[IC3] \t\t\t> Generate Clause (i = {}, k = {})".format(i, k))
+        log.info("[IC3] > Generate Clause (i = {}, k = {})".format(i, k))
 
         c = self.sub_clause_finder(i, s)
         for j in range(1, i + 2):
@@ -514,7 +515,7 @@ class IC3:
         """ Apply inductive generalization of a dangerous state s 
             to its Fi state predecessors.
         """
-        log.info("[IC3] \t> Push generalization (states = ({}, {}) / k = {})".format(states[0][0], states[0][1], k))
+        log.info("[IC3] > Push generalization (k = {})".format(k))
 
         while True:
             n, s = min(states, key=lambda t: t[0])
@@ -523,16 +524,17 @@ class IC3:
                 return
 
             if self.formula_reach_state(n, s):
+                log.info('[IC3] \t>> F{} reach {}'.format(n, s))
                 if self.method == 'REACH':
                     p = self.witness_generalizer(s)
                 else:
                     p = self.cube_filter()
                 m = self.inductively_generalize(p, n - 2, k)
-                states.append((m + 1, p))
+                states.add((m + 1, p))
             else:
                 m = self.inductively_generalize(s, n, k)
                 states.remove((n, s))
-                states.append((m + 1, s))
+                states.add((m + 1, s))
 
     def exit_helper(self, result, result_output, concurrent_pids):
         """ Helper function to put the result to the output queue,
