@@ -24,14 +24,15 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "3.0.0"
 
-from enumerative import Enumerative
 import sys
 import time
 from multiprocessing import Process, Queue
 
 from bmc import BMC
 from cp import CP
+from enumerative import Enumerative
 from ic3 import IC3
+from pdr import PDR
 from properties import Formula
 from ptnet import PetriNet
 from system import System
@@ -82,6 +83,10 @@ class Parallelizer:
 
             if method == 'PDR-REACH':
                 self.methods.append(IC3(ptnet, formula, debug=debug, method='REACH'))
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT'])
+
+            if method == 'PDR-H':
+                self.methods.append(PDR(ptnet, formula, debug=debug))
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT'])
 
             if method == 'SMT':
