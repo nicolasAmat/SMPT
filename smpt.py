@@ -311,7 +311,7 @@ def main():
 
             if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
                 # Use BMC and IC3 methods in parallel
-                methods += ['BMC', 'PDR-REACH']
+                methods += ['BMC', 'PDR-H']
                 
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')
