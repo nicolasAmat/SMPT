@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 BMC: Bounded Model Checking
 
@@ -25,13 +23,8 @@ __license__ = "GPLv3"
 __version__ = "2.0.0"
 
 import logging as log
-import sys
-from multiprocessing import Process, Queue
 
-from properties import Formula
-from ptnet import PetriNet
 from solver import Solver
-from system import System
 from utils import STOP, send_signal
 
 
@@ -43,15 +36,22 @@ class BMC:
     def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False):
         """ Initializer.
         """
+        # Initial Petri net
         self.ptnet = ptnet
+
+        # Reduced Petri net
         self.ptnet_reduced = ptnet_reduced
 
+        # System of linear equations
         self.system = system
 
+        # Formula to study
         self.formula = formula
 
+        # Show model option
         self.show_model = show_model
 
+        # SMT solver
         self.solver = Solver(debug)
 
     def smtlib(self, k):
@@ -235,40 +235,3 @@ class BMC:
 
         return None
 
-
-if __name__ == '__main__':
-
-    if len(sys.argv) < 2:
-        sys.exit("Argument missing: ./bmc.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
-
-    log.basicConfig(format="%(message)s", level=log.DEBUG)
-
-    ptnet = PetriNet(sys.argv[1])
-
-    formula = Formula(ptnet)
-    formula.generate_deadlock()
-
-    if len(sys.argv) == 3:
-        ptnet_reduced = PetriNet(sys.argv[2])
-        system = System(sys.argv[2], ptnet.places.keys(), ptnet_reduced.places.keys())
-    else:
-        ptnet_reduced = None
-        system = None
-
-    bmc = BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=True)
-
-    print("> Generated SMT-LIB")
-    print("-------------------")
-    print(bmc.smtlib(1))
-
-    print("> Result computed using z3")
-    print("--------------------------")
-    result, concurrent_pids = Queue(), Queue()
-    proc = Process(target=bmc.prove, args=(result, concurrent_pids,))
-    proc.start()
-    proc.join(timeout=60)
-    if not result.empty():
-        sat, model = result.get()
-        print(formula.result(sat))
-        if model is not None:
-            model.show_model()
