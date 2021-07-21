@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Enumerative Markings Method
 
@@ -31,10 +29,7 @@ import logging as log
 import re
 import sys
 
-from properties import Formula
-from ptnet import PetriNet
 from solver import Solver
-from system import System
 from utils import STOP, send_signal
 
 
@@ -45,20 +40,27 @@ class Enumerative:
     def __init__(self, path_markings, ptnet, formula, ptnet_reduced, system, debug=False):
         """ Initializer.
         """
+        # Initial Petri net
         self.ptnet = ptnet
+
+        # Reduced Petri net
         self.ptnet_reduced = ptnet_reduced
 
+        # System of linear equations
         self.system = system
 
+        # Formula to study
         self.formula = formula
 
+        # Reachable markings
         self.markings = []
         self.parse_markings(path_markings)
 
+        # SMT solver
         self.solver = Solver(debug)
 
     def __str__(self):
-        """ Markings to str.
+        """ Markings to textual format.
         """
         text = ""
         for marking in self.markings:
@@ -175,40 +177,3 @@ class Enumerative:
         log.info("[ENUMERATIVE] Markings from the reduced Petri net")
         self.solver.write(self.smtlib())
 
-
-if __name__ == '__main__':
-
-    if len(sys.argv) < 3:
-        sys.exit("Argument missing: ./enumerative.py <path_to_Petri_net> <path_to_aut_file> [<path_to_reduced_net>]")
-
-    log.basicConfig(format="%(message)s", level=log.DEBUG)
-
-    ptnet = PetriNet(sys.argv[1])
-
-    formula = Formula(ptnet)
-    formula.generate_deadlock()
-
-    if len(sys.argv) == 4:
-        ptnet_reduced = PetriNet(sys.argv[3])
-        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
-    else:
-        ptnet_reduced = None
-        system = None
-
-    enumerative = Enumerative(sys.argv[2], ptnet, formula, ptnet_reduced, system)
-
-    print("> Markings enumeration")
-    print("----------------------")
-    print(enumerative)
-
-    print("> Generated SMT-LIB")
-    print("-------------------")
-    print(enumerative.smtlib())
-
-    print("> Result computed using z3")
-    print("--------------------------")
-    result = []
-    enumerative.prove(result)
-    formula.result(result[0])
-    if len(result) > 1:
-        result[1].show_model()
