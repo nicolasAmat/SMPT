@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 CP: Constraint Programming Method
 
@@ -38,15 +36,22 @@ class CP:
     def __init__(self, ptnet, formula, system, show_model=False, debug=False, minizinc=False):
         """ Initializer.
         """
+        # Initial Petri net
         self.ptnet = ptnet
 
+        # System of linear equations 
+        self.system = system
+
+        # Formula to study
         self.formula = formula
 
-        self.system = system
-        
+        # Show model option
         self.show_model = show_model
+
+        # MiniZinc option
         self.minizinc = minizinc
 
+        # Solver
         if minizinc:
             self.solver = MiniZinc(debug)
         else:
@@ -105,7 +110,3 @@ class CP:
 
         return self.solver.check_sat()
 
-
-if __name__ == '__main__':
-    # TODO v4: add a test
-    pass
