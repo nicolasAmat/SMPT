@@ -76,6 +76,12 @@ MINIZINC_BOOLEAN_OPERATORS = {
     'or': '\\/'
 }
 
+XML_TO_COMPARISON = {
+    'integer-le': '<=',
+    'integer-ge': '>=',
+    'integer-eq': '=',
+}
+
 
 class Properties:
     """
@@ -235,7 +241,7 @@ class Formula:
                 clauses.append(StateFormula(inequalities, 'and'))
             return StateFormula(clauses, 'or')
 
-        if node == 'integer-le':
+        if node in ['integer-le', 'integer-ge', 'integer-eq']:
             left_operand = self.parse_xml(formula_xml[0], negation=negation)
             right_operand = self.parse_xml(formula_xml[1], negation=negation)
 
@@ -249,7 +255,7 @@ class Formula:
             if not (finally_monotonic or globally_monotonic):
                 self.non_monotonic = True
 
-            return Atom(left_operand, right_operand, '<=')
+            return Atom(left_operand, right_operand, XML_TO_COMPARISON[node])
 
         if node == 'tokens-count':
             if self.ptnet.colored:
@@ -427,11 +433,11 @@ class StateFormula(Expression):
         """
         return hash((tuple(self.operands), self.operator))
 
-    def smtlib(self, k=None, assertion=False, negation=False):
+    def smtlib(self, k=None, assertion=False, negation=False, delta=None):
         """ State formula.
             SMT-LIB format
         """
-        smt_input = ''.join(map(lambda operand: operand.smtlib(k), self.operands))
+        smt_input = ''.join(map(lambda operand: operand.smtlib(k, delta=delta), self.operands))
 
         if len(self.operands) > 1 or self.operator == 'not':
             smt_input = "({} {})".format(self.operator, smt_input)
@@ -443,6 +449,21 @@ class StateFormula(Expression):
             smt_input = "(assert {})\n".format(smt_input)
 
         return smt_input
+
+    def smtlib_unsat_core(self, k=None, delta=None):
+        """ Generated the SMT-LIB output to obtain an unsat core.
+        """
+        smt_input = ""
+        
+        for index, operand in enumerate(self.operands):
+            smt_input += "(assert (! {} :named lit@c{}))\n".format(operand.smtlib(k, delta=delta), index)
+
+        return smt_input
+
+    def learned_clauses_from_unsat_core(self, unsat_core, delta):
+        """ Return the clauses corresponding to a given unsat core.
+        """
+        return [self.operands[int(lit.split('@c')[1])].negation(delta) for lit in unsat_core]
 
     def minizinc(self, assertion=False):
         """ State formula.
@@ -480,10 +501,15 @@ class StateFormula(Expression):
 
         print("# Model:", model, sep='')
 
-    def negation(self):
+    def negation(self, delta=None):
         """ Return the negation of the StateFormula.
         """
-        return StateFormula([operand.negation() for operand in self.operands], NEGATION_BOOLEAN_OPERATORS[self.operator])
+        return StateFormula([operand.negation(delta) for operand in self.operands], NEGATION_BOOLEAN_OPERATORS[self.operator])
+
+    def generalize(self, delta):
+        """ Generalize a StateFormula from a delta vector.
+        """
+        return StateFormula([operand.generalize(delta) for operand in self.operands], self.operator)
 
     def dnf(self, negation_propagation=False):
         """ Convert to Disjunctive Normal Form.
@@ -568,15 +594,10 @@ class StateFormula(Expression):
         else:
             return False
 
-    def generalization(self, tr):
-        """ Generalize a state leading to feared states.
+    def get_cubes(self): # TODO: add check that we have a dnf
+        """ Return cubes. 
         """
-        generalized_operands = [operand.generalization(tr, firing_condition=False) for operand in self.operands]
-
-        for place, weight in tr.pre.items():
-            generalized_operands.append(Atom(TokenCount([place]), IntegerConstant(weight), '>='))    
-
-        return StateFormula(generalized_operands, 'and')
+        return self.operands if self.operator == 'or' else [self]
 
 
 class Atom(Expression):
@@ -617,11 +638,11 @@ class Atom(Expression):
         """
         return hash((self.left_operand, self.operator, self.right_operand))
 
-    def smtlib(self, k=None, assertion=False, negation=False):
+    def smtlib(self, k=None, assertion=False, negation=False, delta=None):
         """ Atom.
             SMT-LIB format
         """
-        smt_input = "({} {} {})".format(self.operator, self.left_operand.smtlib(k), self.right_operand.smtlib(k))
+        smt_input = "({} {} {})".format(self.operator, self.left_operand.smtlib(k, delta=delta), self.right_operand.smtlib(k, delta=delta))
 
         if negation:
             smt_input = "(not {})".format(smt_input)
@@ -630,6 +651,16 @@ class Atom(Expression):
             smt_input = "(assert {})\n".format(smt_input)
 
         return smt_input
+
+    def smtlib_unsat_core(self, k=None, delta=None):
+        """ Generated the SMT-LIB output to obtain an unsat core.
+        """
+        return "(assert (! {} :named lit@c))\n".format(self.smtlib(k, delta=delta))
+
+    def learned_clauses_from_unsat_core(self, unsat_core, delta):
+        """ Return the clauses corresponding to a given unsat core.
+        """
+        return [self.negation(delta)] if unsat_core else []
 
     def minizinc(self, assertion=False):
         """ Atom.
@@ -642,10 +673,15 @@ class Atom(Expression):
 
         return minizinc_input
 
-    def negation(self):
+    def negation(self, delta=None):
         """ Return the negation of the Atom.
         """
-        return Atom(self.left_operand, self.right_operand, NEGATION_COMPARISON_OPERATORS[self.operator])
+        return Atom(self.left_operand.negation(delta), self.right_operand.negation(delta), NEGATION_COMPARISON_OPERATORS[self.operator])
+
+    def generalize(self, delta):
+        """ Generalize an Atom from a delta vector.
+        """
+        return Atom(self.left_operand.generalize(delta), self.right_operand.generalize(delta), self.operator)
 
     def dnf(self, negation_propagation=False):
         """ Convert to Disjunctive Normal Form.
@@ -672,23 +708,10 @@ class Atom(Expression):
         """
         return COMPARISON_OPERATORS[self.operator](self.left_operand.eval(m), self.right_operand.eval(m))
 
-    def generalization(self, tr, firing_condition=True):
-        """ Generalize a state leading to feared states.
+    def get_cubes(self): # TODO: check DNF etc...
+        """ Return cubes. 
         """
-        left_operand = self.left_operand.generalization(tr)
-        right_operand = self.right_operand.generalization(tr)
-
-        # Normalization: value at right
-        right_operand.value -= left_operand.value
-        left_operand.value = 0
-
-        if firing_condition:
-            atoms = [Atom(left_operand, right_operand, self.operator)]
-            for place, weight in tr.pre.items():
-                atoms.append(Atom(TokenCount([place]), IntegerConstant(weight), '>='))
-            return StateFormula(atoms, 'and')
-        else:
-            return Atom(left_operand, right_operand, self.operator)
+        return [StateFormula([self], 'and')]
 
 
 class TokenCount(Expression):
@@ -730,14 +753,15 @@ class TokenCount(Expression):
         """
         return hash((tuple(self.places), self.value))
 
-    def smtlib(self, k=None):
+    def smtlib(self, k=None, delta=None):
         """ Token count.
             SMT-LIB format
         """
-        if k is not None:
-            smt_input = ' '.join(map(lambda pl: "{}@{}".format(pl.id, k), self.places))
+        if delta is None:
+            smt_input = ' '.join(map(lambda pl: pl.smtlib(k), self.places))
+
         else:
-            smt_input = ' '.join(map(lambda pl: pl.id, self.places))
+            smt_input = ' '.join(map(lambda pl: "(+ {} {})".format(pl.smtlib(k), delta[pl]) if delta.get(pl, 0) != 0 else pl.smtlib(k), self.places))
 
         if len(self.places) > 1:
             smt_input = "(+ {})".format(smt_input)
@@ -761,6 +785,16 @@ class TokenCount(Expression):
 
         return minizinc_input
 
+    def negation(self, delta=None):
+        """ Return the negation of the TokenCount.
+        """
+        return self.generalize(delta) if delta is not None else self
+
+    def generalize(self, delta):
+        """ Generalize a TokenCount from a delta vector.
+        """
+        return TokenCount(self.places, self.value + sum([delta.get(pl, 0) for pl in self.places]))
+
     def dnf(self, negation_propagation=False):
         """ Convert to Disjunctive Normal Form.
         """
@@ -783,15 +817,6 @@ class TokenCount(Expression):
         """
         return sum([m[pl] for pl in self.places]) + self.value
 
-    def generalization(self, tr):
-        """ Generalize a state leading to feared states.
-        """
-        pre = sum([tr.inputs[place] for place in self.places if place in tr.inputs])
-        post = sum([tr.outputs[place] for place in self.places if place in tr.outputs])
-        
-        delta = post - pre
-        
-        return TokenCount(self.places, self.value + delta)
 
 class IntegerConstant(Expression):
     """ 
@@ -822,7 +847,7 @@ class IntegerConstant(Expression):
         """
         return hash(self.value)
 
-    def smtlib(self, k=None):
+    def smtlib(self, k=None, delta=None):
         """ Integer constant.
             SMT-LIB format
         """
@@ -834,6 +859,16 @@ class IntegerConstant(Expression):
         """
         return str(self)
 
+    def negation(self, delta=None):
+        """ Return the negation of the IntegerConstant.
+        """
+        return self
+
+    def generalize(self, delta):
+        """ Generalize an IntegerConstant from a delta vector.
+        """
+        return self
+
     def dnf(self, negation_propagation=False):
         """ Convert to Disjunctive Normal Form.
         """
@@ -844,11 +879,6 @@ class IntegerConstant(Expression):
         """ Evaluate the subformula with marking m.
         """
         return self.value
-
-    def generalization(self, tr):
-        """ Generalize a state leading to feared states.
-        """
-        return IntegerConstant(self.value)
 
 
 if __name__ == '__main__':
