@@ -1,8 +1,5 @@
-#!/usr/bin/env python3
-
 """
-IC3:
-Incremental Construction of
+IC3 - Incremental Construction of
 Inductive Clauses for Indubitable Correctness
 
 Based on "SAT-Based Model Checking without Unrolling"
@@ -36,18 +33,13 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
-import copy
 import logging as log
 import resource
-import sys
-from multiprocessing import Process, Queue
 
-from properties import Atom, Formula, IntegerConstant, StateFormula, TokenCount
-from ptnet import PetriNet
+from properties import Atom, IntegerConstant, StateFormula, TokenCount
 from solver import Solver
-from system import System
 from utils import STOP, send_signal
 
 
@@ -55,6 +47,86 @@ class Counterexample(Exception):
     """
     Exception raised in case of a counterexample.
     """
+
+
+class States:
+    """
+    Set of states represented by:
+    - a cube,
+    - an hurdle and delta vector.
+    """
+
+    def __init__(self, cube):
+        """ Initializer.
+        """
+        self.cube = cube
+        
+        self.delta = {}
+        self.hurdle = {}
+
+    def __str__(self):
+        """ States to textual format.
+            (debugging function)
+        """
+        return  " and ".join(["({} >= {})".format(pl.id, hurdle) for pl, hurdle in self.hurdle.items()] + [str(self.cube.generalize(self.delta))])
+
+    def smtlib(self, k=None, assertion=False, negation=False):
+        """ States to SMT-LIB format.
+        """
+        smt_input = ""
+
+        for pl, hurdle in self.hurdle.items():
+            smt_input += "(>= {} {})".format(pl.smtlib(k), hurdle)
+
+        smt_input += self.cube.smtlib(k, delta=self.delta)
+        smt_input = "(and {})".format(smt_input)
+
+        if negation:
+            smt_input = "(not {})".format(smt_input)
+
+        if assertion:
+            smt_input = "(assert {})\n".format(smt_input)
+
+        return smt_input
+
+    def step_back(self, tr):
+        """ Return previous states from a given transition.
+        """
+        prev_states = States(self.cube)
+        
+        prev_states.delta = {pl: self.delta.get(pl, 0) + tr.delta.get(pl, 0) for pl in set(self.delta) | set(tr.delta)}
+        prev_states.hurdle = {pl: max(tr.pre.get(pl, 0), self.hurdle.get(pl, 0) - tr.delta.get(pl, 0)) for pl in set(tr.pre) |set(self.hurdle) | set(tr.delta)}
+        prev_states.hurdle = {pl: hurdle for pl, hurdle in prev_states.hurdle.items() if hurdle != 0}
+
+        return prev_states
+
+    def smtlib_unsat_core(self, k):
+        """ Generated the SMT-LIB output to obtain an unsat core.
+        """
+        smtlib_input = ""
+
+        for pl, hurdle in self.hurdle.items():
+            smtlib_input += "(assert (! (>= {} {}) :named lit@H{}))\n".format(pl.smtlib(k), hurdle, pl.id)
+
+        smtlib_input += self.cube.smtlib_unsat_core(k, self.delta)
+
+        return smtlib_input
+
+    def learned_clause_from_unsat_core(self, ptnet, unsat_core):
+        """ Return a clause corresponding to a given unsat core.
+        """
+        literals = []
+
+        for literal in filter(lambda literal: 'lit@H' in literal, unsat_core):
+            place = ptnet.places[literal.split('@H')[1]]
+            literals.append(Atom(TokenCount([place]), IntegerConstant(self.hurdle[place]), '<'))
+
+        literals += self.cube.learned_clauses_from_unsat_core(filter(lambda lit: 'lit@c' in lit, unsat_core), self.delta)
+
+        clause = StateFormula(literals, "or")
+        log.info("[PDR] \t\t\t>> Clause learned: {}".format(clause))
+
+        return clause
 
 
 class IC3:
@@ -91,6 +163,9 @@ class IC3:
 
         # Over Approximated Reachability Sequences (OARS) - list of CNFs
         self.oars = []
+
+        # Feared states
+        self.feared_states = []
 
         # SMT solver
         self.solver = Solver(debug)
@@ -131,7 +206,7 @@ class IC3:
     def assert_equations(self, init=False):
         """ Assert reduction equations.
 
-            Orders are equivalent to the declare places method.
+            Orders are equivalent to the `declare_places` method.
         """
         if not self.reduction:
             return ""
@@ -171,13 +246,18 @@ class IC3:
         log.info("[IC3] > F0 = I and F1 = P")
 
         # F0 = I
-        equalities = []
+        marking = []
         for pl in self.ptnet_current.places.values():
-            equalities.append(Atom(TokenCount([pl]), IntegerConstant(pl.initial_marking), '='))
-        self.oars.append([StateFormula(equalities, 'and')])
+            marking.append(Atom(TokenCount([pl]), IntegerConstant(pl.initial_marking), '='))
+        self.oars.append([StateFormula(marking, 'and')])
 
         # F1 = P
         self.oars.append([self.formula.P])
+
+        # Get feared states
+        if self.method == 'REACH':
+            if isinstance(self.formula.R, StateFormula):
+                self.feared_states = [States(cube) for cube in self.formula.R.get_cubes()]
 
     def initial_marking_bad_state(self):
         """ sat (I and -P)
@@ -266,133 +346,118 @@ class IC3:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet.smtlib_transition_relation(0))
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
-        self.solver.write(self.assert_equations())
-        for index, eq in enumerate(s.operands):
-            self.solver.write("(assert (! {} :named lit@{}))\n".format(eq.smtlib(1), index))
 
-        # Read Unsatisfiable Core
+        self.solver.write(s.smtlib_unsat_core(1))
         unsat_core = self.solver.get_unsat_core()
-        inequalities = []
-        for index, eq in enumerate(s.operands):
-            if "lit@{}".format(index) in unsat_core:
-                if self.method == 'REACH':
-                    inequalities.append(eq.negation())
-                else:
-                    if eq.right_operand.value == 0:
-                        # TODO: remove
-                        inequalities.append(Atom(eq.left_operand, eq.right_operand, ">"))
-                    else:
-                        inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
-        cl = StateFormula(inequalities, "or")
 
-        log.info("[IC3] \t>> Clause learned: {}".format(cl))
+        return s.learned_clause_from_unsat_core(self.ptnet, unsat_core)
 
-        return cl
-
-    # TODO v4: To fix
+    # TODO v4: REWRITE
     def sub_clause_finder_mic(self, i, s):
         """ Minimal inductive clause (MIC).
         """
-        c = copy.deepcopy(s)
+        pass
+        # c = copy.deepcopy(s)
 
-        while len(c.operands) > 1:
-            literal = c.operands.pop()
+        # while len(c.operands) > 1:
+        #     literal = c.operands.pop()
 
-            self.solver.reset()
+        #     self.solver.reset()
 
-            self.solver.write(self.declare_places())
-            self.solver.write(self.assert_formula(i))
-            self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
-            self.solver.write(self.assert_equations())
-            self.solver.write(c.smtlib(0, assertion=True, negation=True))
-            self.solver.write(c.smtlib(1, assertion=True))
+        #     self.solver.write(self.declare_places())
+        #     self.solver.write(self.assert_formula(i))
+        #     self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
+        #     self.solver.write(self.assert_equations())
+        #     self.solver.write(c.smtlib(0, assertion=True, negation=True))
+        #     self.solver.write(c.smtlib(1, assertion=True))
 
-            if self.solver.check_sat():
-                c.operands.append(literal)
-                inequalities = []
-                for eq in c.operands:
-                    if int(eq.right_operand.value) == 0:
-                        inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
-                cl = StateFormula(inequalities, "or")
-                log.info("[IC3] \t>> Clause learned: {}".format(cl))
-                return cl
+        #     if self.solver.check_sat():
+        #         c.operands.append(literal)
+        #         inequalities = []
+        #         for eq in c.operands:
+        #             if int(eq.right_operand.value) == 0:
+        #                 inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
+        #         cl = StateFormula(inequalities, "or")
+        #         log.info("[IC3] \t>> Clause learned: {}".format(cl))
+        #         return cl
 
-        inequalities = []
-        for eq in s.operands:
-            inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
-        cl = StateFormula(inequalities, "or")
+        # inequalities = []
+        # for eq in s.operands:
+        #     inequalities.append(Atom(eq.left_operand, eq.right_operand, "<"))
+        # cl = StateFormula(inequalities, "or")
 
-        log.info("[IC3] \t>> Clause learned: {}".format(cl))
+        # log.info("[IC3] \t>> Clause learned: {}".format(cl))
 
-        return cl
+        # return cl
 
     def unsat_cubes_removal(self):
-        """ Remove UNSAT cubes in R.
+        """ Remove unsat cubes in R.
             If no cubes are satisfiable return True.
         """
         log.info("[IC3] > Remove unsat cubes from R")
 
         self.solver.reset()
+
         self.solver.write(self.ptnet.smtlib_declare_places())
         
-        if self.formula.R.operator == 'or':
-            sat_cubes = []
-
-            for cube in self.formula.R.operands:
-                self.solver.push()
-                
-                self.solver.write(cube.smtlib(assertion=True))
-                
-                if self.solver.check_sat():
-                    sat_cubes.append(cube)
-                
+        sat_cubes = []
+        for cube in self.formula.R.get_cubes():
+            # Add only sat cubes
+            self.solver.push()
+            self.solver.write(cube.smtlib(assertion=True))
+            if self.solver.check_sat():
+                sat_cubes.append(cube)
                 self.solver.pop()
 
-            if not sat_cubes:
-                return True
+        # If no sat cubes, formula `P` is an invariant
+        if not sat_cubes:
+            return True
 
-            self.formula.R.operands = sat_cubes
-            self.formula.P = StateFormula([self.formula.R], 'not')
+        # Reconstruct formulas
+        self.formula.R.operands = sat_cubes
+        self.formula.P = StateFormula([self.formula.R], 'not')
 
-        else:
-            self.solver.write(self.formula.R.smtlib(assertion=True))
-
-            if not self.solver.check_sat():
-                return True
-
+        # Obtain feared states    
+        self.feared_states = [States(cube) for cube in sat_cubes]
+     
         return False
 
-    def cube_filter(self):
-        """ Extract a sub-cube with only non-null equalities,
-            replace equalities by "greater or equal than".
-        """
-        s = self.solver.get_model(self.ptnet_current, order=0)
-
-        non_zero = []
-        for eq in s.operands:
-            if eq.right_operand.value != 0:
-                non_zero.append(Atom(eq.left_operand, eq.right_operand, ">="))
-
-        return StateFormula(non_zero, "and")
-
     def witness_generalizer(self, states):
-        """ Generalize a witness by blocking the fired transition.
+        """ Generalize a witness.
+            - `REACH`: block the fired transition,
+            - `COV`: extract a sub-cube with only non-null equalities,
+            replace equalities by "greater or equal than".
         """
         log.info("[IC3] \t>> Generalization (s = {})".format(states))
 
-        # Get a marking sequence m_1 -> m_2
-        m_1, m_2 = self.solver.get_step(self.ptnet_current)
+        if self.method == 'REACH':
+            # Get a marking sequence m_1 -> m_2
+            m_1, m_2 = self.solver.get_step(self.ptnet_current)
 
-        # Get the corresponding fired transition
-        tr = self.ptnet_current.get_transition_from_step(m_1, m_2)
+            # Get the corresponding reached cube
+            if len(states) > 1:
+                s = next(filter(lambda s: s.cube.eval(m_2), states), None)
+            else:
+                s = states[0]
 
-        # Get reached clause (cl in CL(R) s.t. m_2 |= c)
-        cl = states.reached_cube(m_2)
+            # Get the corresponding fired transition
+            tr = self.ptnet_current.get_transition_from_step(m_1, m_2)
 
-        # Return the generalized reached cube according the fired transition
-        generalization = cl.generalization(tr)
+            # Return the generalized reached cube according the fired transition
+            generalization = s.step_back(tr)
+
+        else:
+            # Get a witness marking
+            s = self.solver.get_marking(self.ptnet_current, order=0)
+
+            # Construct the generalization cube
+            literals = []
+            for place, tokens in s.items():
+                if tokens:
+                    literals.append(Atom(TokenCount([place]), IntegerConstant(tokens), ">="))
+            generalization = States(StateFormula(literals, "and"))
 
         log.info("[IC3] \t   {}".format(generalization))
         return generalization
@@ -454,10 +519,7 @@ class IC3:
 
         try:
             while self.formula_reach_bad_state(k):
-                if self.method == 'REACH':
-                    s = self.witness_generalizer(self.formula.R)
-                else:
-                    s = self.cube_filter()
+                s = self.witness_generalizer(self.feared_states)
                 n = self.inductively_generalize(s, k - 2, k)
 
                 log.info("[IC3] \t\t>> s: {}".format(s))
@@ -525,10 +587,7 @@ class IC3:
 
             if self.formula_reach_state(n, s):
                 log.info('[IC3] \t>> F{} reach {}'.format(n, s))
-                if self.method == 'REACH':
-                    p = self.witness_generalizer(s)
-                else:
-                    p = self.cube_filter()
+                p = self.witness_generalizer([s])
                 m = self.inductively_generalize(p, n - 2, k)
                 states.add((m + 1, p))
             else:
@@ -554,34 +613,3 @@ class IC3:
         if not concurrent_pids.empty():
             send_signal(concurrent_pids.get(), STOP)
 
-if __name__ == '__main__':
-
-    if len(sys.argv) < 3:
-        sys.exit("Argument missing: ./ic3.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
-
-    log.basicConfig(format="%(message)s", level=log.DEBUG)
-
-    ptnet = PetriNet(sys.argv[2])
-
-    marking = {ptnet.places[pl]: 1 for pl in sys.argv[1].split(',')}
-    formula = Formula(ptnet)
-    formula.generate_reachability(marking)
-
-    if len(sys.argv) == 3:
-        ptnet_reduced = None
-        system = None
-    else:
-        ptnet_reduced = PetriNet(sys.argv[3])
-        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
-
-    ic3 = IC3(ptnet, formula, ptnet_reduced, system)
-
-    print("> Result computed using z3")
-    print("--------------------------")
-    result, concurrent_pids = Queue(), Queue()
-    proc = Process(target=ic3.prove, args=(result, concurrent_pids,))
-    proc.start()
-    proc.join(timeout=60)
-    if not result.empty():
-        sat = not result.get()[0]
-        print(formula.result(sat))
