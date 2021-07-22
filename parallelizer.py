@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Parallelizer for BMC and IC3 Analysis Methods
 
@@ -198,28 +196,3 @@ class Parallelizer:
         send_signal([proc.pid for proc in self.process], RESUME)
         send_signal([proc.pid for proc in self.process], STOP)
 
-
-if __name__ == '__main__':
-
-    if len(sys.argv) < 3:
-        sys.exit("Argument missing: ./parallelizer.py <places_to_reach> <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
-
-    ptnet = PetriNet(sys.argv[2])
-
-    marking = {ptnet.places[pl]: 1 for pl in sys.argv[1].split(',')}
-    formula = Formula(ptnet)
-    formula.generate_reachability(marking)
-
-    if len(sys.argv) == 3:
-        ptnet_reduced = None
-        system = None
-    else:
-        ptnet_reduced = PetriNet(sys.argv[3])
-        system = System(sys.argv[3], ptnet.places.keys(), ptnet_reduced.places.keys())
-
-    parallelizer = Parallelizer(ptnet, formula, ptnet_reduced, system)
-
-    print("> Result of the parallelized analysis")
-    print("-------------------------------------")
-    sat, _, _, method = parallelizer.run()
-    print("{} {}".format(formula.result(sat), method))
