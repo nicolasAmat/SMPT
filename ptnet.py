@@ -147,7 +147,12 @@ class PetriNet:
                 for line in fp.readlines():
 
                     content = re.split(r'\s+', line.strip().replace('#', '.').replace(',', '.'))  # '#' and ',' forbidden in SMT-LIB
-                    element = content.pop(0)
+
+                    # Skip empty lines and get the first identifier
+                    if not content:
+                        continue
+                    else:
+                        element = content.pop(0)
 
                     # Colored Petri net
                     if element == '.':
@@ -198,6 +203,7 @@ class PetriNet:
 
         tr.normalize_test_arcs()
         tr.compute_pre_vector()
+        tr.compute_delta_vector()
 
     def parse_arc(self, arc, arcs, opposite_arcs=[]):
         """ Arc parser.
@@ -320,6 +326,12 @@ class Place:
         else:
             return ""
 
+    def smtlib(self, k=None):
+        """ Place identifier.
+            SMT-LIB format
+        """
+        return "{}@{}".format(self.id, k) if k is not None else self.id 
+
     def smtlib_declare(self, k=None):
         """ Declare a place.
             SMT-LIB format
@@ -367,7 +379,9 @@ class Transition:
         self.inputs = {}
         self.outputs = {}
         self.tests = {}
+
         self.pre = {}
+        self.delta = {}
 
         self.connected_places = []
         self.ptnet = ptnet
@@ -530,6 +544,11 @@ class Transition:
         for place, weight in self.tests.items():
             if place not in self.inputs:
                 self.pre[place] = weight
+
+    def compute_delta_vector(self):
+        """ Compute Delta(t).
+        """
+        self.delta = {pl: self.outputs.get(pl, 0) - self.inputs.get(pl, 0) for pl in set(self.outputs) | set(self.inputs)}
 
 
 class Marking:
