@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Interface for z3 and MiniZinc solvers.
 
