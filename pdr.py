@@ -36,6 +36,84 @@ from solver import Solver
 from utils import STOP, send_signal
 
 
+class States:
+    """
+    """
+
+    def __init__(self, cube):
+        """
+        """
+        self.cube = cube
+        
+        self.delta = {}
+        self.hurdle = {}
+
+    def __str__(self):
+        """
+        """
+        return  " and ".join(["({} >= {})".format(pl.id, hurdle) for pl, hurdle in self.hurdle.items()] + [str(self.cube.generalize(self.delta))])
+
+    def smtlib(self, k=None, assertion=False, negation=False):
+        """
+        """
+        smt_input = ""
+
+        for pl, weight in self.hurdle.items():
+            smt_input += "(>= {} {})".format(pl.smtlib(k), weight)
+
+        smt_input += self.cube.smtlib(k, delta=self.delta)
+        smt_input = "(and {})".format(smt_input)
+
+        if negation:
+            smt_input = "(not {})".format(smt_input)
+
+        if assertion:
+            smt_input = "(assert {})\n".format(smt_input)
+
+        return smt_input
+
+    def step_back(self, tr):
+        """
+        """
+        delta_t = {k: tr.outputs.get(k, 0) - tr.inputs.get(k, 0) for k in set(tr.outputs) | set(tr.inputs)}
+        
+        prev = States(self.cube)
+        
+        prev.delta = {k: self.delta.get(k, 0) + delta_t.get(k, 0) for k in set(self.delta) | set(delta_t)}
+        prev.hurdle = {k: max(tr.pre.get(k, 0), self.hurdle.get(k, 0) - delta_t.get(k, 0)) for k in set(tr.pre) |set(self.hurdle) | set(delta_t)}
+        prev.hurdle = {k:v for k,v in prev.hurdle.items() if v != 0}
+
+        return prev
+
+    def smtlib_unsat_core(self, k):
+        """
+        """
+        smtlib_input = ""
+
+        for pl, hurdle in self.hurdle.items():
+            smtlib_input += "(assert (! (>= {} {}) :named lit@H{}))\n".format(pl.smtlib(k), hurdle, pl.id)
+
+        smtlib_input += self.cube.smtlib_unsat_core(k, self.delta)
+
+        return smtlib_input
+
+    def learned_clause_from_unsat_core(self, ptnet, unsat_core):
+        """
+        """
+        literals = []
+
+        for lit in filter(lambda lit: 'lit@H' in lit, unsat_core):
+            place = ptnet.places[lit.split('@H')[1]]
+            literals.append(Atom(TokenCount([place]), IntegerConstant(self.hurdle[place]), '<'))
+
+        literals += self.cube.learned_clauses_from_unsat_core(filter(lambda lit: 'lit@c' in lit, unsat_core), self.delta)
+
+        clause = StateFormula(literals, "or")
+        log.info("[PDR] \t\t\t>> Clause learned: {}".format(clause))
+
+        return clause
+
+
 class PdrSat:
     """ PdrSat.
     """
@@ -118,6 +196,20 @@ class PdrSat:
 
         return self.solver.check_sat()
 
+    def inductive_invariant(self):
+        """ unsat(P and T and R')
+        """
+        log.info("[PDR] > P and T => P'")
+
+        self.solver.reset()
+
+        self.solver.write(self.declare_places())
+        self.solver.write(self.formula.P.smtlib(0, assertion=True))
+        self.solver.write(self.ptnet.smtlib_transition_relation(0))
+        self.solver.write(self.formula.R.smtlib(1, assertion=True))
+
+        return not self.solver.check_sat()
+
     def bad_state(self, k):
         """ sat (F[k] and R) ?
         """
@@ -164,41 +256,45 @@ class PdrSat:
         # Get the corresponding fired transition
         tr = self.ptnet.get_transition_from_step(m_1, m_2)
 
-        # Get reached clause (cl in CL(R) s.t. m_2 |= c)
-        cube = states.reached_cube(m_2)
-
         # Return the generalized reached cube according the fired transition
-        generalization = cube.generalization(tr)
+        generalization = states.step_back(tr)
 
         log.info("[PDR]   Generalized witness {}".format(generalization))
         return generalization
 
-    def sub_clause_finder_unsat_core(self, i, s):
+    def sub_clause_finder_unsat_core(self, i, states):
         """ unsat core (-s and Fi and T and s')
         """
-        if isinstance(s, Atom):
-            return s.negation()
-
         self.solver.reset()
         self.solver.enable_unsat_core()
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_frame(i))
         self.solver.write(self.ptnet.smtlib_transition_relation(0))
-        self.solver.write(s.smtlib(0, assertion=True, negation=True))
-        for index, eq in enumerate(s.operands):
-            self.solver.write("(assert (! {} :named lit@{}))\n".format(eq.smtlib(1), index))
+        self.solver.write(states.smtlib(0, assertion=True, negation=True))
 
+        self.solver.write(states.smtlib_unsat_core(1))
         unsat_core = self.solver.get_unsat_core()
-        inequalities = []
-        for index, eq in enumerate(s.operands):
-            if "lit@{}".format(index) in unsat_core:
-                inequalities.append(eq.negation())
-        clause = StateFormula(inequalities, "or")
-        log.info("[PDR] \t\t\t>> Clause learned: {}".format(clause))
 
-        return clause
+        return states.learned_clause_from_unsat_core(self.ptnet, unsat_core)
 
+    def oars_equivalence(self, i, j):
+        """ Check if F_j => F_i.
+        """
+        self.solver.reset()
+
+        self.solver.write(self.declare_places())
+
+        smt_input = ""
+        for clause in self.F[i]:
+            smt_input += clause.smtlib(0, negation=True)
+        smt_input = "(assert (or {}))".format(smt_input)
+        self.solver.write(smt_input)
+
+        for clause in self.F[j]:
+            self.solver.write(clause.smtlib(0, assertion=True))
+
+        return not self.solver.check_sat()
 
 class PDR:
     """ 
@@ -221,6 +317,8 @@ class PDR:
         self.ptnet = ptnet
         # Formula to study
         self.formula = formula
+
+        self.feared_states = []
 
         # Debug option
         self.debug = debug
@@ -247,6 +345,11 @@ class PDR:
         # Add a new frame to the trace (F1 = T)
         self.F.append([])
 
+    def get_feared_states(self, m):
+        """
+        """
+        return next(filter(lambda states: states.cube.eval(m), self.feared_states), None)
+
     def prove(self, result, concurrent_pids):
         """ Prover.
         """
@@ -255,8 +358,9 @@ class PDR:
         # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
         resource.setrlimit(resource.RLIMIT_AS, (4294967296, 4294967296))
         
+        # TODO: manage this in a cleaner way
         self.Z = PdrSat(self.ptnet, self.formula, self.debug, self.F)
-        self.solver = self.Z.solver # TODO: manage this in a cleaner way
+        self.solver = self.Z.solver
 
         # Transform R into DNF
         try:
@@ -273,11 +377,24 @@ class PDR:
         log.info("[PDR]   R = {}".format(self.formula.R))
         log.info("[PDR]   P = {}".format(self.formula.P))
 
+        if isinstance(self.formula.R, StateFormula):
+            if self.formula.R.operator == 'or':
+                self.feared_states = [States(cube) for cube in self.formula.R.operands]
+            else:
+                self.feared_states = [States(self.formula.R)]
+        else:
+            self.feared_states = [States(StateFormula([self.formula.R], 'and'))]
+
         # SAT(I /\ R)?
         if self.Z.initial_marking_bad_state():
             self.exit_helper(False, result, concurrent_pids)
             return False
 
+        if self.Z.inductive_invariant():
+            self.exit_helper(True, result, concurrent_pids)
+            return True
+
+        # Run PDR method
         pdr_result = self.pdr_main()
         self.exit_helper(pdr_result, result, concurrent_pids)
         return pdr_result
@@ -290,20 +407,22 @@ class PDR:
             to push block cubes from all frames in the trace forward to the
             latest frame where they hold.
         """
+        # Initilization
         self.frames_initialization()
         k = 1
 
         while True:
-            
+    
             log.info("[PPR] > Blocking phase")
-            while self.Z.bad_state(k):
+            while self.Z.bad_state(k): # not self.F[k] or self.Z.bad_state(k)
 
                 log.info("[PDR]   k = {}".format(k))
 
-                m = self.Z.solver.get_model_test(self.ptnet, 0)
-                c = self.formula.R.reached_cube(m)
+                # Get some feared states
+                m = self.Z.solver.get_marking(self.ptnet, 0)
+                c = self.get_feared_states(m)
 
-                log.info("[PDR]   Bad state c = {} in F[{}]".format(c, k))
+                log.info("[PDR]   Bad state c = {} in F[{}]".format(c.cube, k))
 
                 if not self.rec_block(c, k):
                     log.info("[PDR] > Counterexample found")
@@ -320,6 +439,7 @@ class PDR:
                     if not self.Z.clause_reachable(i, c):
                         self.F[i+1].append(c)
 
+                # if self.Z.oars_equivalence(i, i+1):
                 if set(self.F[i]) == set(self.F[i + 1]):
                     log.info("[PDR] > Property proved")
                     print("[PDR] > Property proved")
@@ -328,6 +448,30 @@ class PDR:
     def rec_block(self, s, i):
         """ Recursively block bad states of the final time frame until the
             property holds.
+        """
+        log.info("[PDR] > RecBlock ({}, {})".format(s, i))
+
+        if i == 0:
+            log.info("[PDR]   Reached initial state")
+            return False
+
+        while self.Z.state_reachable(i - 1, s):
+            log.info("[PDR]   {} reachable from F[{}]".format(s, i - 1))
+            c = self.Z.witness_generalizer(s)
+            if not self.rec_block(c, i - 1):
+                return False
+
+        log.info("[PDR]   Generalize {} to {}".format(s, i))
+        g = self.Z.sub_clause_finder_unsat_core(i - 1, s)
+        if g:
+            for j in range(1, i + 1):
+                self.F[j].append(g)
+        
+        return True
+
+    def rec_block_using_priority_queue(self, s, i):
+        """ Recursively block bad states of the final time frame until the
+            property holds using a priority queue.
         """
         log.info("[PDR] > RecBlock ({}, {})".format(s, i))
 
@@ -348,36 +492,13 @@ class PDR:
                 q.put((i - 1, c))
 
             else:
-                log.info("[PDR]   Generalize {} to {}".format(s.negation(), i))
+                log.info("[PDR]   Generalize {} to {}".format(s, i))
                 g = self.Z.sub_clause_finder_unsat_core(i - 1, s)
                 for j in range(1, i + 1):
                     self.F[j].append(g)
 
         return True
 
-
-    # def rec_block(self, s, i):
-    #     """ Recursively block bad states of the final time frame until the
-    #         property holds.
-    #     """
-    #     log.info("[PDR] > RecBlock ({}, {})".format(s, i))
-
-    #     if i == 0:
-    #         log.info("[PDR]   Reached initial state")
-    #         return False
-
-    #     while self.Z.state_reachable(i - 1, s):
-    #         log.info("[PDR]   {} reachable from F[{}]".format(s, i - 1))
-    #         c = self.Z.witness_generalizer(s)
-    #         if not self.rec_block(c, i - 1):
-    #             return False
-
-    #     log.info("[PDR]   Generalize {} to {}".format(s.negation(), i))
-    #     g = self.Z.sub_clause_finder_unsat_core(i - 1, s)
-    #     for j in range(1, i + 1):
-    #         self.F[j].append(g)
-        
-    #     return True
 
     def exit_helper(self, result, result_output, concurrent_pids):
         """ Helper function to put the result to the output queue,
