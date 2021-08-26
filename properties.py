@@ -304,7 +304,7 @@ class Formula:
         for tr in self.ptnet.transitions.values():
             inequalities_R = []
 
-            for pl, weight in tr.inputs.items():
+            for pl, weight in tr.pre.items():
                 if weight > 0:
                     ineq_R = Atom(TokenCount([pl]), IntegerConstant(weight), '<')
                 else:
@@ -332,7 +332,7 @@ class Formula:
         for tr_id in transitions:
             inequalities_R = []
 
-            for pl, weight in self.ptnet.transitions[tr_id].inputs.items():
+            for pl, weight in self.ptnet.transitions[tr_id].pre.items():
                 if weight > 0:
                     ineq_R = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
                 else:
