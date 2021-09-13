@@ -22,7 +22,6 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "3.0.0"
 
-import sys
 import time
 from multiprocessing import Process, Queue
 
@@ -30,10 +29,7 @@ from bmc import BMC
 from cp import CP
 from enumerative import Enumerative
 from ic3 import IC3
-from pdr import PDR
-from properties import Formula
-from ptnet import PetriNet
-from system import System
+from kinduction import KInduction
 from utils import RESUME, STOP, SUSPEND, send_signal
 
 
@@ -69,11 +65,22 @@ class Parallelizer:
         # Create queues to store the results
         self.results = [Queue() for _ in methods]
 
+        # If K-Induction enabled create a queue to store the current iteration of BMC
+        if 'K-INDUCTION' in methods:
+            induction_queue = Queue()
+        else:
+            induction_queue = None
+
         # Initialize methods
         for method in methods:
+
             if method == 'BMC':
-                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
+                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue))
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING', 'BMC'])
+
+            if method == 'K-INDUCTION':
+                self.methods.append(KInduction(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue))
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING', 'K_INDUCTION'])
 
             if method == 'PDR-COV':
                 self.methods.append(IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, method='COV'))
@@ -81,10 +88,6 @@ class Parallelizer:
 
             if method == 'PDR-REACH':
                 self.methods.append(IC3(ptnet, formula, debug=debug, method='REACH'))
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT'])
-
-            if method == 'PDR-H':
-                self.methods.append(PDR(ptnet, formula, debug=debug))
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT'])
 
             if method == 'SMT':
@@ -175,7 +178,6 @@ class Parallelizer:
                 self.stop()
                 return True
 
-        # TODO v4: suspend
         # Otherwise stop the methods
         self.stop()
 

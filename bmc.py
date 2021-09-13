@@ -33,7 +33,7 @@ class BMC:
     Bounded Model Checking method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, induction_queue=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -47,6 +47,9 @@ class BMC:
 
         # Formula to study
         self.formula = formula
+
+        # Queue shared with K-Induction
+        self.induction_queue = induction_queue
 
         # Show model option
         self.show_model = show_model
@@ -173,8 +176,15 @@ class BMC:
         log.info("[BMC] \t>> Formula to check the satisfiability (order: 0)")
         self.solver.write(self.formula.R.smtlib(0, assertion=True))
 
-        k = 0
-        while not self.solver.check_sat():
+        k, k_induction_iteration = 0, float('inf')
+
+        while not self.solver.check_sat() and k < k_induction_iteration:
+
+            if self.induction_queue is not None and not self.induction_queue.empty():
+                k_induction_iteration = self.induction_queue.get()
+                if k >= k_induction_iteration:
+                    self.induction_queue.put(k)
+
             log.info("[BMC] > k = {}".format(k))
             log.info("[BMC] \t>> Pop")
             self.solver.pop()
@@ -187,6 +197,9 @@ class BMC:
             log.info("[BMC] \t>> Formula to check the satisfiability (order: {})".format(k + 1))
             self.solver.write(self.formula.R.smtlib(k + 1, assertion=True))
             k += 1
+
+        if self.induction_queue:
+            self.induction_queue.put(k)
 
         return k
 
