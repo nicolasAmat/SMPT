@@ -38,7 +38,7 @@ __version__ = "4.0.0"
 import logging as log
 import resource
 
-from properties import Atom, IntegerConstant, StateFormula, TokenCount
+from formula import Atom, IntegerConstant, StateFormula, TokenCount
 from solver import Solver
 from utils import STOP, send_signal
 

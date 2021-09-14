@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Properties Parser and Generator
+Formula Parser and Generator
 
 This file is part of SMPT.
 
@@ -22,7 +22,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
 import itertools
 import operator
@@ -33,7 +33,7 @@ from abc import ABC, abstractmethod
 
 from ptnet import PetriNet
 
-COMPARISON_OPERATORS = {
+TRANSLATION_COMPARISON_OPERATORS = {
     '=': operator.eq,
     '<=': operator.le,
     '>=': operator.ge,
@@ -60,26 +60,26 @@ COMMUTATION_COMPARISON_OPERATORS = {
     'distinct': 'distinct'
 }
 
-PNML_BOOLEAN_OPERATORS = {
-    'negation': 'not',
-    'conjunction': 'and',
-    'disjunction': 'or'
-}
-
 NEGATION_BOOLEAN_OPERATORS = {
     'and': 'or',
     'or': 'and'
 }
 
-MINIZINC_BOOLEAN_OPERATORS = {
+BOOLEAN_OPERATORS_TO_MINIZINC = {
     'and': '/\\',
     'or': '\\/'
 }
 
-XML_TO_COMPARISON = {
+XML_TO_COMPARISON_OPERATORS = {
     'integer-le': '<=',
     'integer-ge': '>=',
     'integer-eq': '=',
+}
+
+XML_TO_BOOLEAN_OPERATORS = {
+    'negation': 'not',
+    'conjunction': 'and',
+    'disjunction': 'or'
 }
 
 
@@ -155,6 +155,7 @@ class Properties:
         for formula_id in self.formulas:
             self.formulas[formula_id] = self.formulas[formula_id].dnf()
         return self
+
 
 class Formula:
     """
@@ -255,7 +256,7 @@ class Formula:
             if not (finally_monotonic or globally_monotonic):
                 self.non_monotonic = True
 
-            return Atom(left_operand, right_operand, XML_TO_COMPARISON[node])
+            return Atom(left_operand, right_operand, XML_TO_COMPARISON_OPERATORS[node])
 
         if node == 'tokens-count':
             if self.ptnet.colored:
@@ -383,8 +384,62 @@ class Formula:
 
 
 class Expression(ABC):
-    """ TODO v4: to implement
+    """ Formula Expresison.
     """
+    @abstractmethod
+    def __str__(self):
+        """ Textual format.
+            (debugging function)
+        """
+        pass
+
+    @abstractmethod
+    def __eq__(self, other):
+        """ Compare for equality.
+        """
+        pass
+
+    @abstractmethod
+    def __hash__(self):
+        """ Hash.
+        """
+        pass
+
+    @abstractmethod
+    def smtlib(self, k=None, delta=None):
+        """ SMT-LIB format
+        """
+        pass
+
+    @abstractmethod
+    def minizinc(self):
+        """ MiniZinc format
+        """
+        pass
+
+    @abstractmethod
+    def negation(self, delta=None):
+        """ Return the negation.
+        """
+        pass
+
+    @abstractmethod
+    def generalize(self, delta):
+        """ Generalize from a delta vector.
+        """
+        pass
+
+    @abstractmethod
+    def dnf(self, negation_propagation=False):
+        """ Convert to Disjunctive Normal Form.
+        """
+        pass
+
+    @abstractmethod
+    def eval(self, m):
+        """ Evaluate the subformula with marking m.
+        """
+        pass
 
 
 class StateFormula(Expression):
@@ -399,10 +454,10 @@ class StateFormula(Expression):
         """
         self.operands = operands
 
-        if operator in ['not', 'and', 'or']:
+        if operator in ['not', 'and', 'or', 'forall']:
             self.operator = operator
         elif operator in ['negation', 'conjunction', 'disjunction']:
-            self.operator = PNML_BOOLEAN_OPERATORS[operator]
+            self.operator = XML_TO_BOOLEAN_OPERATORS[operator]
         else:
             raise ValueError("Invalid operator for a state formula")
 
@@ -470,7 +525,7 @@ class StateFormula(Expression):
             MiniZinc format
         """
         if len(self.operands) > 1:
-            operator = MINIZINC_BOOLEAN_OPERATORS[self.operator]
+            operator = BOOLEAN_OPERATORS_TO_MINIZINC[self.operator]
         else:
             operator = ''
 
@@ -619,6 +674,9 @@ class Atom(Expression):
 
         self.operator = operator
 
+        self.monotonic = False
+        self.anti_monotonic = False
+
     def __str__(self):
         """ Atom to textual format.
             (debugging function)
@@ -693,8 +751,14 @@ class Atom(Expression):
             # DNF(P comp Q) <-> P comp Q 
             if isinstance(self.left_operand, IntegerConstant) and isinstance(self.right_operand, TokenCount):
                 # Normalization: TokenCount at left and IntegerConstant at right
-                return Atom(self.right_operand, self.left_operand, COMMUTATION_COMPARISON_OPERATORS[self.operator])
+                return Atom(self.right_operand, self.left_operand, COMMUTATION_COMPARISON_OPERATORS[self.operator]).dnf()
             else:
+                # Compute the monotonicty and anti-monocity of the atom.
+                if self.operator in ['<', '<=']:
+                    self.monotonic = isinstance(self.left_operand, TokenCount) and isinstance(self.right_operand, IntegerConstant)
+                elif self.operator in ['>', '>=']:
+                    self.anti_monotonic = isinstance(self.left_operand, TokenCount) and isinstance(self.right_operand, IntegerConstant)
+
                 return self
 
     def reached_cube(self, m):
@@ -706,9 +770,9 @@ class Atom(Expression):
     def eval(self, m):
         """ Evaluate the subformula with marking m.
         """
-        return COMPARISON_OPERATORS[self.operator](self.left_operand.eval(m), self.right_operand.eval(m))
+        return TRANSLATION_COMPARISON_OPERATORS[self.operator](self.left_operand.eval(m), self.right_operand.eval(m))
 
-    def get_cubes(self): # TODO: check DNF etc...
+    def get_cubes(self):
         """ Return cubes. 
         """
         return [StateFormula([self], 'and')]

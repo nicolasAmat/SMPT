@@ -35,7 +35,7 @@ from tempfile import NamedTemporaryFile
 
 import psutil
 
-from properties import Atom, IntegerConstant, StateFormula, TokenCount
+from formula import Atom, IntegerConstant, StateFormula, TokenCount
 from utils import RESUME, STOP, SUSPEND, send_signal
 
 # TODO v4: abstract class

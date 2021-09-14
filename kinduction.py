@@ -35,7 +35,7 @@ import logging as log
 import sys
 from multiprocessing import Process, Queue
 
-from properties import Formula
+from formula import Formula
 from ptnet import PetriNet
 from solver import Solver
 from system import System

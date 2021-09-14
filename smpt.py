@@ -34,8 +34,8 @@ import sys
 import tempfile
 import time
 
+from formula import Formula, Properties
 from parallelizer import Parallelizer
-from properties import Formula, Properties
 from ptnet import PetriNet
 from system import System
 
