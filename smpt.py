@@ -166,6 +166,10 @@ def main():
                         action='store_true',
                         help="show the reduction ratio")
 
+    parser.add_argument('--check-proof',
+                        action='store_true',
+                        help="check the unreachability certificate if there is one")
+
     results = parser.parse_args()
 
     # Set the verbose level
@@ -324,7 +328,7 @@ def main():
         methods = list(set(methods) & set(results.authorized_methods))
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, methods)
+        parallelizer = Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, methods, results.path_markings, results.check_proof)
 
         # If computation is uncomplete add it to the queue
         if not parallelizer.run(timeout) and results.global_timeout is not None:

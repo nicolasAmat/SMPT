@@ -37,7 +37,7 @@ class Parallelizer:
     """ Analysis methods parallelizer.
     """
 
-    def __init__(self, property_id, ptnet, formula, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, methods=[], path_markings=None):
+    def __init__(self, property_id, ptnet, formula, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, methods=[], path_markings=None, check_proof=False):
         """ Initializer.
         """
         # Property id and corresponding formula
@@ -83,12 +83,16 @@ class Parallelizer:
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING', 'K_INDUCTION'])
 
             if method == 'PDR-COV':
-                self.methods.append(IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, method='COV'))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
+                self.methods.append(IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, check_proof=check_proof, method='COV'))
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'PDR-COV'])
 
             if method == 'PDR-REACH':
-                self.methods.append(IC3(ptnet, formula, debug=debug, method='REACH'))
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT'])
+                self.methods.append(IC3(ptnet, formula, debug=debug, check_proof=check_proof, method='REACH', saturation=False))
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
+
+            if method == 'PDR-REACH-SATURATED':
+                self.methods.append(IC3(ptnet, formula, debug=debug, check_proof=check_proof, method='REACH', saturation=True))
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH-SATURATED'])
 
             if method == 'SMT':
                 self.methods.append(CP(ptnet, formula, system, show_model=show_model, debug=debug, minizinc=False))
