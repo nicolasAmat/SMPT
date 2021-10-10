@@ -235,6 +235,9 @@ class Solver:
             place_marking = int(self.readline().replace(' ', '').replace(')', ''))
             place_content = place_content[1].split('@')
             place_id = place_content[0]
+            # Skip free variables
+            if place_id not in ptnet.places:
+                continue
 
             # Add the place marking in the corresponding dictionnary
             markings[int(place_content[1])][ptnet.places[place_id]] = place_marking
@@ -249,7 +252,15 @@ class Solver:
     def get_unsat_core(self):
         """ Get an unsat core from the current UNSAT stack.
         """
-        assert (not self.check_sat())
+        sat = self.check_sat()
+        
+        # Assert the result either `UNKNOWN` or `SAT`
+        assert(sat is None or not sat)
+
+        # If `UNKNOWN` consider that the solver is still alive and return "All" as the unsat core
+        if sat is None:
+            self.aborted = False
+            return ["All"]
 
         self.write("(get-unsat-core)\n")
         self.flush()
