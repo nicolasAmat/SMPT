@@ -113,7 +113,7 @@ def main():
 
     group_methods = parser.add_mutually_exclusive_group()
 
-    methods = ['BMC', 'K-INDUCTION', 'PDR-COV', 'PDR-REACH', 'SMT', 'CP']
+    methods = ['BMC', 'K-INDUCTION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP']
 
     group_methods.add_argument('--authorized-methods',
                                default=methods,
@@ -311,8 +311,8 @@ def main():
 
             if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
                 # Use BMC and IC3 methods in parallel
-                methods += ['BMC', 'K-INDUCTION', 'PDR-H', 'PDR-REACH']
-                
+                methods += ['BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
+
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')
 
