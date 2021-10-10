@@ -30,6 +30,7 @@ import sys
 import uuid
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
+from collections import Counter
 
 from ptnet import PetriNet
 
@@ -406,7 +407,7 @@ class Expression(ABC):
         pass
 
     @abstractmethod
-    def smtlib(self, k=None, delta=None):
+    def smtlib(self, k=None, delta=None, saturated_delta=None):
         """ SMT-LIB format
         """
         pass
@@ -418,13 +419,13 @@ class Expression(ABC):
         pass
 
     @abstractmethod
-    def negation(self, delta=None):
+    def negation(self, delta=None, saturated_delta=None):
         """ Return the negation.
         """
         pass
 
     @abstractmethod
-    def generalize(self, delta):
+    def generalize(self, delta=None, saturated_delta=None):
         """ Generalize from a delta vector.
         """
         pass
@@ -488,11 +489,11 @@ class StateFormula(Expression):
         """
         return hash((tuple(self.operands), self.operator))
 
-    def smtlib(self, k=None, assertion=False, negation=False, delta=None):
+    def smtlib(self, k=None, assertion=False, negation=False, delta=None, saturated_delta=None):
         """ State formula.
             SMT-LIB format
         """
-        smt_input = ''.join(map(lambda operand: operand.smtlib(k, delta=delta), self.operands))
+        smt_input = ''.join(map(lambda operand: operand.smtlib(k, delta=delta, saturated_delta=saturated_delta), self.operands))
 
         if len(self.operands) > 1 or self.operator == 'not':
             smt_input = "({} {})".format(self.operator, smt_input)
@@ -505,20 +506,23 @@ class StateFormula(Expression):
 
         return smt_input
 
-    def smtlib_unsat_core(self, k=None, delta=None):
+    def smtlib_unsat_core(self, k=None, delta=None, saturated_delta=None):
         """ Generated the SMT-LIB output to obtain an unsat core.
         """
         smt_input = ""
         
         for index, operand in enumerate(self.operands):
-            smt_input += "(assert (! {} :named lit@c{}))\n".format(operand.smtlib(k, delta=delta), index)
+            smt_input += "(assert (! {} :named lit@c{}))\n".format(operand.smtlib(k, delta=delta, saturated_delta=saturated_delta), index)
 
         return smt_input
 
-    def learned_clauses_from_unsat_core(self, unsat_core, delta):
+    def learned_clauses_from_unsat_core(self, unsat_core, delta=None, saturated_delta=None):
         """ Return the clauses corresponding to a given unsat core.
         """
-        return [self.operands[int(lit.split('@c')[1])].negation(delta) for lit in unsat_core]
+        if unsat_core == ['All']:
+            return [operand.negation(delta, saturated_delta) for operand in self.operands]
+        else:
+            return [self.operands[int(lit.split('@c')[1])].negation(delta, saturated_delta) for lit in unsat_core]
 
     def minizinc(self, assertion=False):
         """ State formula.
@@ -556,15 +560,15 @@ class StateFormula(Expression):
 
         print("# Model:", model, sep='')
 
-    def negation(self, delta=None):
+    def negation(self, delta=None, saturated_delta=None):
         """ Return the negation of the StateFormula.
         """
-        return StateFormula([operand.negation(delta) for operand in self.operands], NEGATION_BOOLEAN_OPERATORS[self.operator])
+        return StateFormula([operand.negation(delta, saturated_delta) for operand in self.operands], NEGATION_BOOLEAN_OPERATORS[self.operator])
 
-    def generalize(self, delta):
+    def generalize(self, delta=None, saturated_delta=None):
         """ Generalize a StateFormula from a delta vector.
         """
-        return StateFormula([operand.generalize(delta) for operand in self.operands], self.operator)
+        return StateFormula([operand.generalize(delta, saturated_delta) for operand in self.operands], self.operator)
 
     def dnf(self, negation_propagation=False):
         """ Convert to Disjunctive Normal Form.
@@ -649,11 +653,17 @@ class StateFormula(Expression):
         else:
             return False
 
-    def get_cubes(self): # TODO: add check that we have a dnf
-        """ Return cubes. 
+    def get_cubes(self):
+        """ Return cubes.
+            (condition: DNF)
         """
         return self.operands if self.operator == 'or' else [self]
 
+    def need_saturation(self, current_delta):
+        """ Return if the formula possibly implies a saturation following the delta vector.
+            (condition: DNF)
+        """
+        return all(operand.need_saturation(current_delta) for operand in self.operands)
 
 class Atom(Expression):
     """
@@ -696,11 +706,11 @@ class Atom(Expression):
         """
         return hash((self.left_operand, self.operator, self.right_operand))
 
-    def smtlib(self, k=None, assertion=False, negation=False, delta=None):
+    def smtlib(self, k=None, assertion=False, negation=False, delta=None, saturated_delta=None):
         """ Atom.
             SMT-LIB format
         """
-        smt_input = "({} {} {})".format(self.operator, self.left_operand.smtlib(k, delta=delta), self.right_operand.smtlib(k, delta=delta))
+        smt_input = "({} {} {})".format(self.operator, self.left_operand.smtlib(k, delta=delta, saturated_delta=saturated_delta), self.right_operand.smtlib(k, delta=delta, saturated_delta=saturated_delta))
 
         if negation:
             smt_input = "(not {})".format(smt_input)
@@ -710,15 +720,15 @@ class Atom(Expression):
 
         return smt_input
 
-    def smtlib_unsat_core(self, k=None, delta=None):
+    def smtlib_unsat_core(self, k=None, delta=None, saturated_delta=None):
         """ Generated the SMT-LIB output to obtain an unsat core.
         """
-        return "(assert (! {} :named lit@c))\n".format(self.smtlib(k, delta=delta))
+        return "(assert (! {} :named lit@c))\n".format(self.smtlib(k, delta=delta, saturated_delta=saturated_delta))
 
-    def learned_clauses_from_unsat_core(self, unsat_core, delta):
+    def learned_clauses_from_unsat_core(self, unsat_core, delta=None, saturated_delta=None):
         """ Return the clauses corresponding to a given unsat core.
         """
-        return [self.negation(delta)] if unsat_core else []
+        return [self.negation(delta, saturated_delta)] if unsat_core else []
 
     def minizinc(self, assertion=False):
         """ Atom.
@@ -731,15 +741,15 @@ class Atom(Expression):
 
         return minizinc_input
 
-    def negation(self, delta=None):
+    def negation(self, delta=None, saturated_delta=None):
         """ Return the negation of the Atom.
         """
-        return Atom(self.left_operand.negation(delta), self.right_operand.negation(delta), NEGATION_COMPARISON_OPERATORS[self.operator])
+        return Atom(self.left_operand.negation(delta, saturated_delta), self.right_operand.negation(delta, saturated_delta), NEGATION_COMPARISON_OPERATORS[self.operator])
 
-    def generalize(self, delta):
+    def generalize(self, delta=None, saturated_delta=None):
         """ Generalize an Atom from a delta vector.
         """
-        return Atom(self.left_operand.generalize(delta), self.right_operand.generalize(delta), self.operator)
+        return Atom(self.left_operand.generalize(delta, saturated_delta), self.right_operand.generalize(delta, saturated_delta), self.operator)
 
     def dnf(self, negation_propagation=False):
         """ Convert to Disjunctive Normal Form.
@@ -753,11 +763,11 @@ class Atom(Expression):
                 # Normalization: TokenCount at left and IntegerConstant at right
                 return Atom(self.right_operand, self.left_operand, COMMUTATION_COMPARISON_OPERATORS[self.operator]).dnf()
             else:
-                # Compute the monotonicty and anti-monocity of the atom.
+                # Compute the monotonicty and anti-monocity of the atom
                 if self.operator in ['<', '<=']:
-                    self.monotonic = isinstance(self.left_operand, TokenCount) and isinstance(self.right_operand, IntegerConstant)
-                elif self.operator in ['>', '>=']:
                     self.anti_monotonic = isinstance(self.left_operand, TokenCount) and isinstance(self.right_operand, IntegerConstant)
+                elif self.operator in ['>', '>=']:
+                    self.monotonic = isinstance(self.left_operand, TokenCount) and isinstance(self.right_operand, IntegerConstant)
 
                 return self
 
@@ -773,36 +783,49 @@ class Atom(Expression):
         return TRANSLATION_COMPARISON_OPERATORS[self.operator](self.left_operand.eval(m), self.right_operand.eval(m))
 
     def get_cubes(self):
-        """ Return cubes. 
+        """ Return cubes.
+            (condition: DNF)
         """
         return [StateFormula([self], 'and')]
 
+    def need_saturation(self, current_delta):
+        """ Return if the atom possibly implies a saturation following the delta vector.
+            (condition: DNF)
+        """
+        return (not self.monotonic and all(current_delta[pl] < 0 for pl in self.left_operand.places if pl in current_delta)) or (not self.anti_monotonic and all(current_delta[pl] > 0 for pl in self.left_operand.places if pl in current_delta)) or (not self.monotonic and not self.anti_monotonic)
 
 class TokenCount(Expression):
     """
     Token count defined by:
-    - a list of places.
+    - a list of places,
+    - a delta (optional),
+    - a saturated delta (optional).
     """
 
-    def __init__(self, places, value=0):
-        """ Initializer
+    def __init__(self, places, delta=0, saturated_delta=[]):
+        """ Initializer.
         """
         self.places = places
-        self.value = value
+
+        self.delta = delta
+        self.saturated_delta = saturated_delta
 
     def __str__(self):
         """ Token count to textual format.
             (debugging function)
         """
-        smt_input = ' + '.join(map(lambda pl: pl.id, self.places))
+        text = ' + '.join(map(lambda pl: pl.id, self.places))
 
-        if self.value:
-            smt_input += " {} {}".format(self.sign(), abs(self.value))
+        if self.delta:
+            text += " {} {}".format(self.sign(), abs(self.delta))
 
-        if len(self.places) > 1:
-            smt_input = "({})".format(smt_input)
+        if self.saturated_delta:
+            text += ' + ' + ' + '.join(map(str, self.saturated_delta))
 
-        return smt_input
+        if self.delta or self.saturated_delta or len(self.places) > 1:
+            text = "({})".format(text)
+
+        return text
 
     def __eq__(self, other):
         """ Compare TokenCounts for equality.
@@ -810,28 +833,32 @@ class TokenCount(Expression):
         if not isinstance(other, TokenCount):
             return NotImplemented
         else:
-            return self.places == other.places and self.value == other.value
+            return self.places == other.places and self.delta == other.delta
 
     def __hash__(self):
         """ Hash TokenCount.
         """
-        return hash((tuple(self.places), self.value))
+        return hash((tuple(self.places), self.delta))
 
-    def smtlib(self, k=None, delta=None):
+    def smtlib(self, k=None, delta=None, saturated_delta=None):
         """ Token count.
             SMT-LIB format
         """
-        if delta is None:
-            smt_input = ' '.join(map(lambda pl: pl.smtlib(k), self.places))
-
-        else:
+        if delta is not None:
             smt_input = ' '.join(map(lambda pl: "(+ {} {})".format(pl.smtlib(k), delta[pl]) if delta.get(pl, 0) != 0 else pl.smtlib(k), self.places))
+        elif saturated_delta is not None:
+            smt_input = ' '.join(map(lambda pl: "(+ {} {})".format(pl.smtlib(k), ' '.join(map(lambda delta: delta.smtlib(k), saturated_delta[pl]))) if pl in saturated_delta else pl.smtlib(k), self.places))
+        else:
+            smt_input = ' '.join(map(lambda pl: pl.smtlib(k), self.places))
 
         if len(self.places) > 1:
             smt_input = "(+ {})".format(smt_input)
 
-        if self.value:
-            smt_input = "({} {} {})".format(self.sign(), smt_input, abs(self.value))
+        if self.delta:
+            smt_input = "({} {} {})".format(self.sign(), smt_input, abs(self.delta))
+
+        if self.saturated_delta:
+            smt_input = "(+ {} {})".format(smt_input, ' '.join(map(lambda delta: delta.smtlib(k), self.saturated_delta)))
 
         return smt_input
 
@@ -844,20 +871,23 @@ class TokenCount(Expression):
         if len(self.places) > 1:
             minizinc_input = "({})".format(minizinc_input)
 
-        if self.value:
-            minizinc_input = "({} {} {})".format(minizinc_input, self.sign(), self.value)
+        if self.delta:
+            minizinc_input = "({} {} {})".format(minizinc_input, self.sign(), self.delta)
 
         return minizinc_input
 
-    def negation(self, delta=None):
+    def negation(self, delta=None, saturated_delta=None):
         """ Return the negation of the TokenCount.
         """
-        return self.generalize(delta) if delta is not None else self
+        return self.generalize(delta, saturated_delta) if delta is not None or saturated_delta is not None else self
 
-    def generalize(self, delta):
+    def generalize(self, delta=None, saturated_delta=None):
         """ Generalize a TokenCount from a delta vector.
         """
-        return TokenCount(self.places, self.value + sum([delta.get(pl, 0) for pl in self.places]))
+        generalized_delta = self.delta + sum([delta.get(pl, 0) for pl in self.places]) if delta is not None else self.delta
+        generalized_saturated_delta = self.saturated_delta + sum([saturated_delta.get(pl, []) for pl in self.places], []) if saturated_delta is not None else self.saturated_delta
+
+        return TokenCount(self.places, generalized_delta, generalized_saturated_delta)
 
     def dnf(self, negation_propagation=False):
         """ Convert to Disjunctive Normal Form.
@@ -871,7 +901,7 @@ class TokenCount(Expression):
     def sign(self):
         """ Return the sign of the value.
         """
-        if self.value < 0:
+        if self.delta < 0:
             return '-'
         else:
             return '+'
@@ -879,7 +909,7 @@ class TokenCount(Expression):
     def eval(self, m):
         """ Evaluate the subformula with marking m.
         """
-        return sum([m[pl] for pl in self.places]) + self.value
+        return sum([m[pl] for pl in self.places]) + self.delta
 
 
 class IntegerConstant(Expression):
@@ -911,7 +941,7 @@ class IntegerConstant(Expression):
         """
         return hash(self.value)
 
-    def smtlib(self, k=None, delta=None):
+    def smtlib(self, k=None, delta=None, saturated_delta=None):
         """ Integer constant.
             SMT-LIB format
         """
@@ -923,12 +953,12 @@ class IntegerConstant(Expression):
         """
         return str(self)
 
-    def negation(self, delta=None):
+    def negation(self, delta=None, saturated_delta=None):
         """ Return the negation of the IntegerConstant.
         """
         return self
 
-    def generalize(self, delta):
+    def generalize(self, delta=None, saturated_delta=None):
         """ Generalize an IntegerConstant from a delta vector.
         """
         return self
@@ -943,6 +973,204 @@ class IntegerConstant(Expression):
         """ Evaluate the subformula with marking m.
         """
         return self.value
+
+
+class FreeVariable(Expression):
+    """ Free Variable.
+        (extension for the Saturated Transition-Based Generalization used in PDR)
+    """
+    def __init__(self, id):
+        """ Initializer.
+        """
+        self.id = id
+
+    def __str__(self):
+        """ FreeVariable to textual format.
+            (debugging function)
+        """
+        return self.id
+
+    def __eq__(self, other):
+        """ Compare FreeVariables for equality.
+        """
+        return self.id == other.id
+
+    def __hash__(self):
+        """ Hash FreeVariable.
+        """
+        return hash(self.id)
+
+    def smtlib(self, k=None, delta=None, saturated_delta=None):
+        """ SMT-LIB format.
+        """
+        return self.id if k is None else "{}@{}".format(self.id, k)
+
+    def smtlib_declare(self, k=None):
+        """ Declare variable.
+            SMT-LIB format
+        """
+        if k is None:
+            return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
+        else:
+            return "(declare-const {}@{} Int)\n(assert (>= {}@{} 1))\n".format(self.id, k, self.id, k)
+
+    def minizinc(self):
+        """ MiniZinc format.
+        """
+        pass
+
+    def negation(self, delta=None, saturated_delta=None):
+        """ Return the negation of the FreeVariable (identity).
+        """
+        return self
+
+    def generalize(self, delta=None, saturated_delta=None):
+        """ Generalize from a delta vector.
+        """
+        return self
+
+    def dnf(self, negation_propagation=False):
+        """ Convert to Disjunctive Normal Form.
+        """
+        return self
+
+    def eval(self, m):
+        """ Evaluate the subformula with marking m.
+        """
+        pass
+
+
+class ArithmeticOperation(Expression):
+    """ Arithmetic Operation.
+    """
+    def __init__(self, operands, operator):
+        """ Initializer.
+        """
+        self.operands = operands
+        self.operator = operator
+
+    def __str__(self):
+        """ ArithmeticOperation to textual format.
+            (debugging function)
+        """
+        return "(" + " {} ".format(self.operator).join(map(str, self.operands)) + ")"
+
+    def __eq__(self, other):
+        """ Compare ArithmeticOperation for equality.
+        """
+        if isinstance(other, ArithmeticOperation):
+            return self.operator == other.operator and Counter(self.operands) == Counter(other.operands)
+
+        return False
+
+    def __hash__(self):
+        """ Hash ArithmeticOperation.
+        """
+        return hash((tuple(self.operands), self.operator))
+
+    def smtlib(self, k=None, delta=None, saturated_delta=None):
+        """ SMT-LIB format.
+        """
+        smt_input = ' '.join(map(lambda operand: operand.smtlib(k, delta=delta, saturated_delta=saturated_delta), self.operands))
+        return "({} {})".format(self.operator, smt_input)
+
+    def minizinc(self):
+        """ MiniZinc format.
+        """
+        pass
+
+    def negation(self, delta=None, saturated_delta=None):
+        """ Return the negation of the ArithmeticOperation (identity).
+        """
+        return self
+
+    def generalize(self, delta=None, saturated_delta=None):
+        """ Generalize from a delta vector.
+        """
+        return self
+
+    def dnf(self, negation_propagation=False):
+        """ Convert to Disjunctive Normal Form.
+        """
+        pass
+
+    def eval(self, m):
+        """ Evaluate the subformula with marking m.
+        """
+        pass
+
+
+class UniversalQuantification(Expression):
+    """ Universal Quantification.
+    """
+    def __init__(self, free_variables, formula):
+        """ Initializer.
+        """
+        self.free_variables = free_variables 
+        self.formula = formula
+
+    def __str__(self):
+        """ UniversalQuantification to textual format.
+            (debugging function)
+        """
+        return "(forall ({}) {})".format(' '.join(map(str, self.free_variables)), self.formula)
+
+    def __eq__(self, other):
+        """ Compare UniversalQuantification for equality.
+        """
+        if isinstance(other, UniversalQuantification):
+            return set(self.free_variables) == set(other.free_variables) and self.formula == other.formula
+
+        return False
+
+    def __hash__(self):
+        """ Hash UniversalQuantification.
+        """
+        return hash((tuple(self.free_variables), self.formula))
+
+    def smtlib(self, k=None, assertion=False, negation=False, delta=None, saturated_delta=None):
+        """ SMT-LIB format.
+        """
+        # Declaration of the Quantified Variabbles
+        smt_input = ' '.join(map(lambda var: "({} Int)".format(var.smtlib(k)), self.free_variables))
+
+        # Add `forall` operator
+        smt_input = "(forall ({}) {})".format(smt_input, self.formula.smtlib(k, delta, saturated_delta))
+
+        # Optionale negation
+        if negation:
+            smt_input = "(not {})".format(smt_input)
+
+        # Optional assertion
+        if assertion:
+            smt_input = "(assert {})".format(smt_input)
+
+        return smt_input
+
+    def minizinc(self):
+        """ MiniZinc format.
+        """
+        pass
+
+    def negation(self, asseertion=False, delta=None, saturated_delta=None):
+        """ Return the negation of the UniversalQuantification (identity).
+        """
+        return self
+
+    def generalize(self, delta=None, saturated_delta=None):
+        """ Generalize from a delta vector.
+        """
+        return self
+
+    def dnf(self, negation_propagation=False):
+        """ Convert to Disjunctive Normal Form.
+        """
+        pass
+
+    def eval(self, m):
+        """ Evaluate the subformula with marking m.
+        """
+        pass
 
 
 if __name__ == '__main__':
