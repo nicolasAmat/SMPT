@@ -115,11 +115,11 @@ def main():
 
     methods = ['BMC', 'K-INDUCTION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP']
 
-    group_methods.add_argument('--authorized-methods',
+    group_methods.add_argument('--methods',
                                default=methods,
                                nargs='*',
                                choices=methods,
-                               help='authorized methods among {}'.format(' '.join(methods)))
+                               help='enable methods among {}'.format(' '.join(methods)))
 
     group_methods.add_argument('--auto-enumerative',
                                action='store_true',
@@ -324,8 +324,8 @@ def main():
                 # Run SMT / CP methods
                 methods = ['SMT', 'CP']
 
-        # Keep only authorized metods
-        methods = list(set(methods) & set(results.authorized_methods))
+        # Keep only enabled methods
+        methods = list(set(methods) & set(results.methods))
 
         # Run methods in parallel and get results
         parallelizer = Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, methods, results.path_markings, results.check_proof)
