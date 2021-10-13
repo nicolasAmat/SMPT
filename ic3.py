@@ -291,7 +291,7 @@ class States:
                     hurdle = self.compose_hurdle()[index][1]
                     literals.append(Atom(TokenCount([place]), hurdle, '<'))
 
-                unsat_literals = filter(lambda lit: 'lit@c' in lit, unsat_core)
+                unsat_literals = list(filter(lambda lit: 'lit@c' in lit, unsat_core))
             else:
                 # Unsat core engine gave up
                 # Get core of hurdles
@@ -317,7 +317,7 @@ class States:
                 literals.append(Atom(TokenCount([place]), IntegerConstant(self.hurdle[place]), '<'))
 
             # Get core of the feared cube
-            literals += self.cube.learned_clauses_from_unsat_core(filter(lambda lit: 'lit@c' in lit, unsat_core), delta=self.delta)
+            literals += self.cube.learned_clauses_from_unsat_core(list(filter(lambda lit: 'lit@c' in lit, unsat_core)), delta=self.delta)
 
             # Construct the corresponding clause
             clause = StateFormula(literals, "or")
