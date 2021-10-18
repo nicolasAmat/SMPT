@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-8423-9E2BE-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>test12</text>
+  </name>
+ <page id="g-8423-9E33C-1">
+  <place id="p0">
+  <name>
+   <text>p0</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="150" y="50" />
+   </graphics>
+  </place>
+  <place id="p1">
+  <name>
+   <text>p1</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>2</text>
+   </initialMarking>
+   <graphics>
+    <position x="30" y="150" />
+   </graphics>
+  </place>
+  <place id="p2">
+  <name>
+   <text>p2</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="270" y="150" />
+   </graphics>
+  </place>
+  <transition id="t0">
+  <name>
+   <text>t0</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="150" y="150" />
+   </graphics>
+  </transition>
+  <arc id="e-8423-9E376-6" source="p1" target="t0">
+  </arc>
+  <arc id="e-8423-9E37A-7" source="t0" target="p2">
+  </arc>
+  <arc id="e-8423-9E37E-8" source="t0" target="p0">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="10" y="0" />
+    </graphics>
+   </inscription>
+  </arc>
+  <arc id="e-8423-9E383-9" source="p0" target="t0">
+  </arc>
+ </page>
+ </net>
+</pnml>

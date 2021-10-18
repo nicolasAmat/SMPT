@@ -1,0 +1,134 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-55FA-85E12-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>mtx</text>
+  </name>
+ <page id="g-55FA-85E8D-1">
+  <place id="p0">
+  <name>
+   <text>p0</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="115" y="50" />
+   </graphics>
+  </place>
+  <place id="p1">
+  <name>
+   <text>p1</text>
+    <graphics>
+     <offset x="10" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="115" y="255" />
+   </graphics>
+  </place>
+  <place id="p2">
+  <name>
+   <text>p2</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="312" y="50" />
+   </graphics>
+  </place>
+  <place id="p3">
+  <name>
+   <text>p3</text>
+    <graphics>
+     <offset x="-10" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="312" y="255" />
+   </graphics>
+  </place>
+  <transition id="t0">
+  <name>
+   <text>t0</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="115" y="155" />
+   </graphics>
+  </transition>
+  <transition id="t1">
+  <name>
+   <text>t1</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="115" y="370" />
+   </graphics>
+  </transition>
+  <transition id="t2">
+  <name>
+   <text>t2</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="312" y="155" />
+   </graphics>
+  </transition>
+  <transition id="t3">
+  <name>
+   <text>t3</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="312" y="370" />
+   </graphics>
+  </transition>
+  <arc id="e-55FA-85EE6-10" source="t2" target="p0">
+  </arc>
+  <arc id="e-55FA-85EEB-11" source="p1" target="t1">
+  </arc>
+  <arc id="e-55FA-85EEF-12" source="t0" target="p1">
+  </arc>
+  <arc id="e-55FA-85EF2-13" source="p0" target="t0">
+  </arc>
+  <arc id="e-55FA-85EF6-14" source="p0" target="t2">
+  </arc>
+  <arc id="e-55FA-85EF9-15" source="t0" target="p2">
+  </arc>
+  <arc id="e-55FA-85EFC-16" source="p2" target="t0">
+  </arc>
+  <arc id="e-55FA-85F00-17" source="p2" target="t2">
+  </arc>
+  <arc id="e-55FA-85F03-18" source="t2" target="p3">
+  </arc>
+  <arc id="e-55FA-85F07-19" source="p3" target="t3">
+  </arc>
+  <arc id="e-55FA-85F0A-20" source="t3" target="p2">
+   <graphics>
+    <position x="394" y="352" />
+    <position x="383" y="72" />
+   </graphics>  </arc>
+  <arc id="e-55FA-85F3E-21" source="t1" target="p0">
+   <graphics>
+    <position x="33" y="352" />
+    <position x="44" y="72" />
+   </graphics>  </arc>
+ </page>
+ </net>
+</pnml>

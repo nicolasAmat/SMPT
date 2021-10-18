@@ -1,0 +1,198 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-7870-16937-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>CryptoMiner-50</text>
+  </name>
+ <page id="g-7870-1693C-1">
+  <place id="Block">
+  <name>
+   <text>Block</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="125" y="145" />
+   </graphics>
+  </place>
+  <transition id="OB">
+  <name>
+   <text>OB</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="45" y="145" />
+   </graphics>
+  </transition>
+  <place id="Coin">
+  <name>
+   <text>Coin</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="285" y="145" />
+   </graphics>
+  </place>
+  <place id="Connection">
+  <name>
+   <text>Connection</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="45" y="265" />
+   </graphics>
+  </place>
+  <transition id="EX">
+  <name>
+   <text>EX</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="445" y="265" />
+   </graphics>
+  </transition>
+  <place id="Hash">
+  <name>
+   <text>Hash</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="205" y="265" />
+   </graphics>
+  </place>
+  <transition id="ST">
+  <name>
+   <text>ST</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="365" y="145" />
+   </graphics>
+  </transition>
+  <transition id="GW">
+  <name>
+   <text>GW</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="285" y="265" />
+   </graphics>
+  </transition>
+  <transition id="OC">
+  <name>
+   <text>OC</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="205" y="145" />
+   </graphics>
+  </transition>
+  <transition id="GH">
+  <name>
+   <text>GH</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="125" y="265" />
+   </graphics>
+  </transition>
+  <place id="Wallet">
+  <name>
+   <text>Wallet</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="365" y="265" />
+   </graphics>
+  </place>
+  <place id="p0">
+  <name>
+   <text>p0</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>50</text>
+   </initialMarking>
+   <graphics>
+    <position x="45" y="50" />
+   </graphics>
+  </place>
+  <arc id="e-7870-16956-14" source="p0" target="OB">
+  </arc>
+  <arc id="e-7870-16957-15" source="Hash" target="OC">
+   <graphics>
+    <position x="221" y="241" />
+    <position x="221" y="169" />
+   </graphics>  </arc>
+  <arc id="e-7870-16963-16" source="OC" target="Hash">
+   <graphics>
+    <position x="189" y="169" />
+    <position x="189" y="241" />
+   </graphics>  </arc>
+  <arc id="e-7870-16965-17" source="Wallet" target="EX">
+  </arc>
+  <arc id="e-7870-16966-18" source="GW" target="Wallet">
+  </arc>
+  <arc id="e-7870-16966-19" source="Hash" target="GW">
+  </arc>
+  <arc id="e-7870-16967-20" source="GH" target="Hash">
+  </arc>
+  <arc id="e-7870-16968-21" source="Connection" target="GH">
+  </arc>
+  <arc id="e-7870-16968-22" source="Wallet" target="ST">
+   <graphics>
+    <position x="381" y="241" />
+    <position x="381" y="169" />
+   </graphics>  </arc>
+  <arc id="e-7870-16969-23" source="Coin" target="ST">
+  </arc>
+  <arc id="e-7870-1696A-24" source="OC" target="Coin">
+  </arc>
+  <arc id="e-7870-1696A-25" source="Block" target="OC">
+  </arc>
+  <arc id="e-7870-1697D-26" source="OB" target="Block">
+  </arc>
+  <arc id="e-7870-1697E-27" source="Connection" target="OB">
+   <graphics>
+    <position x="61" y="241" />
+    <position x="61" y="169" />
+   </graphics>  </arc>
+  <arc id="e-7870-16981-28" source="OB" target="Connection">
+   <graphics>
+    <position x="29" y="169" />
+    <position x="29" y="241" />
+   </graphics>  </arc>
+  <arc id="e-7870-16983-29" source="ST" target="Wallet">
+   <graphics>
+    <position x="349" y="169" />
+    <position x="349" y="241" />
+   </graphics>  </arc>
+ </page>
+ </net>
+</pnml>

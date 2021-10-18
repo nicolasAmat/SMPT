@@ -1,0 +1,126 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-5620-DD863-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>wb</text>
+  </name>
+ <page id="g-5620-DD8D7-1">
+  <place id="p0">
+  <name>
+   <text>p0</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="105" y="135" />
+   </graphics>
+  </place>
+  <place id="p1">
+  <name>
+   <text>p1</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="105" y="50" />
+   </graphics>
+  </place>
+  <place id="p3">
+  <name>
+   <text>p3</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="105" y="225" />
+   </graphics>
+  </place>
+  <place id="p5">
+  <name>
+   <text>p5</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="175" y="305" />
+   </graphics>
+  </place>
+  <place id="p6">
+  <name>
+   <text>p6</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="35" y="305" />
+   </graphics>
+  </place>
+  <transition id="t0">
+  <name>
+   <text>t0</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="25" y="135" />
+   </graphics>
+  </transition>
+  <transition id="t1">
+  <name>
+   <text>t1</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="185" y="135" />
+   </graphics>
+  </transition>
+  <transition id="t5">
+  <name>
+   <text>t5</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="105" y="305" />
+   </graphics>
+  </transition>
+  <arc id="e-5620-DD92B-10" source="t0" target="p0">
+  </arc>
+  <arc id="e-5620-DD92F-11" source="p0" target="t1">
+  </arc>
+  <arc id="e-5620-DD932-12" source="t5" target="p3">
+   <graphics>
+    <position x="93" y="277" />
+    <position x="93" y="253" />
+   </graphics>  </arc>
+  <arc id="e-5620-DD968-13" source="p3" target="t5">
+   <graphics>
+    <position x="117" y="253" />
+    <position x="117" y="277" />
+   </graphics>  </arc>
+  <arc id="e-5620-DD97A-14" source="t5" target="p5">
+  </arc>
+  <arc id="e-5620-DD97E-15" source="p6" target="t5">
+  </arc>
+  <arc id="e-5620-DD981-16" source="t1" target="p1">
+  </arc>
+  <arc id="e-5620-DD984-17" source="p1" target="t0">
+  </arc>
+ </page>
+ </net>
+</pnml>

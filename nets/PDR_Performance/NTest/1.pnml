@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-55B6-E9F11-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>1</text>
+  </name>
+ <page id="g-55B6-E9FA2-1">
+  <place id="A">
+  <name>
+   <text>A</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="75" y="50" />
+   </graphics>
+  </place>
+  <place id="B">
+  <name>
+   <text>B</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="75" y="170" />
+   </graphics>
+  </place>
+  <place id="C">
+  <name>
+   <text>C</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="235" y="170" />
+   </graphics>
+  </place>
+  <transition id="a">
+  <name>
+   <text>a</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="25" y="110" />
+   </graphics>
+  </transition>
+  <transition id="b">
+  <name>
+   <text>b</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="125" y="110" />
+   </graphics>
+  </transition>
+  <transition id="c">
+  <name>
+   <text>c</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="155" y="170" />
+   </graphics>
+  </transition>
+  <arc id="e-55B6-E9FF9-8" source="c" target="C">
+  </arc>
+  <arc id="e-55B6-E9FFE-9" source="B" target="c">
+  </arc>
+  <arc id="e-55B6-EA002-10" source="B" target="a">
+  </arc>
+  <arc id="e-55B6-EA005-11" source="b" target="B">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+   </inscription>
+  </arc>
+  <arc id="e-55B6-EA00B-12" source="A" target="b">
+  </arc>
+  <arc id="e-55B6-EA00F-13" source="a" target="A">
+  </arc>
+ </page>
+ </net>
+</pnml>
