@@ -1,0 +1,182 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-2EA-3608-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>CryptoMiner</text>
+  </name>
+ <page id="g-2EA-360C-1">
+  <place id="Block">
+  <name>
+   <text>Block</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="125" y="50" />
+   </graphics>
+  </place>
+  <place id="Coin">
+  <name>
+   <text>Coin</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="285" y="50" />
+   </graphics>
+  </place>
+  <place id="Connection">
+  <name>
+   <text>Connection</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="45" y="170" />
+   </graphics>
+  </place>
+  <transition id="EX">
+  <name>
+   <text>EX</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="445" y="170" />
+   </graphics>
+  </transition>
+  <transition id="GH">
+  <name>
+   <text>GH</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="125" y="170" />
+   </graphics>
+  </transition>
+  <transition id="GW">
+  <name>
+   <text>GW</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="285" y="170" />
+   </graphics>
+  </transition>
+  <place id="Hash">
+  <name>
+   <text>Hash</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="205" y="170" />
+   </graphics>
+  </place>
+  <transition id="OB">
+  <name>
+   <text>OB</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="45" y="50" />
+   </graphics>
+  </transition>
+  <transition id="OC">
+  <name>
+   <text>OC</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="205" y="50" />
+   </graphics>
+  </transition>
+  <transition id="ST">
+  <name>
+   <text>ST</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="365" y="50" />
+   </graphics>
+  </transition>
+  <place id="Wallet">
+  <name>
+   <text>Wallet</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="365" y="170" />
+   </graphics>
+  </place>
+  <arc id="e-2EA-3624-13" source="Wallet" target="ST">
+   <graphics>
+    <position x="381" y="146" />
+    <position x="381" y="74" />
+   </graphics>  </arc>
+  <arc id="e-2EA-3634-14" source="OC" target="Hash">
+   <graphics>
+    <position x="189" y="74" />
+    <position x="189" y="146" />
+   </graphics>  </arc>
+  <arc id="e-2EA-3635-15" source="Wallet" target="EX">
+  </arc>
+  <arc id="e-2EA-3635-16" source="GW" target="Wallet">
+  </arc>
+  <arc id="e-2EA-3636-17" source="Hash" target="GW">
+  </arc>
+  <arc id="e-2EA-3636-18" source="GH" target="Hash">
+  </arc>
+  <arc id="e-2EA-3637-19" source="Connection" target="GH">
+  </arc>
+  <arc id="e-2EA-3637-20" source="Coin" target="ST">
+  </arc>
+  <arc id="e-2EA-3638-21" source="OC" target="Coin">
+  </arc>
+  <arc id="e-2EA-3638-22" source="Block" target="OC">
+  </arc>
+  <arc id="e-2EA-3639-23" source="OB" target="Block">
+  </arc>
+  <arc id="e-2EA-3639-24" source="Connection" target="OB">
+   <graphics>
+    <position x="61" y="146" />
+    <position x="61" y="74" />
+   </graphics>  </arc>
+  <arc id="e-2EA-363B-25" source="OB" target="Connection">
+   <graphics>
+    <position x="29" y="74" />
+    <position x="29" y="146" />
+   </graphics>  </arc>
+  <arc id="e-2EA-363C-26" source="ST" target="Wallet">
+   <graphics>
+    <position x="349" y="74" />
+    <position x="349" y="146" />
+   </graphics>  </arc>
+  <arc id="e-2EA-364F-27" source="Hash" target="OC">
+   <graphics>
+    <position x="221" y="146" />
+    <position x="221" y="74" />
+   </graphics>  </arc>
+ </page>
+ </net>
+</pnml>

@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<property-set xmlns="http://mcc.lip6.fr/">
+  <property>
+    <id>PGCD-Inv</id>
+    <description>Expressiveness</description>
+    <formula>
+      <all-paths>
+        <globally>
+          <integer-le>
+            <tokens-count>
+              <place>p1</place>
+            </tokens-count>
+            <tokens-count>
+              <place>p2</place>
+            </tokens-count>
+          </integer-le>
+        </globally>
+      </all-paths>
+    </formula>
+  </property>
+</property-set>

@@ -1,0 +1,318 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-26E-C8CE1-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>Process</text>
+  </name>
+ <page id="g-26E-C8CE5-1">
+  <place id="p0">
+  <name>
+   <text>p0</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="170" y="50" />
+   </graphics>
+  </place>
+  <place id="p1">
+  <name>
+   <text>p1</text>
+    <graphics>
+     <offset x="-10" y="0" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="170" y="170" />
+   </graphics>
+  </place>
+  <place id="p2">
+  <name>
+   <text>p2</text>
+    <graphics>
+     <offset x="-10" y="0" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="90" y="290" />
+   </graphics>
+  </place>
+  <place id="p3">
+  <name>
+   <text>p3</text>
+    <graphics>
+     <offset x="10" y="0" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="170" y="290" />
+   </graphics>
+  </place>
+  <place id="p4">
+  <name>
+   <text>p4</text>
+    <graphics>
+     <offset x="10" y="0" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="250" y="290" />
+   </graphics>
+  </place>
+  <place id="p5">
+  <name>
+   <text>p5</text>
+    <graphics>
+     <offset x="-10" y="0" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>3</text>
+   </initialMarking>
+   <graphics>
+    <position x="50" y="430" />
+   </graphics>
+  </place>
+  <place id="p6">
+  <name>
+   <text>p6</text>
+    <graphics>
+     <offset x="10" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="170" y="430" />
+   </graphics>
+  </place>
+  <place id="p7">
+  <name>
+   <text>p7</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="170" y="590" />
+   </graphics>
+  </place>
+  <transition id="t0">
+  <name>
+   <text>t0</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="170" y="110" />
+   </graphics>
+  </transition>
+  <transition id="t1">
+  <name>
+   <text>t1</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="250" y="170" />
+   </graphics>
+  </transition>
+  <transition id="t2">
+  <name>
+   <text>t2</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="90" y="230" />
+   </graphics>
+  </transition>
+  <transition id="t3">
+  <name>
+   <text>t3</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="170" y="230" />
+   </graphics>
+  </transition>
+  <transition id="t4">
+  <name>
+   <text>t4</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="170" y="370" />
+   </graphics>
+  </transition>
+  <transition id="t5">
+  <name>
+   <text>t5</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="110" y="430" />
+   </graphics>
+  </transition>
+  <transition id="t6">
+  <name>
+   <text>t6</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="170" y="510" />
+   </graphics>
+  </transition>
+  <transition id="t7">
+  <name>
+   <text>t7</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="50" y="590" />
+   </graphics>
+  </transition>
+  <arc id="e-26E-C8D00-18" source="t4" target="p2">
+  </arc>
+  <arc id="e-26E-C8D01-19" source="p6" target="t5">
+  </arc>
+  <arc id="e-26E-C8D01-20" source="t4" target="p7">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="10" y="0" />
+    </graphics>
+   </inscription>
+   <graphics>
+    <position x="252" y="370" />
+    <position x="266" y="590" />
+   </graphics>  </arc>
+  <arc id="e-26E-C8D18-21" source="t4" target="p6">
+  </arc>
+  <arc id="e-26E-C8D19-22" source="p5" target="t4">
+   <inscription>
+    <text>3</text>
+    <graphics>
+     <offset x="10" y="-10" />
+    </graphics>
+   </inscription>
+   <graphics>
+    <position x="50" y="382" />
+    <position x="74" y="370" />
+   </graphics>  </arc>
+  <arc id="e-26E-C8D1B-23" source="p1" target="t3">
+  </arc>
+  <arc id="e-26E-C8D1B-24" source="t3" target="p1">
+  </arc>
+  <arc id="e-26E-C8D1C-25" source="p3" target="t3">
+  </arc>
+  <arc id="e-26E-C8D1D-26" source="t3" target="p2">
+  </arc>
+  <arc id="e-26E-C8D1E-27" source="p1" target="t0">
+  </arc>
+  <arc id="e-26E-C8D1E-28" source="t0" target="p0">
+  </arc>
+  <arc id="e-26E-C8D1F-29" source="p2" target="t4">
+  </arc>
+  <arc id="e-26E-C8D1F-30" source="t2" target="p0">
+   <graphics>
+    <position x="90" y="86" />
+    <position x="106" y="50" />
+   </graphics>  </arc>
+  <arc id="e-26E-C8D20-31" source="p0" target="t2">
+   <graphics>
+    <position x="106" y="50" />
+    <position x="90" y="86" />
+   </graphics>  </arc>
+  <arc id="e-26E-C8D21-32" source="t2" target="p3">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+   </inscription>
+  </arc>
+  <arc id="e-26E-C8D22-33" source="p2" target="t2">
+  </arc>
+  <arc id="e-26E-C8D23-34" source="p0" target="t1">
+   <graphics>
+    <position x="234" y="50" />
+    <position x="250" y="74" />
+   </graphics>  </arc>
+  <arc id="e-26E-C8D24-35" source="t1" target="p1">
+  </arc>
+  <arc id="e-26E-C8D25-36" source="t1" target="p4">
+  </arc>
+  <arc id="e-26E-C8D25-37" source="p6" target="t6">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="10" y="0" />
+    </graphics>
+   </inscription>
+   <graphics>
+    <position x="202" y="448" />
+    <position x="202" y="494" />
+   </graphics>  </arc>
+  <arc id="e-26E-C8D2B-38" source="t6" target="p6">
+   <inscription>
+    <text>3</text>
+    <graphics>
+     <offset x="-10" y="10" />
+    </graphics>
+   </inscription>
+  </arc>
+  <arc id="e-26E-C8D2C-39" source="p7" target="t6">
+   <graphics>
+    <position x="202" y="572" />
+    <position x="202" y="526" />
+   </graphics>  </arc>
+  <arc id="e-26E-C8D2D-40" source="t4" target="p3">
+  </arc>
+  <arc id="e-26E-C8D2D-41" source="t6" target="p7">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="-10" y="-10" />
+    </graphics>
+   </inscription>
+  </arc>
+  <arc id="e-26E-C8D2E-42" source="p3" target="t4">
+  </arc>
+  <arc id="e-26E-C8D2F-43" source="t4" target="p4">
+  </arc>
+  <arc id="e-26E-C8D2F-44" source="p4" target="t4">
+  </arc>
+  <arc id="e-26E-C8D30-45" source="t7" target="p5">
+  </arc>
+  <arc id="e-26E-C8D32-46" source="p7" target="t7">
+  </arc>
+  <arc id="e-26E-C8D32-47" source="t5" target="p5">
+  </arc>
+ </page>
+ </net>
+</pnml>

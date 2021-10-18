@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<property-set xmlns="http://mcc.lip6.fr/">
+  <property>
+    <id>Parity-Inv</id>
+    <description>Expressiveness</description>
+    <formula>
+      <all-paths>
+        <globally>
+          <integer-le>
+            <integer-constant>1</integer-constant>
+            <tokens-count>
+              <place>p0</place>
+            </tokens-count>
+          </integer-le>
+        </globally>
+      </all-paths>
+    </formula>
+  </property>
+</property-set>
