@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-55BA-1B726-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>3</text>
+  </name>
+ <page id="g-55BA-1B7A0-1">
+  <place id="A">
+  <name>
+   <text>A</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="100" y="150" />
+   </graphics>
+  </place>
+  <place id="B">
+  <name>
+   <text>B</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="200" y="50" />
+   </graphics>
+  </place>
+  <place id="C">
+  <name>
+   <text>C</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="300" y="150" />
+   </graphics>
+  </place>
+  <transition id="a">
+  <name>
+   <text>a</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="30" y="150" />
+   </graphics>
+  </transition>
+  <transition id="b">
+  <name>
+   <text>b</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="150" y="100" />
+   </graphics>
+  </transition>
+  <transition id="t1">
+  <name>
+   <text>t1</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="250" y="100" />
+   </graphics>
+  </transition>
+  <arc id="e-55BA-1B889-8" source="a" target="A">
+  </arc>
+  <arc id="e-55BA-1B88E-9" source="A" target="a">
+  </arc>
+  <arc id="e-55BA-1B891-10" source="B" target="b">
+  </arc>
+  <arc id="e-55BA-1B895-11" source="b" target="A">
+  </arc>
+  <arc id="e-55BA-1B898-12" source="B" target="t1">
+  </arc>
+  <arc id="e-55BA-1B89B-13" source="t1" target="C">
+  </arc>
+  <arc id="e-55BA-1B89F-14" source="t1" target="B">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="10" y="-10" />
+    </graphics>
+   </inscription>
+   <graphics>
+    <position x="250" y="76" />
+    <position x="228" y="46" />
+   </graphics>  </arc>
+ </page>
+ </net>
+</pnml>

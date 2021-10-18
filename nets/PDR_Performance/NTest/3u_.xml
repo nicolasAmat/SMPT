@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<property-set>
+  <property>
+    <id>Marking</id>
+    <description>Performance</description>
+    <formula>
+      <exists-path>
+        <finally>
+          <conjunction>
+            <integer-le>
+              <tokens-count>
+                <place>A</place>
+              </tokens-count>
+              <integer-constant>10</integer-constant>
+            </integer-le>
+            <negation>
+              <integer-le>
+                <tokens-count>
+                  <place>A</place>
+                </tokens-count>
+                <integer-constant>9</integer-constant>
+              </integer-le>
+            </negation>
+            <integer-le>
+              <tokens-count>
+                <place>C</place>
+              </tokens-count>
+              <integer-constant>10</integer-constant>
+            </integer-le>
+            <negation>
+              <integer-le>
+                <tokens-count>
+                  <place>C</place>
+                </tokens-count>
+                <integer-constant>9</integer-constant>
+              </integer-le>
+            </negation>
+          </conjunction>
+        </finally>
+      </exists-path>
+    </formula>
+  </property>
+</property-set>

@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-5603-CC9C0-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>nope2</text>
+  </name>
+ <page id="g-5603-CC9FA-1">
+  <place id="A">
+  <name>
+   <text>A</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="110" y="50" />
+   </graphics>
+  </place>
+  <transition id="a">
+  <name>
+   <text>a</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="30" y="50" />
+   </graphics>
+  </transition>
+  <transition id="c">
+  <name>
+   <text>c</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="180" y="50" />
+   </graphics>
+  </transition>
+  <arc id="e-5603-CCA12-5" source="A" target="a">
+  </arc>
+  <arc id="e-5603-CCA16-6" source="a" target="A">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+   </inscription>
+  </arc>
+  <arc id="e-5603-CCA18-7" source="A" target="c">
+  </arc>
+ </page>
+ </net>
+</pnml>

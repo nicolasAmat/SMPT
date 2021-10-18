@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-5624-17494-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>we</text>
+  </name>
+ <page id="g-5624-17514-1">
+  <place id="p0">
+  <name>
+   <text>p0</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="110" y="50" />
+   </graphics>
+  </place>
+  <place id="p1">
+  <name>
+   <text>p1</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="190" y="130" />
+   </graphics>
+  </place>
+  <place id="p3">
+  <name>
+   <text>p3</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="30" y="130" />
+   </graphics>
+  </place>
+  <place id="p5">
+  <name>
+   <text>p5</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="180" y="220" />
+   </graphics>
+  </place>
+  <place id="p6">
+  <name>
+   <text>p6</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>1</text>
+   </initialMarking>
+   <graphics>
+    <position x="40" y="220" />
+   </graphics>
+  </place>
+  <transition id="t0">
+  <name>
+   <text>t0</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="30" y="50" />
+   </graphics>
+  </transition>
+  <transition id="t1">
+  <name>
+   <text>t1</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="190" y="50" />
+   </graphics>
+  </transition>
+  <transition id="t2">
+  <name>
+   <text>t2</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="110" y="130" />
+   </graphics>
+  </transition>
+  <transition id="t5">
+  <name>
+   <text>t5</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="110" y="220" />
+   </graphics>
+  </transition>
+  <arc id="e-5624-17571-11" source="p1" target="t5">
+  </arc>
+  <arc id="e-5624-17576-12" source="t2" target="p1">
+  </arc>
+  <arc id="e-5624-17579-13" source="p3" target="t2">
+  </arc>
+  <arc id="e-5624-1757C-14" source="t5" target="p3">
+  </arc>
+  <arc id="e-5624-17580-15" source="p6" target="t5">
+  </arc>
+  <arc id="e-5624-17583-16" source="t5" target="p5">
+  </arc>
+  <arc id="e-5624-17587-17" source="p0" target="t1">
+  </arc>
+  <arc id="e-5624-1758A-18" source="t0" target="p0">
+  </arc>
+ </page>
+ </net>
+</pnml>

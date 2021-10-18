@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-560A-4327-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>nope</text>
+  </name>
+ <page id="g-560A-43A8-1">
+  <place id="A">
+  <name>
+   <text>A</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="30" y="50" />
+   </graphics>
+  </place>
+  <place id="B">
+  <name>
+   <text>B</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="120" y="130" />
+   </graphics>
+  </place>
+  <transition id="a">
+  <name>
+   <text>a</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="30" y="130" />
+   </graphics>
+  </transition>
+  <transition id="b">
+  <name>
+   <text>b</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="210" y="130" />
+   </graphics>
+  </transition>
+  <transition id="c">
+  <name>
+   <text>c</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="120" y="50" />
+   </graphics>
+  </transition>
+  <arc id="e-560A-43EF-7" source="A" target="a">
+  </arc>
+  <arc id="e-560A-43F4-8" source="a" target="A">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="-10" y="0" />
+    </graphics>
+   </inscription>
+  </arc>
+  <arc id="e-560A-43FA-9" source="a" target="B">
+  </arc>
+  <arc id="e-560A-43FD-10" source="B" target="b">
+  </arc>
+  <arc id="e-560A-4401-11" source="A" target="c">
+  </arc>
+ </page>
+ </net>
+</pnml>

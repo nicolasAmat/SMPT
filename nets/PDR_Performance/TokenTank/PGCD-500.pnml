@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-7643-C466A-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>PGCD-500</text>
+  </name>
+ <page id="g-7643-C4686-1">
+  <place id="p0">
+  <name>
+   <text>p0</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>2</text>
+   </initialMarking>
+   <graphics>
+    <position x="145" y="50" />
+   </graphics>
+  </place>
+  <place id="p1">
+  <name>
+   <text>p1</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="30" y="145" />
+   </graphics>
+  </place>
+  <place id="p2">
+  <name>
+   <text>p2</text>
+    <graphics>
+     <offset x="0" y="10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="255" y="145" />
+   </graphics>
+  </place>
+  <place id="p3">
+  <name>
+   <text>p3</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <initialMarking>
+    <text>500</text>
+   </initialMarking>
+   <graphics>
+    <position x="335" y="50" />
+   </graphics>
+  </place>
+  <transition id="t0">
+  <name>
+   <text>t0</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="30" y="50" />
+   </graphics>
+  </transition>
+  <transition id="t1">
+  <name>
+   <text>t1</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="255" y="50" />
+   </graphics>
+  </transition>
+  <arc id="e-7643-C46C9-8" source="p3" target="t1">
+  </arc>
+  <arc id="e-7643-C46CA-9" source="p0" target="t0">
+   <inscription>
+    <text>3</text>
+    <graphics>
+     <offset x="10" y="-10" />
+    </graphics>
+   </inscription>
+  </arc>
+  <arc id="e-7643-C46CB-10" source="t0" target="p0">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="-10" y="10" />
+    </graphics>
+   </inscription>
+   <graphics>
+    <position x="61" y="64" />
+    <position x="110" y="68" />
+   </graphics>  </arc>
+  <arc id="e-7643-C46D8-11" source="t1" target="p0">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="10" y="-10" />
+    </graphics>
+   </inscription>
+  </arc>
+  <arc id="e-7643-C46D9-12" source="p0" target="t1">
+   <graphics>
+    <position x="177" y="63" />
+    <position x="220" y="60" />
+   </graphics>  </arc>
+  <arc id="e-7643-C46DA-13" source="t1" target="p2">
+  </arc>
+  <arc id="e-7643-C46DA-14" source="t0" target="p1">
+  </arc>
+ </page>
+ </net>
+</pnml>

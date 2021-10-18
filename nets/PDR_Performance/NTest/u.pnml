@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='utf-8'?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net id="n-5614-64610-0" type="http://www.pnml.org/version-2009/grammar/ptnet">
+  <name>
+   <text>u</text>
+  </name>
+ <page id="g-5614-646B8-1">
+  <place id="p0">
+  <name>
+   <text>p0</text>
+    <graphics>
+     <offset x="-10" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="50" y="120" />
+   </graphics>
+  </place>
+  <place id="p1">
+  <name>
+   <text>p1</text>
+    <graphics>
+     <offset x="0" y="-10" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="210" y="120" />
+   </graphics>
+  </place>
+  <transition id="t0">
+  <name>
+   <text>t0</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="50" y="30" />
+   </graphics>
+  </transition>
+  <transition id="t1">
+  <name>
+   <text>t1</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="50" y="220" />
+   </graphics>
+  </transition>
+  <transition id="t2">
+  <name>
+   <text>t2</text>
+    <graphics>
+     <offset x="0" y="0" />
+    </graphics>
+  </name>
+   <graphics>
+    <position x="130" y="120" />
+   </graphics>
+  </transition>
+  <arc id="e-5614-646F4-7" source="p0" target="t2">
+  </arc>
+  <arc id="e-5614-646F9-8" source="t2" target="p1">
+  </arc>
+  <arc id="e-5614-646FC-9" source="p0" target="t0">
+   <graphics>
+    <position x="38" y="92" />
+    <position x="38" y="58" />
+   </graphics>  </arc>
+  <arc id="e-5614-6472C-10" source="t0" target="p0">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="10" y="-10" />
+    </graphics>
+   </inscription>
+   <graphics>
+    <position x="62" y="50" />
+    <position x="66" y="92" />
+   </graphics>  </arc>
+  <arc id="e-5614-6473A-11" source="p0" target="t1">
+   <inscription>
+    <text>2</text>
+    <graphics>
+     <offset x="-10" y="-10" />
+    </graphics>
+   </inscription>
+   <graphics>
+    <position x="38" y="148" />
+    <position x="38" y="192" />
+   </graphics>  </arc>
+  <arc id="e-5614-64742-12" source="t1" target="p0">
+   <graphics>
+    <position x="62" y="192" />
+    <position x="62" y="152" />
+   </graphics>  </arc>
+ </page>
+ </net>
+</pnml>
