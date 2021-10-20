@@ -979,16 +979,17 @@ class FreeVariable(Expression):
     """ Free Variable.
         (extension for the Saturated Transition-Based Generalization used in PDR)
     """
-    def __init__(self, id):
+    def __init__(self, id, index):
         """ Initializer.
         """
         self.id = id
+        self.index = index
 
     def __str__(self):
         """ FreeVariable to textual format.
             (debugging function)
         """
-        return self.id
+        return "k{}".format(self.index)
 
     def __eq__(self, other):
         """ Compare FreeVariables for equality.

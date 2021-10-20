@@ -96,7 +96,7 @@ class States:
             (debugging function)
         """
         if self.saturation:
-            return " and ".join(["({} >= {})".format(pl.id, hurdle) for pl, hurdle in self.compose_hurdle()] + [str(self.cube.generalize(saturated_delta=self.compose_delta()))] + ["({} >= 1)".format(var.id) for var in self.saturation_vars])
+            return " and ".join(["({} >= {})".format(pl.id, hurdle) for pl, hurdle in self.compose_hurdle()] + [str(self.cube.generalize(saturated_delta=self.compose_delta()))] + ["({} >= 1)".format(var) for var in self.saturation_vars])
         else:
             return  " and ".join(["({} >= {})".format(pl.id, hurdle) for pl, hurdle in self.hurdle.items()] + [str(self.cube.generalize(self.delta))])
 
@@ -189,7 +189,7 @@ class States:
         """ Sature the current sequence.
         """
         # Generate a saturation variable
-        saturation_var = FreeVariable("PDR_{}".format(id(self)))
+        saturation_var = FreeVariable("PDR_{}".format(id(self)), len(self.saturation_vars) + 1)
         self.saturation_vars += [saturation_var]
 
         # p >= H(t^k.\sigma) \equiv p >= H(t^k) /\ p >= H(\sigma) - \Delta(t^k)
