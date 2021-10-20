@@ -85,7 +85,7 @@ class System:
     def smtlib_declare_additional_variables(self, k_initial=None):
         """ Declare additional variables.
 
-            k_initial: used by IC3.
+            k_initial: used by PDR.
 
             SMT-LIB format
         """
@@ -101,7 +101,7 @@ class System:
     def smtlib_equations_without_places_from_reduced_net(self, k_initial=None):
         """ Assert equations not involving places in the reduced net.
 
-            k_initial: used by IC3.
+            k_initial: used by PDR.
 
             SMT-LIB format
         """
@@ -116,8 +116,8 @@ class System:
     def smtlib_equations_with_places_from_reduced_net(self, k, k_initial=None):
         """ Assert equations involving places in the reduced net.
 
-            k:         used by BMC and IC3,
-            k_initial: used by IC3.
+            k:         used by BMC and PDR,
+            k_initial: used by PDR.
 
             SMT-LIB format
         """
@@ -133,8 +133,8 @@ class System:
     def smtlib_link_nets(self, k, k_initial=None):
         """ Assert equalities between places common to the initial and reduced nets.
 
-            k:         used by BMC and IC3,
-            k_initial: used by IC3.
+            k:         used by BMC and PDR,
+            k_initial: used by PDR.
 
             SMT-LIB format
         """
@@ -195,7 +195,7 @@ class Equation:
     def smtlib(self, k_initial=None, other_vars=[]):
         """ Assert the equation.
 
-            k_initial:  used by IC3,
+            k_initial:  used by PDR,
             other_vars: identifiers from equations and initial net.
 
             SMT-LIB format
@@ -218,7 +218,7 @@ class Equation:
     def member_smtlib(self, member, k_initial, other_vars):
         """ Helper to assert a member (left or right).
 
-            k_initial:  used by IC3,
+            k_initial:  used by PDR,
             other_vars: identifiers from equations and initial net.
 
             SMT-LIB format
@@ -245,8 +245,8 @@ class Equation:
     def smtlib_with_order(self, k, k_initial, places_reduced, other_vars=[]):
         """ Assert equations with order.
 
-            k:              used by BMC and IC3
-            k_initial:      used by IC3
+            k:              used by BMC and PDR
+            k_initial:      used by PDR
             places_reduced: place identifiers from the reduced net
             other_vars:     other identifiers from equations and initial net
             
@@ -260,8 +260,8 @@ class Equation:
     def member_smtlib_with_order(self, member, k, k_initial, places_reduced=[], other_vars=[]):
         """ Helper to assert a member with order (left or right).
 
-            k:              used by BMC and IC3,
-            k_initial:      used by IC3,
+            k:              used by BMC and PDR,
+            k_initial:      used by PDR,
             places_reduced: place identifiers from the reduced net,
             other_vars:     other identifiers from equations and initial net.
             

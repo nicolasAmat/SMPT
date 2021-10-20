@@ -1,5 +1,5 @@
 """
-IC3 - Incremental Construction of
+PDR - Incremental Construction of
 Inductive Clauses for Indubitable Correctness
 
 Based on "SAT-Based Model Checking without Unrolling"
@@ -322,11 +322,11 @@ class States:
             # Construct the corresponding clause
             clause = StateFormula(literals, "or")
 
-        log.info("[IC3] \t\t\t>> Clause learned: {}".format(clause))
+        log.info("[PDR] \t\t\t>> Clause learned: {}".format(clause))
         return clause
 
 
-class IC3:
+class PDR:
     """ 
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
@@ -334,7 +334,7 @@ class IC3:
     def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False,  check_proof=False, method='REACH', saturation=False, unsat_core=True):
         """ Initializer.
 
-            By default the IC3 method uses the unsat core of the solver.
+            By default the PDR method uses the unsat core of the solver.
             Option to use the MIC algorithm: `unsat_core=False`.
         """
         # Initial Petri net
@@ -451,7 +451,7 @@ class IC3:
         """ Initialization of the OARS.
             F0 = I and F1 = P.
         """
-        log.info("[IC3] > F0 = I and F1 = P")
+        log.info("[PDR] > F0 = I and F1 = P")
 
         # F0 = I
         marking = []
@@ -470,7 +470,7 @@ class IC3:
     def initial_marking_bad_state(self):
         """ sat (I and -P)
         """
-        log.info("[IC3] > INIT => P")
+        log.info("[PDR] > INIT => P")
 
         self.solver.write(self.declare_places(init=True))
         self.solver.write(self.assert_equations(init=True))
@@ -482,7 +482,7 @@ class IC3:
     def initial_marking_reach_bad_state(self):
         """ sat (I and T and -P')
         """
-        log.info("[IC3] > INIT and T => P'")
+        log.info("[PDR] > INIT and T => P'")
 
         self.solver.reset()
 
@@ -572,7 +572,7 @@ class IC3:
         """ Remove unsat cubes in R.
             If no cubes are satisfiable return True.
         """
-        log.info("[IC3] > Remove unsat cubes from R")
+        log.info("[PDR] > Remove unsat cubes from R")
 
         self.solver.reset()
 
@@ -617,7 +617,7 @@ class IC3:
             - `COV`: extract a sub-cube with only non-null equalities,
             replace equalities by "greater or equal than".
         """
-        log.info("[IC3] \t>> Generalization (s = {})".format(' or '.join(map(str, states))))
+        log.info("[PDR] \t>> Generalization (s = {})".format(' or '.join(map(str, states))))
 
         if self.method == 'REACH':
             # Get a marking sequence m_1 -> m_2
@@ -646,13 +646,13 @@ class IC3:
                     literals.append(Atom(TokenCount([place]), IntegerConstant(tokens), ">="))
             generalization = States(StateFormula(literals, "and"))
 
-        log.info("[IC3] \t   {}".format(generalization))
+        log.info("[PDR] \t   {}".format(generalization))
         return generalization
 
     def prove(self, result, concurrent_pids):
         """ Prover.
         """
-        log.info("[IC3] RUNNING")
+        log.info("[PDR] RUNNING")
 
         if self.initial_marking_bad_state() or self.initial_marking_reach_bad_state():
             self.exit_helper(False, result, concurrent_pids)
@@ -674,15 +674,15 @@ class IC3:
                 self.exit_helper(True, result, concurrent_pids)
                 return True
 
-        log.info("[IC3] > R = {}".format(self.formula.R))
-        log.info("[IC3] > P = {}".format(self.formula.P))
+        log.info("[PDR] > R = {}".format(self.formula.R))
+        log.info("[PDR] > P = {}".format(self.formula.P))
 
         self.oars_initialization()
 
         k = 1
 
         while True:
-            log.info("[IC3] > F{} = P".format(k + 1))
+            log.info("[PDR] > F{} = P".format(k + 1))
 
             self.oars.append([self.formula.P])
             if not self.strengthen(k):
@@ -704,15 +704,15 @@ class IC3:
         """ Iterate until Fk excludes all states
             that lead to a dangerous state in one step.
         """
-        log.info("[IC3] > Strengthen (k = {})".format(k))
+        log.info("[PDR] > Strengthen (k = {})".format(k))
 
         try:
             while self.formula_reach_bad_state(k):
                 s = self.witness_generalizer(self.feared_states)
                 n = self.inductively_generalize(s, k - 2, k)
 
-                log.info("[IC3] \t\t>> s: {}".format(s))
-                log.info("[IC3] \t\t>> n: {}".format(n))
+                log.info("[PDR] \t\t>> s: {}".format(s))
+                log.info("[PDR] \t\t>> n: {}".format(n))
 
                 self.push_generalization({(n + 1, s)}, k)
             return True
@@ -727,7 +727,7 @@ class IC3:
             When this is the case, propagate the clause forward,
             i.e. add c to CL(Fi+1)
         """
-        log.info("[IC3] > Propagate Clauses (k = {})".format(k))
+        log.info("[PDR] > Propagate Clauses (k = {})".format(k))
 
         for i in range(1, k + 1):
             for c in self.oars[i][1:]:  # we do not look at the first clause that corresponds to I or P
@@ -738,14 +738,14 @@ class IC3:
         """ Strengthen the invariants in F,
             by adding cubes generated during the `push_generalization`.
         """
-        log.info("[IC3] > Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
+        log.info("[PDR] > Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
 
         if minimum < 0 and self.state_reachable(0, s):
             raise Counterexample
 
         for i in range(max(1, minimum + 1), k + 1):
             if self.state_reachable(i, s):
-                log.info('[IC3] \t>> F{} reach {}'.format(i, s))
+                log.info('[PDR] \t>> F{} reach {}'.format(i, s))
                 self.generate_clause(s, i - 1, k)
                 return i - 1
 
@@ -756,9 +756,10 @@ class IC3:
         """ Find a minimal inductive cube `c` that is inductive relative to Fi.
             Add c to CL(Fi) for all 1 <= j <= i.
         """
-        log.info("[IC3] > Generate Clause (i = {}, k = {})".format(i, k))
+        log.info("[PDR] > Generate Clause (i = {}, k = {})".format(i, k))
 
         c = self.sub_clause_finder(i, s)
+
         for j in range(1, i + 2):
             self.oars[j].append(c)
 
@@ -766,7 +767,7 @@ class IC3:
         """ Apply inductive generalization of a dangerous state s 
             to its Fi state predecessors.
         """
-        log.info("[IC3] > Push generalization (k = {})".format(k))
+        log.info("[PDR] > Push generalization (k = {})".format(k))
 
         while True:
             n, s = min(states, key=lambda t: t[0])
@@ -775,7 +776,7 @@ class IC3:
                 return
 
             if self.formula_reach_state(n, s):
-                log.info('[IC3] \t>> F{} reach {}'.format(n, s))
+                log.info('[PDR] \t>> F{} reach {}'.format(n, s))
                 p = self.witness_generalizer([s])
                 m = self.inductively_generalize(p, n - 2, k)
                 states.add((m + 1, p))
@@ -788,11 +789,11 @@ class IC3:
         """ Check the unreachability certificate.
         """
         print("################################")
-        print("[IC3] Unreachability certificate")
+        print("[PDR] Unreachability certificate")
         print('\n'.join(map(lambda clause: "# " + str(clause), self.oars[i])))
         print("################################")
 
-        print("[IC3] Certificate checking")
+        print("[PDR] Certificate checking")
 
         self.solver.reset()
         self.solver.write(self.declare_places(0))

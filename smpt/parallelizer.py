@@ -1,5 +1,5 @@
 """
-Parallelizer for BMC and IC3 Analysis Methods
+Parallelizer for BMC and PDR Analysis Methods
 
 This file is part of SMPT.
 
@@ -28,7 +28,7 @@ from multiprocessing import Process, Queue
 from bmc import BMC
 from cp import CP
 from enumerative import Enumerative
-from ic3 import IC3
+from pdr import PDR
 from kinduction import KInduction
 from utils import RESUME, STOP, SUSPEND, send_signal
 
@@ -83,15 +83,15 @@ class Parallelizer:
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING', 'K_INDUCTION'])
 
             if method == 'PDR-COV':
-                self.methods.append(IC3(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, check_proof=check_proof, method='COV'))
+                self.methods.append(PDR(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, check_proof=check_proof, method='COV'))
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'PDR-COV'])
 
             if method == 'PDR-REACH':
-                self.methods.append(IC3(ptnet, formula, debug=debug, check_proof=check_proof, method='REACH', saturation=False))
+                self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof, method='REACH', saturation=False))
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
 
             if method == 'PDR-REACH-SATURATED':
-                self.methods.append(IC3(ptnet, formula, debug=debug, check_proof=check_proof, method='REACH', saturation=True))
+                self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof, method='REACH', saturation=True))
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH-SATURATED'])
 
             if method == 'SMT':
