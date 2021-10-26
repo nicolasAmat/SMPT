@@ -786,10 +786,10 @@ class PDR:
                 states.add((m + 1, s))
 
     def proof_checking(self, i):
-        """ Check the unreachability certificate.
+        """ Check the certificate of invariance.
         """
         print("################################")
-        print("[PDR] Unreachability certificate")
+        print("[PDR] Certificate of invariance")
         print('\n'.join(map(lambda clause: "# " + str(clause), self.oars[i])))
         print("################################")
 
