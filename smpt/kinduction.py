@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 K-Induction
 
@@ -114,38 +112,7 @@ class KInduction:
         """ SMT-LIB format for debugging.
             Case with reduction.
         """
-        # smt_input = ""
-
-        # smt_input += "; Declaration of the places from the initial Petri net\n"
-        # smt_input += self.ptnet.smtlib_declare_places(0)
-
-        # smt_input += "; Declaration of the additional variables\n"
-        # smt_input += self.system.smtlib_declare_additional_variables()
-
-        # smt_input += "; Reduction equations (not involving places from the reduced Petri net)"
-        # smt_input += self.system.smtlib_equations_without_places_from_reduced_net()
-
-        # smt_input += "; Declaration of the places from the reduced Petri net (iteration: {})\n".format(0)
-        # smt_input += self.ptnet_reduced.smtlib_declare_places(0)
-
-        # smt_input += "; Initial marking of the reduced Petri net\n"
-        # smt_input += self.ptnet_reduced.smtlib_initial_marking(0)
-
-        # for i in range(k):
-        #     smt_input += "; Declaration of the places from the reduced Petri net (iteration: {})\n".format(1)
-        #     smt_input += self.ptnet_reduced.smtlib_declare_places(i + 1)
-
-        #     smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-        #     smt_input += self.ptnet_reduced.smtlib_transition_relation(i)
-
-        # smt_input += "; Reduction equations\n"
-        # smt_input += self.system.smtlib_equations_with_places_from_reduced_net(k)
-
-        # smt_input += "; Link initial and reduced Petri nets\n"
-        # smt_input += self.system.smtlib_link_nets(k)
-
-        # return smt_input
-        return ""
+        raise NotImplementedError
 
     def prove(self, result, concurrent_pids):
         """ Prover.
@@ -227,80 +194,4 @@ class KInduction:
     def prove_with_reduction(self):
         """ Prover for reduced Petri Net.
         """
-        # log.info("[K-INDUCTION] > Initialization")
-        # log.info("[K-INDUCTION] \t>> Declaration of the places from the initial Petri net")
-        # self.solver.write(self.ptnet.smtlib_declare_places())
-        # log.info("[K-INDUCTION] \t>> Declaration of the additional variables")
-        # self.solver.write(self.system.smtlib_declare_additional_variables())
-        # log.info("[K-INDUCTION] \t>> Formula to check the satisfiability")
-        # self.solver.write(self.formula.R.smtlib(assertion=True))
-        # log.info("[K-INDUCTION] \t>> Reduction equations (not involving places from the reduced Petri net)")
-        # self.solver.write(self.system.smtlib_equations_without_places_from_reduced_net())
-        # log.info("[K-INDUCTION] \t>> Declaration of the places from the reduced Petri net (iteration: 0)")
-        # self.solver.write(self.ptnet_reduced.smtlib_declare_places(0))
-        # log.info("[K-INDUCTION] \t>> Initial marking of the reduced Petri net")
-        # self.solver.write(self.ptnet_reduced.smtlib_initial_marking(0))
-        # log.info("[K-INDUCTION] \t>> Push")
-        # self.solver.push()
-        # log.info("[K-INDUCTION] \t>> Reduction equations")
-        # self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(0))
-        # log.info("[K-INDUCTION] \t>> Link initial and reduced Petri nets")
-        # self.solver.write(self.system.smtlib_link_nets(0))
-
-        # if not self.ptnet_reduced.places and not self.solver.check_sat():
-        #     return -1
-
-        # k = 0
-        # while not self.solver.check_sat():
-        #     log.info("[K-INDUCTION] > k = {}".format(k))
-        #     log.info("[K-INDUCTION] \t>> Pop")
-        #     self.solver.pop()
-        #     log.info("[K-INDUCTION] \t>> Declaration of the places from the reduced Petri net (iteration: {})".format(k + 1))
-        #     self.solver.write(self.ptnet_reduced.smtlib_declare_places(k + 1))
-        #     log.info("[K-INDUCTION] \t>> Transition relation: {} -> {}".format(k, k + 1))
-        #     self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k))
-        #     log.info("[K-INDUCTION] \t>> Push")
-        #     self.solver.push()
-        #     log.info("[K-INDUCTION] \t>> Reduction equations")
-        #     self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(k + 1))
-        #     log.info("[K-INDUCTION] \t>> Link initial and reduced Petri nets")
-        #     self.solver.write(self.system.smtlib_link_nets(k + 1))
-        #     k += 1
-
-        # return None
-        return None
-
-if __name__ == '__main__':
-
-    if len(sys.argv) < 2:
-        sys.exit("Argument missing: ./bmc.py <path_to_Petri_net> [<path_to_reduced_Petri_net>]")
-
-    log.basicConfig(format="%(message)s", level=log.DEBUG)
-
-    ptnet = PetriNet(sys.argv[1])
-
-    formula = Formula(ptnet)
-    formula.generate_deadlock()
-
-    if len(sys.argv) == 3:
-        ptnet_reduced = PetriNet(sys.argv[2])
-        system = System(sys.argv[2], ptnet.places.keys(), ptnet_reduced.places.keys())
-    else:
-        ptnet_reduced = None
-        system = None
-
-    k_induction = KInduction(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=True)
-
-    print("> Generated SMT-LIB")
-    print("-------------------")
-    print(k_induction.smtlib(1))
-
-    print("> Result computed using z3")
-    print("--------------------------")
-    result, concurrent_pids = Queue(), Queue()
-    proc = Process(target=k_induction.prove, args=(result, concurrent_pids,))
-    proc.start()
-    proc.join(timeout=60)
-    if not result.empty():
-        sat, _ = result.get()
-        print(formula.result(sat))
+        raise NotImplementedError
