@@ -1013,7 +1013,7 @@ class FreeVariable(Expression):
         if k is None:
             return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
         else:
-            return "(declare-const {}@{} Int)\n(assert (>= {}@{} 1))\n".format(self.id, k, self.id, k)
+            return "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(self.id, k, self.id, k)
 
     def minizinc(self):
         """ MiniZinc format.

@@ -14,7 +14,7 @@ Orders (state' denotes a state reached by firing one transition):
     ptnet : 10     ptnet_reduced : 0
     ptnet': 11     ptnet_reduced': 1   
 
-Disclaimer: PDR-REACH is not currently compatible with the use of reductions.
+NB: PDR-REACH and PDR-REACH-SATURATED are not currently compatible with the use of reductions.
 
 This file is part of SMPT.
 
@@ -70,7 +70,7 @@ class States:
         # Saturation enabling
         self.saturation = saturation
 
-        # Classical hurdle and delta vectors
+        # Standard hurdle and delta vectors
         self.delta = {}
         self.hurdle = {}
 
@@ -96,7 +96,7 @@ class States:
             (debugging function)
         """
         if self.saturation:
-            return " and ".join(["({} >= {})".format(pl.id, hurdle) for pl, hurdle in self.compose_hurdle()] + [str(self.cube.generalize(saturated_delta=self.compose_delta()))] + ["({} >= 1)".format(var) for var in self.saturation_vars])
+            return " and ".join(["({} >= {})".format(pl.id, hurdle) for pl, hurdle in self.compose_hurdle()] + [str(self.cube.generalize(saturated_delta=self.compose_delta()))])
         else:
             return  " and ".join(["({} >= {})".format(pl.id, hurdle) for pl, hurdle in self.hurdle.items()] + [str(self.cube.generalize(self.delta))])
 
@@ -106,25 +106,22 @@ class States:
         declaration, smt_input = "", ""
 
         if self.saturation and self.saturation_vars:
-            # All saturation variables >= 1
-            smt_input += ' '.join(["(>= {} 1)".format(var.smtlib(k)) for var in self.saturation_vars])
-
             # p >= H(\sigma)
             smt_input += ' '.join(["(>= {} {})".format(pl.smtlib(k), hurdle.smtlib(k)) for pl, hurdle in self.compose_hurdle()])
 
             # c{p <- p - \Delta(\sigma)}
             smt_input += self.cube.smtlib(k, saturated_delta=self.compose_delta())
 
-            # Conjunction of the condions
+            # Conjunction of the conditions
             smt_input = "(and {})".format(smt_input)
 
             if negation:
-                # Declaration of saturation variables
+                # Declaration of the saturation variables
                 quantified_variables = ' '.join(map(lambda var: "({} Int)".format(var.smtlib(k)), self.saturation_vars))
                 # Universal quantification
                 smt_input = "(forall ({}) (not {}))".format(quantified_variables, smt_input)
             else:
-                # Declaration of saturation variables
+                # Declaration of the saturation variables
                 declaration = ''.join(map(lambda var: var.smtlib_declare(k), self.saturation_vars))
 
         else:
@@ -135,7 +132,7 @@ class States:
             # c{p <- p - \Delta(\sigma)}
             smt_input += self.cube.smtlib(k, delta=self.delta)
 
-            # Conjunction of the condions
+            # Conjunction of the conditions
             smt_input = "(and {})".format(smt_input)
 
             # Optional negation
@@ -154,7 +151,7 @@ class States:
         # Create a new States object
         prev_states = States(self.cube, self.saturation)
 
-        # Update the classical hurdle and delta vectors
+        # Update the standard hurdle and delta vectors
 
         # H(t.\sigma) = max(H(t), H(\sigma) - \Delta(t))
         prev_states.hurdle = {pl: max(tr.pre.get(pl, 0), self.hurdle.get(pl, 0) - tr.delta.get(pl, 0)) for pl in set(tr.pre) |set(self.hurdle)}
@@ -165,7 +162,7 @@ class States:
 
         # If saturation is enabled, update the saturated hurdle and delta vectors
         if self.saturation:
-            # Add previsous saturation variables
+            # Copy saturation variables
             prev_states.saturation_vars = self.saturation_vars[:]
 
             # H(t.\sigma) = max(H(t), H(\sigma) - \Delta(t))
@@ -175,12 +172,12 @@ class States:
             # \Delta(t.\sigma) = \Delta(t) + \Delta(\sigma)
             prev_states.current_delta = {pl: self.current_delta.get(pl, 0) + tr.delta.get(pl, 0) for pl in set(self.current_delta) | set(tr.delta)}
 
-            # Copy saturated hurdle and delta vectos
+            # Copy saturated hurdle and delta vectors
             prev_states.saturated_hurdle = [{pl: copy.copy(hurdle) for pl, hurdle in saturated_hurdle.items()} for saturated_hurdle in self.saturated_hurdle] 
             prev_states.saturated_delta = {pl: copy.copy(delta) for pl, delta in self.saturated_delta.items()}
 
             # Check if saturation is needed
-            if prev_states.cube.need_saturation(prev_states.current_delta) and all(prev_states.current_delta.get(pl, 0) >= 0 for hurdle in self.saturated_hurdle for pl in hurdle):
+            if prev_states.cube.need_saturation(prev_states.current_delta) or all(prev_states.current_delta.get(pl, 0) >= 0 for hurdle in self.saturated_hurdle for pl in hurdle):
                 prev_states.sature_current_sequence()
 
         return prev_states
@@ -188,34 +185,29 @@ class States:
     def sature_current_sequence(self):
         """ Sature the current sequence.
         """
-        # Generate a saturation variable
+        # Generate a new saturation variable
         saturation_var = FreeVariable("PDR_{}".format(id(self)), len(self.saturation_vars) + 1)
         self.saturation_vars += [saturation_var]
 
-        # p >= H(t^k.\sigma) \equiv p >= H(t^k) /\ p >= H(\sigma) - \Delta(t^k)
+        # p >= H(t^{k+1}.\sigma) \equiv p >= H(t^{k+1}) /\ p >= H(\sigma) - \Delta(t^{k+1})
         for saturated_sequence_hurdle in self.saturated_hurdle:
             for pl in saturated_sequence_hurdle:
                 if pl in self.current_delta:
-                    saturated_sequence_hurdle[pl].append(ArithmeticOperation([IntegerConstant(-self.current_delta[pl]), saturation_var], '*')) #CHECK without IntegerConstant
+                    saturated_sequence_hurdle[pl].append(ArithmeticOperation([IntegerConstant(-self.current_delta[pl]), ArithmeticOperation([saturation_var, IntegerConstant(1)], '+')], '*'))
 
-        # H(t^k)_j = H(t)_j + (k - 1) \Delta(t)_j if \Delta(t)_j < 0 else H(t)_j
-        saturate_hurdle = {}
+        # H(t^{k+1})_j = H(t)_j + k * \Delta(t)_j if \Delta(t)_j < 0 else H(t)_j
+        saturated_hurdle = {}
         for pl, hurdle in self.current_hurdle.items():
             delta = self.current_delta.get(pl, 0)
-
-            if delta < 0 and -delta == hurdle:
-                saturate_hurdle[pl] = [ArithmeticOperation([IntegerConstant(hurdle), saturation_var], '*')]
-
-            elif delta < 0 and -delta != hurdle:
-                saturate_hurdle[pl] = [IntegerConstant(hurdle + delta), ArithmeticOperation([saturation_var, IntegerConstant(-delta)], '*')]
-
+            if delta < 0 :
+                saturated_hurdle[pl] = [IntegerConstant(hurdle), ArithmeticOperation([saturation_var, IntegerConstant(-delta)], '*')]
             else:
-                saturate_hurdle[pl] = [IntegerConstant(hurdle)]
+                saturated_hurdle[pl] = [IntegerConstant(hurdle)]
 
-        self.saturated_hurdle.append(saturate_hurdle)
+        self.saturated_hurdle.append(saturated_hurdle)
 
-        # \Delta(t^k.\sigma) = \Delta(t^k) + \Delta(\sigma) = k * \Delta(t) + \Delta(\sigma)
-        self.saturated_delta = {pl: self.saturated_delta.get(pl, []) + [ArithmeticOperation([IntegerConstant(self.current_delta[pl]), saturation_var], '*')] if pl in self.current_delta else self.saturated_delta[pl] for pl in set(self.saturated_delta) | set(self.current_delta)}
+        # \Delta(t^{k+1}.\sigma) = \Delta(t^{k+1}) + \Delta(\sigma) = (k + 1) * \Delta(t) + \Delta(\sigma)
+        self.saturated_delta = {pl: self.saturated_delta.get(pl, []) + [ArithmeticOperation([IntegerConstant(self.current_delta[pl]), ArithmeticOperation([saturation_var, IntegerConstant(1)], '+')], '*')] if pl in self.current_delta else self.saturated_delta[pl] for pl in set(self.saturated_delta) | set(self.current_delta)}
 
         # Clean the current hurdle and delta vectors
         self.current_hurdle, self.current_delta = {}, {}
@@ -246,7 +238,7 @@ class States:
         """ Compose the current and saturated deltas.
         """
         if not self.composed_delta:
-            # \Delta(\sigma.\sigma') = \Delta(\sgima) + \Delta(\sigma')
+            # \Delta(\sigma.\sigma') = \Delta(\sigma) + \Delta(\sigma')
             self.composed_delta = {pl: [IntegerConstant(self.current_delta[pl])] + self.saturated_delta.get(pl, []) if pl in self.current_delta else self.saturated_delta[pl] for pl in set(self.current_delta) | set(self.saturated_delta)}
 
         return self.composed_delta
@@ -257,7 +249,7 @@ class States:
         smtlib_input = ""
 
         if self.saturation:
-            # Declaration of saturation variables
+            # Declaration of the saturation variables
             smtlib_input += ''.join(map(lambda var: var.smtlib_declare(k), self.saturation_vars))
             
             # Assert hurdles with clause names corresponding to indices
@@ -284,7 +276,8 @@ class States:
         if self.saturation:
 
             if unsat_core != ['All']:
-                # Unsat core engine dit not give up
+                # Case unsat core engine dit not give up
+                # Get core of hurdles
                 for literal in filter(lambda literal: 'lit@H' in literal, unsat_core):
                     index = int(literal.split('@H')[1])
                     place = self.compose_hurdle()[index][0]
@@ -293,8 +286,8 @@ class States:
 
                 unsat_literals = list(filter(lambda lit: 'lit@c' in lit, unsat_core))
             else:
-                # Unsat core engine gave up
-                # Get core of hurdles
+                # Case unsat core engine gave up
+                # Use all hurdles
                 for place, hurdle in self.compose_hurdle():
                     literals.append(Atom(TokenCount([place]), hurdle, '<'))
 
@@ -305,13 +298,13 @@ class States:
 
             # Construct the corresponding clause
             if self.saturated_hurdle:
-                literals.extend([Atom(var, IntegerConstant(1), '<') for var in self.saturation_vars])
+                literals.extend([Atom(var, IntegerConstant(0), '<') for var in self.saturation_vars])
                 clause = UniversalQuantification(self.saturation_vars[:], StateFormula(literals, 'or'))
             else:
                 clause = StateFormula(literals, 'or')
 
         else:
-            # Get core of hudles
+            # Get core of hurdles
             for literal in filter(lambda literal: 'lit@H' in literal, unsat_core):
                 place = ptnet.places[literal.split('@H')[1]]
                 literals.append(Atom(TokenCount([place]), IntegerConstant(self.hurdle[place]), '<'))
@@ -467,18 +460,6 @@ class PDR:
             if isinstance(self.formula.R, StateFormula):
                 self.feared_states = [States(cube, self.saturation) for cube in self.formula.R.get_cubes()]
 
-    def initial_marking_bad_state(self):
-        """ sat (I and -P)
-        """
-        log.info("[PDR] > INIT => P")
-
-        self.solver.write(self.declare_places(init=True))
-        self.solver.write(self.assert_equations(init=True))
-        self.solver.write(self.ptnet_current.smtlib_initial_marking(0))
-        self.solver.write(self.formula.R.smtlib(self.reduction * 10, assertion=True))
-
-        return self.solver.check_sat()
-
     def initial_marking_reach_bad_state(self):
         """ sat (I and T and -P')
         """
@@ -519,7 +500,7 @@ class PDR:
 
         return self.solver.check_sat()
 
-    def state_reachable(self, i, s):
+    def clause_not_relative_inductive(self, i, s):
         """ sat (-s and Fi and T and s')
         """
         self.solver.reset()
@@ -554,7 +535,7 @@ class PDR:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.ptnet.smtlib_transition_relation(0, eq=True))
+        self.solver.write(self.ptnet.smtlib_transition_relation(0))
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
 
         self.solver.write(s.smtlib_unsat_core(1))
@@ -562,11 +543,10 @@ class PDR:
 
         return s.learned_clause_from_unsat_core(self.ptnet, unsat_core)
 
-    # TODO v4: REWRITE
     def sub_clause_finder_mic(self, i, s):
         """ Minimal inductive clause (MIC).
         """
-        pass
+        raise NotImplementedError
 
     def unsat_cubes_removal(self):
         """ Remove unsat cubes in R.
@@ -654,7 +634,7 @@ class PDR:
         """
         log.info("[PDR] RUNNING")
 
-        if self.initial_marking_bad_state() or self.initial_marking_reach_bad_state():
+        if self.initial_marking_reach_bad_state():
             self.exit_helper(False, result, concurrent_pids)
             return False
 
@@ -740,11 +720,11 @@ class PDR:
         """
         log.info("[PDR] > Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
 
-        if minimum < 0 and self.state_reachable(0, s):
+        if minimum < 0 and self.formula_reach_state(0, s):
             raise Counterexample
 
         for i in range(max(1, minimum + 1), k + 1):
-            if self.state_reachable(i, s):
+            if self.clause_not_relative_inductive(i, s):
                 log.info('[PDR] \t>> F{} reach {}'.format(i, s))
                 self.generate_clause(s, i - 1, k)
                 return i - 1
@@ -798,8 +778,8 @@ class PDR:
         self.solver.reset()
         self.solver.write(self.declare_places(0))
         self.solver.write(self.oars[0][0].smtlib(k=0, assertion=True))
-        self.solver.write(self.assert_formula(i))
-        print("# SAT(I /\ Proof):", self.solver.check_sat())
+        self.solver.write(self.assert_negation_formula(i))
+        print("# UNSAT(I /\ -Proof):", not self.solver.check_sat())
 
         self.solver.reset()
         self.solver.write(self.declare_places(0))
