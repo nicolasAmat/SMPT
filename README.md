@@ -15,64 +15,98 @@ Y8a     a8P  88    `888'    88   Y8,   88       d8"           ,8P      88
 
 ## About
 
-SMPT is an SMT-based model-checker for Petri nets that takes advantage of net reductions.
+SMPT is an SMT-based model-checker for Petri nets mainly focused on *reachability* problems that takes advantage of *net reductions*. 
 
 ## Requirements
 
 * Python >= 3.5
   + [psutil](https://pypi.org/project/psutil/) package
   + (optional) [cx_Freeze](https://pypi.org/project/psutil/) package
-* [Z3](https://github.com/Z3Prover/z3)
-* [MiniZinc](https://www.minizinc.org/)
+* [z3](https://github.com/Z3Prover/z3)
+* (optional) [mcc](https://github.com/dalzilio/mcc)
 * (optional) [reduce](http://projects.laas.fr/tina/) (not released yet)
   + [struct](http://projects.laas.fr/tina/)
   + [4ti2](https://github.com/4ti2/4ti2) or [LattE integrale](https://github.com/latte-int/latte-distro)
+* (optional) [MiniZinc](https://www.minizinc.org/)
 
 ## Running the model-checker
+
+### Freezeing
 
 (Optional) The tool can be freezed into executables using [cx_Freeze](https://cx-freeze.readthedocs.io/en/latest/) by running:
 ```
 python3 setup.py build
 ```
 
-The tool takes as input descriptions in the `.net` format, a textual format for Petri nets described in [the Tina man pages](http://projects.laas.fr/tina/manuals/formats.html). To convert `.pnml` nets to `.net` format use [ndrio](http://projects.laas.fr/tina/).
+### Input Formats and Properties
 
+The tool takes as input descriptions in `.pnml` format and `.net` format (textual format for Petri nets described in [the Tina man pages](http://projects.laas.fr/tina/manuals/formats.html)). 
 SMPT supports the verification of several kind of reachability properties on Petri net. For instance, the following call can be used to check for the existence of deadlocked states on model `Kanban-00002.net`.
 
-```bash
+```
 $> smpt --deadlock nets/Kanban/Kanban-00002.net
 ```
 
 The tool support three main kind of properties:
 
-* Detection of deadlocks, `--deadlock`: is there a reachable marking with no outgoing transitions
-* Quasi-liveness, `--quasi-liveness t`: is there a reachable marking where transition `t` can fire. You can check the quasi-liveness of several transitions at the same time by passing a comma-separated list of transition names: `--liveness t1,...,tn`
-* Reachability: `--reachability p`: is there a reachable marking where place `p` is marked (it has at least one token). You can check the reachability of several places at once by passing a comma-separated list of place names: `--reachability p1,...,pn`
+* Detection of deadlocks, `--deadlock`: is there a reachable marking with no outgoing transitions.
+* Quasi-liveness, `--quasi-liveness t`: is there a reachable marking where transition `t` can fire.  
+You can check the quasi-liveness of several transitions at the same time by passing a comma-separated list of transition names: `--liveness t1,...,tn`.
+* Reachability: `--reachability p`: is there a reachable marking where place `p` is marked (it has at least one token).  
+You can check the reachability of several places at once by passing a comma-separated list of place names: `--reachability p1,...,pn`.
 
-The tool also support properties from the [MCC properties format](https://mcc.lip6.fr/pdf/MCC2020-formula_manual.pdf) by using the option `--xml` and indicating the path to the `.xml` properties file. At this time, the support is restricted to:
+The tool also support properties from the [MCC properties format](https://mcc.lip6.fr/pdf/MCC2020-formula_manual.pdf) by using the option `--xml` and indicating the path to the `.xml` properties file.
+At this time, the support is restricted to:
 + `--xml GlobalProperties.xml`
 + `--xml ReachabilityCardinality.xml`
 + `--xml ReachabilityFireability.xml`
 
-To take advantage of possible reductions in the Petri net, you can use option `--reduce <path_to_reduced_net>`. For example:
+### Output Format
 
-```bash
+The tool is compliant with the MCC output format. Some options permits to obtain more information:
++ `--verbose` or `-v`: evolution of the methods
++ `--debug`: input/output SMT-LIB exchanged with the SMT solver
++ `--show-techniques`: method returning the result
++ `--show-time`: execution time
++ `--show-reduction-ratio`: reduction ratio
++ `--show-model`: counterexample if there is one
++ `--check-proof`: certificate of invariance if there is one
+
+
+### Methods
+
+The tool is composed of different methods:
++ `BMC`: Bounded Model Checking
++ `K-INDUCTION`: k-Induction
++ `PDR-COV`: Property Directed Reachability with state-based generalization
++ `PDR-REACH`: Property Directed Reachability with transition-based generalization
++ `PDR-REACH-SATURATED`: Property Directed Reachability with saturated transition-based generalization
++ `SMT`: SMT solver computation for fully reducible nets
++ `CP`: Constraint programming computation for fully reducible nets
+
+Depending on the input net, SMPT runs a subset of these methods in parallel.  
+Use `--methods <method_1> ... <methods_n>` to restrict the methods to be run.
+
+### Polyhedral abstractions
+
+To take advantage of possible reductions in the Petri net, you can use option `--reduce <path_to_reduced_net>`.  
+For example:
+
+```
 $> smpt Kanban-00002.net --reduced Kanban-00002_reduced.net --deadlock
 ```
+Some exemples of nets with their corresponding reductions are available in `nets/E-Abstraction/`.  
+Option `--auto-reduce` requires the installation of the `reduce` tool, that is currently developped by the Vertics team at LAAS-CNRS.
+The regular distribution of [TINA](http://projects.laas.fr/tina/) does not contain this tool yet.
 
-Option `--auto-reduce` requires the installation of the `reduce` tool, that is
-currently developped by the Vertics team at LAAS-CNRS. The regular distribution
-of [TINA](http://projects.laas.fr/tina/) does not contain this tool yet.
+### Usage
 
 You can list all the options by using the *help* option:
 ```
 $> smpt --help
-usage: smpt.py [-h] [--version] [-v] [--debug] [--colored]
-               [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
-               [--auto-reduce | --reduced PATH_PTNET_REDUCED] [--save-reduced-net]
-               [--auto-enumerative | --enumerative PATH_MARKINGS]
-               [--timeout TIMEOUT | --global-timeout GLOBAL_TIMEOUT] [--skip-non-monotonic] [--show-techniques]
-               [--show-model] [--show-time] [--show-reduction-ratio]
+usage: smpt.py [-h] [--version] [-v] [--debug] [--colored] [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES] [--auto-reduce | --reduced PATH_PTNET_REDUCED] [--save-reduced-net]
+               [--methods [{BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP} [{BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP} ...]] | --auto-enumerative | --enumerative PATH_MARKINGS]
+               [--timeout TIMEOUT | --global-timeout GLOBAL_TIMEOUT] [--skip-non-monotonic] [--show-techniques] [--show-time] [--show-reduction-ratio] [--show-model] [--check-proof]
                ptnet
 
 SMPT: Satisfiability Modulo Petri Net
@@ -97,6 +131,8 @@ optional arguments:
   --reduced PATH_PTNET_REDUCED
                         path to reduced Petri Net (.net format)
   --save-reduced-net    save the reduced net
+  --methods [{BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP} [{BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP} ...]]
+                        enable methods among BMC K-INDUCTION PDR-COV PDR-REACH PDR-REACH-SATURATED SMT CP
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
@@ -105,11 +141,23 @@ optional arguments:
                         a limit on execution time
   --skip-non-monotonic  skip non-monotonic properties
   --show-techniques     show the method returning the result
-  --show-model          show a counterexample if there is one
-  --show-time           show execution times
+  --show-time           show the execution time
   --show-reduction-ratio
                         show the reduction ratio
+  --show-model          show a counterexample if there is one
+  --check-proof         check and show the certificate of invariance if there is one
 ```
+
+## References
+
++ Nicolas Amat, Bernard Berthomieu, Silvano Dal Zilio. On the Combination of Polyhedral Abstraction 
+and SMT-based Model Checking for Petri nets. *42rd International Conference on Application and 
+Theory of Petri Nets and Concurrency (Petri Nets 2021)*, Jun 2021, Paris (virtual), France. 
++ F. Kordon and P. Bouvier and H. Garavel and L. M. Hillah and F. Hulin-Hubard and
+	N. Amat. and E. Amparore and B. Berthomieu and S. Biswal and D. Donatelli and
+	F. Galla and and S. Dal Zilio and P. G. Jensen and  C. He and
+	D. Le Botlan and S. Li and and J. Srba and . Thierry-Mieg and 
+	A. Walner and K. Wolf, Complete Results for the 2021 Edition of the Model Checking Contest, June 2021.
 
 ## Dependencies
 

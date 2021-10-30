@@ -154,21 +154,21 @@ def main():
                         action='store_true',
                         help="show the method returning the result")
 
-    parser.add_argument('--show-model',
-                        action='store_true',
-                        help="show a counterexample if there is one")
-
     parser.add_argument('--show-time',
                         action='store_true',
-                        help="show execution times")
+                        help="show the execution time")
 
     parser.add_argument('--show-reduction-ratio',
                         action='store_true',
                         help="show the reduction ratio")
 
+    parser.add_argument('--show-model',
+                        action='store_true',
+                        help="show a counterexample if there is one")
+
     parser.add_argument('--check-proof',
                         action='store_true',
-                        help="check the unreachability certificate if there is one")
+                        help="check and show the certificate of invariance if there is one")
 
     results = parser.parse_args()
 
