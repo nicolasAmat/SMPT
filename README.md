@@ -40,12 +40,15 @@ python3 setup.py build
 
 ### Input Formats and Properties
 
-The tool takes as input descriptions in `.pnml` format and `.net` format (textual format for Petri nets described in [the Tina man pages](http://projects.laas.fr/tina/manuals/formats.html)). 
-SMPT supports the verification of several kind of reachability properties on Petri net. For instance, the following call can be used to check for the existence of deadlocked states on model `Kanban-00002.net`.
+The tool takes as input descriptions in `.pnml` format and `.net` format (textual format for Petri nets described in [the Tina man pages](http://projects.laas.fr/tina/manuals/formats.html)).  
+SMPT supports the verification of several kind of reachability properties on Petri net.  
+For instance, the following call can be used to check for the existence of deadlocked states on model `Kanban-00002.net`.
 
 ```
 $> smpt --deadlock nets/Kanban/Kanban-00002.net
 ```
+
+The tools also supports colored Petri nets. In this case, use the option `--colored` and install the [mcc](https://github.com/dalzilio/mcc) tool.  
 
 The tool support three main kind of properties:
 
@@ -55,7 +58,7 @@ You can check the quasi-liveness of several transitions at the same time by pass
 * Reachability: `--reachability p`: is there a reachable marking where place `p` is marked (it has at least one token).  
 You can check the reachability of several places at once by passing a comma-separated list of place names: `--reachability p1,...,pn`.
 
-The tool also support properties from the [MCC properties format](https://mcc.lip6.fr/pdf/MCC2020-formula_manual.pdf) by using the option `--xml` and indicating the path to the `.xml` properties file.
+The tool also supports properties from the [MCC properties format](https://mcc.lip6.fr/pdf/MCC2020-formula_manual.pdf) by using the option `--xml` and indicating the path to the `.xml` properties file.
 At this time, the support is restricted to:
 + `--xml GlobalProperties.xml`
 + `--xml ReachabilityCardinality.xml`
