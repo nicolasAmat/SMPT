@@ -86,7 +86,7 @@ class BMC:
             smt_input += self.ptnet.smtlib_declare_places(i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet.smtlib_transition_relation(i)
+            smt_input += self.ptnet.smtlib_transition_relation(i, eq=False)
 
         smt_input += "; Formula to check the satisfiability\n"
         smt_input += self.formula.R.smtlib(k + 1, assertion=True)
@@ -122,7 +122,7 @@ class BMC:
             smt_input += self.ptnet_reduced.smtlib_declare_places(i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet_reduced.smtlib_transition_relation(i)
+            smt_input += self.ptnet_reduced.smtlib_transition_relation(i, eq=False)
 
         smt_input += "; Reduction equations\n"
         smt_input += self.system.smtlib_equations_with_places_from_reduced_net(k)
@@ -191,7 +191,7 @@ class BMC:
             log.info("[BMC] \t>> Declaration of the places from the Petri net (order: {})".format(k + 1))
             self.solver.write(self.ptnet.smtlib_declare_places(k + 1))
             log.info("[BMC] \t>> Transition relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.ptnet.smtlib_transition_relation(k))
+            self.solver.write(self.ptnet.smtlib_transition_relation(k, eq=False))
             log.info("[BMC] \t>> Push")
             self.solver.push()
             log.info("[BMC] \t>> Formula to check the satisfiability (order: {})".format(k + 1))
@@ -237,7 +237,7 @@ class BMC:
             log.info("[BMC] \t>> Declaration of the places from the reduced Petri net (order: {})".format(k + 1))
             self.solver.write(self.ptnet_reduced.smtlib_declare_places(k + 1))
             log.info("[BMC] \t>> Transition relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k))
+            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k, eq=False))
             log.info("[BMC] \t>> Push")
             self.solver.push()
             log.info("[BMC] \t>> Reduction equations")

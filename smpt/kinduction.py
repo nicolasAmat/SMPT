@@ -103,7 +103,7 @@ class KInduction:
             smt_input += self.ptnet.smtlib_declare_places(i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet.smtlib_transition_relation(i)
+            smt_input += self.ptnet.smtlib_transition_relation(i, eq=False)
 
         smt_input += "; Formula to check the satisfiability\n"
         smt_input += self.formula.R.smtlib(k + 1, assertion=True)
@@ -189,7 +189,7 @@ class KInduction:
         self.solver.write(self.ptnet.smtlib_declare_places(1))
 
         log.info("[K-INDUCTION] \t>> Transition relation: {} -> {}".format(0, 1))
-        self.solver.write(self.ptnet.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet.smtlib_transition_relation(0, eq=False))
 
         log.info("[K-INDUCTION] \t>> Push")
         self.solver.push()
@@ -212,7 +212,7 @@ class KInduction:
             self.solver.write(self.formula.P.smtlib(k, assertion=True))
 
             log.info("[K-INDUCTION] \t>> Transition relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.ptnet.smtlib_transition_relation(k))
+            self.solver.write(self.ptnet.smtlib_transition_relation(k, eq=False))
 
             log.info("[K-INDUCTION] \t>> Push")
             self.solver.push()

@@ -89,7 +89,7 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.smtlib_initial_marking(k), self.places.values()))
 
-    def smtlib_transition_relation(self, k, eq=False):
+    def smtlib_transition_relation(self, k, eq=True):
         """ Transition relation from places at order k to order k + 1.
             SMT-LIB format
         """
