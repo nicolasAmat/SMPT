@@ -50,7 +50,7 @@ $> smpt --deadlock nets/Kanban/Kanban-00002.net
 
 The tools also supports colored Petri nets. In this case, use the option `--colored` and install the [mcc](https://github.com/dalzilio/mcc) tool.  
 
-The tool support three main kind of properties:
+The tool supports three main kinds of properties:
 
 * Detection of deadlocks, `--deadlock`: is there a reachable marking with no outgoing transitions.
 * Quasi-liveness, `--quasi-liveness t`: is there a reachable marking where transition `t` can fire.
