@@ -3,7 +3,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/nicolasAmat/SMPT">
-    <img src="logo.png" alt="Logo" width="629" height="365">
+    <img src="logo.png" alt="Logo" width="512" height="305">
   </a>
 </p>
 
