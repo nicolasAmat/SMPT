@@ -147,14 +147,20 @@ optional arguments:
 
 ## References
 
-+ Nicolas Amat, Bernard Berthomieu, Silvano Dal Zilio. On the Combination of Polyhedral Abstraction 
-and SMT-based Model Checking for Petri nets. *42rd International Conference on Application and 
++ Nicolas Amat, Silvano Dal Zilio, Thomas Hujsa. Property Directed Reachability
+  for Generalized Petri Nets. *28th International Conference on Tools and
+  Algorithms for the Construction and Analysis of Systems. (TACAS 2022)*, Apr
+  2022, Munich, Germany.  
++ Nicolas Amat, Bernard Berthomieu, Silvano Dal Zilio. On the Combination of
+Polyhedral Abstraction and SMT-based Model Checking for Petri nets. *42rd
+International Conference on Application and 
 Theory of Petri Nets and Concurrency (Petri Nets 2021)*, Jun 2021, Paris (virtual), France. 
-+ F. Kordon and P. Bouvier and H. Garavel and L. M. Hillah and F. Hulin-Hubard and
-	N. Amat. and E. Amparore and B. Berthomieu and S. Biswal and D. Donatelli and
-	F. Galla and and S. Dal Zilio and P. G. Jensen and  C. He and
-	D. Le Botlan and S. Li and and J. Srba and . Thierry-Mieg and 
-	A. Walner and K. Wolf, Complete Results for the 2021 Edition of the Model Checking Contest, June 2021.
++ F. Kordon and P. Bouvier and H. Garavel and L. M. Hillah and F. Hulin-Hubard
+	and N. Amat. and E. Amparore and B. Berthomieu and S. Biswal and D. Donatelli
+	and F. Galla and and S. Dal Zilio and P. G. Jensen and  C. He and D. Le Botlan
+	and S. Li and and J. Srba and . Thierry-Mieg and A. Walner and K. Wolf,
+	Complete Results for the 2021 Edition of the Model Checking Contest, June
+	2021.
 
 ## Dependencies
 
