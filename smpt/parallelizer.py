@@ -28,8 +28,9 @@ from multiprocessing import Process, Queue
 from bmc import BMC
 from cp import CP
 from enumerative import Enumerative
-from pdr import PDR
+from induction import Induction
 from kinduction import KInduction
+from pdr import PDR
 from utils import RESUME, STOP, SUSPEND, send_signal
 
 
@@ -73,6 +74,10 @@ class Parallelizer:
 
         # Initialize methods
         for method in methods:
+
+            if method == 'INDUCTION':
+                self.methods.append(Induction(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug))
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
 
             if method == 'BMC':
                 self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue))

@@ -51,7 +51,7 @@ def main():
 
     parser.add_argument('--version',
                         action='version',
-                        version='%(prog)s 1.0.0',
+                        version='%(prog)s 3.0.0',
                         help="show the version number and exit")
 
     parser.add_argument('-v', '--verbose',
@@ -113,7 +113,7 @@ def main():
 
     group_methods = parser.add_mutually_exclusive_group()
 
-    methods = ['BMC', 'K-INDUCTION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP']
+    methods = ['INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP']
 
     group_methods.add_argument('--methods',
                                default=methods,
@@ -315,7 +315,7 @@ def main():
 
             if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
                 # Use BMC and PDR methods in parallel
-                methods += ['BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
+                methods += ['INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
 
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')
