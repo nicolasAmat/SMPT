@@ -3,10 +3,10 @@
 # Script to install INPUTS and oracles from MCC.
 
 # Thanks to Yann Thierry-Mieg.
-# This file is inspired from https://github.com/yanntm/pnmcc-models-2020/install_inputs.sh.
+# This file is inspired from https://github.com/yanntm/pnmcc-models-2021/install_inputs.sh.
 # Dependencies:
-# - http://mcc.lip6.fr/2020/archives/mcc2020-input.vmdk.tar.bz2
-# - https://github.com/yanntm/pnmcc-models-2020
+# - http://mcc.lip6.fr/2021/archives/mcc2021-input.vmdk.tar.bz2
+# - https://github.com/yanntm/pnmcc-models-2021
 
 
 # Enable extended globbing
@@ -16,11 +16,11 @@ shopt -s extglob
 rm -rv INPUTS/ 2> /dev/null
 rm -rv oracles 2> /dev/null
 
-# Get 2020 MCC models and properties
+# Get 2021 MCC models and properties
 mkdir INPUTS
-wget --no-check-certificate --progress=dot:mega http://mcc.lip6.fr/2020/archives/mcc2020-input.vmdk.tar.bz2
-tar -xvjf mcc2020-input.vmdk.tar.bz2
-./bin/7z e mcc2020-input.vmdk
+wget --no-check-certificate --progress=dot:mega http://mcc.lip6.fr/2021/archives/mcc2021-input.vmdk.tar.bz2
+tar -xvjf mcc2021-input.vmdk.tar.bz2
+./bin/7z e mcc2021-input.vmdk
 ./bin/ext2rd 0.img ./:INPUTS
 rm -f *.vmdk 0.img *.bz2 1
 
@@ -40,7 +40,7 @@ done
 cd ..
 
 # Get oracles
-wget https://yanntm.github.io/pnmcc-models-2020/oracle.tar.gz
+wget https://yanntm.github.io/pnmcc-models-2021/oracle.tar.gz
 tar -xzvf oracle.tar.gz
 rm oracle.tar.gz
 
