@@ -473,7 +473,6 @@ class Walk(Solver):
         process = ['walk', '-R', '-loop', self.ptnet.filename, '-ff', str(self.file.name)]
         if self.timeout:
             process += ['-t', str(self.timeout)]
-        print(process)
         self.solver = Popen(process, stdout=PIPE)
 
         if self.solver_pids is not None:
