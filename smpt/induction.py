@@ -73,6 +73,7 @@ class Induction:
         smt_input += "; Declaration of the places from the Petri net (0)\n"
         smt_input += self.ptnet.smtlib_declare_places(0)
 
+        smt_input += "; Push\n"
         smt_input += "(push)\n"
 
         smt_input += "; Initial marking of the Petri net\n"
@@ -81,7 +82,10 @@ class Induction:
         smt_input += "; Assert feared safes (0)\n"
         smt_input += self.formula.R.smtlib(0, assertion=True)
 
+        smt_input += "; Check satisfiability\n"
         smt_input += "(check-sat)\n"
+
+        smt_input += "; Pop\n"
         smt_input += "(pop)\n"
 
         smt_input += "; Declaration of the places from the Petri net (0)\n"
@@ -99,6 +103,7 @@ class Induction:
         smt_input += "; Formula to check the satisfiability (1)\n"
         smt_input += self.formula.R.smtlib(1, assertion=True)
 
+        smt_input += "; Check satisfiability\n"
         smt_input += "(check-sat)\n"
 
         return smt_input
@@ -107,7 +112,51 @@ class Induction:
         """ SMT-LIB format for debugging.
             Case with reduction.
         """
-        raise NotImplementedError
+        smt_input = ""
+
+        smt_input += "; Declaration of the places from the Petri net (0)\n"
+        smt_input += self.ptnet.smtlib_declare_places(0)
+
+        smt_input += "; Assert reduction equations"
+        smt_input += self.system.smtlib(0, 0)
+
+        smt_input += "; Push\n"
+        smt_input += "(push)\n"
+
+        smt_input += "; Initial marking of the reduced Petri net\n"
+        smt_input += self.ptnet_reduced.smtlib_initial_marking(0)
+
+        smt_input += "; Assert feared safes (0)\n"
+        smt_input += self.formula.R.smtlib(0, assertion=True)
+
+        smt_input += "; Check satisfiability\n"
+        smt_input += "(check-sat)\n"
+
+        smt_input += "; Pop\n"
+        smt_input += "(pop)\n"
+
+        smt_input += "; Declaration of the places from the Petri net (0)\n"
+        smt_input += self.ptnet.smtlib_declare_places(0)
+
+        smt_input += "; Assert states safes (0)\n"
+        smt_input += self.formula.P.smtlib(0, assertion=True)
+            
+        smt_input += "; Declaration of the places from the Petri net (1)\n"
+        smt_input += self.ptnet.smtlib_declare_places(1)
+
+        smt_input += "; Assert reduction equations\n"
+        smt_input += self.system.smtlib(1, 1)
+
+        smt_input += "; Transition relation: 0 -> 1\n"
+        smt_input += self.ptnet_reduced.smtlib_transition_relation(0, eq=False)
+
+        smt_input += "; Formula to check the satisfiability (1)\n"
+        smt_input += self.formula.R.smtlib(1, assertion=True)
+
+        smt_input += "; Check satisfiability\n"
+        smt_input += "(check-sat)\n"
+
+        return smt_input
 
     def prove(self, result, concurrent_pids):
         """ Prover.
@@ -179,4 +228,44 @@ class Induction:
     def prove_with_reduction(self):
         """ Prover for reduced Petri Net.
         """
-        raise NotImplementedError
+        log.info("[INDUCTION] > Declaration of the places from the Petri net (0)")
+        self.solver.write(self.ptnet.smtlib_declare_places(0))
+
+        log.info("[K-INDUCTION] > Assert reduction equations")
+        self.solver.write(self.system.smtlib(0, 0))
+
+        log.info("[INDUCTION] > Push")
+        self.solver.push()
+
+        log.info("[INDUCTION] > Initial marking of the reduced Petri net")
+        self.solver.write(self.ptnet_reduced.smtlib_initial_marking(0))
+
+        log.info("[INDUCTION] > Assert feared states (0)")
+        self.solver.write(self.formula.R.smtlib(0, assertion=True))
+
+        if self.solver.check_sat():
+            return True
+
+        log.info("[INDUCTION] > Pop")
+        self.solver.pop()
+
+        log.info("[INDUCTION] > Assert safe states (0)")
+        self.solver.write(self.formula.P.smtlib(0, assertion=True))
+
+        log.info("[INDUCTION] > Declaration of the places from the Petri net (1)")
+        self.solver.write(self.ptnet.smtlib_declare_places(1))
+
+        log.info("[K-INDUCTION] > Assert reduction equations")
+        self.solver.write(self.system.smtlib(1, 1))
+
+        log.info("[INDUCTION] > Transition relation: 0 -> 1")
+        self.solver.write(self.ptnet_reduced.smtlib_transition_relation(0, eq=False))
+
+        log.info("[INDUCTION] > Formula to check the satisfiability (iteration: 1)")
+        self.solver.write(self.formula.R.smtlib(1, assertion=True))
+
+        if not self.solver.check_sat():
+            return False
+
+        return None
+
