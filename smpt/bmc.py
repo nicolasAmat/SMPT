@@ -20,12 +20,12 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "4.0.0"
 
 import logging as log
 
-from solver import Solver
-from utils import STOP, send_signal
+from solver import Z3
+from utils import STOP, Verdict, send_signal
 
 
 class BMC:
@@ -33,7 +33,7 @@ class BMC:
     Bounded Model Checking method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, induction_queue=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, induction_queue=None, solver_pids=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -55,7 +55,7 @@ class BMC:
         self.show_model = show_model
 
         # SMT solver
-        self.solver = Solver(debug)
+        self.solver = Z3(debug, solver_pids)
 
     def smtlib(self, k):
         """ SMT-LIB format for understanding.
@@ -65,7 +65,8 @@ class BMC:
         else:
             smt_input = self.smtlib_with_reduction(k)
 
-        smt_input += "(check-sat)\n(get-model)\n"
+        smt_input += "; Check satisfiability\n"
+        smt_input += "(check-sat)\n"
 
         return smt_input
 
@@ -75,14 +76,14 @@ class BMC:
         """
         smt_input = ""
 
-        smt_input += "; Declaration of the places from the Petri net (order: {})\n".format(0)
+        smt_input += "; Declaration of the places from the Petri net (order: 0)\n"
         smt_input += self.ptnet.smtlib_declare_places(0)
 
         smt_input += "; Initial marking of the Petri net\n"
         smt_input += self.ptnet.smtlib_initial_marking(0)
 
         for i in range(k):
-            smt_input += "; Declaration of the places from the Petri net (order: {})\n".format(1)
+            smt_input += "; Declaration of the places from the Petri net (order: {})\n".format(i + 1)
             smt_input += self.ptnet.smtlib_declare_places(i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
@@ -111,7 +112,7 @@ class BMC:
         smt_input += "; Reduction equations (not involving places from the reduced Petri net)"
         smt_input += self.system.smtlib_equations_without_places_from_reduced_net()
 
-        smt_input += "; Declaration of the places from the reduced Petri net (order: {})\n".format(0)
+        smt_input += "; Declaration of the places from the reduced Petri net (order: 0)\n"
         smt_input += self.ptnet_reduced.smtlib_declare_places(0)
 
         smt_input += "; Initial marking of the reduced Petri net\n"
@@ -152,12 +153,12 @@ class BMC:
         # Put the result in the queue
         model = None
         if order == -1:
-            sat = False
+            verdict = Verdict.INV
         else:
-            sat = True
+            verdict = Verdict.CEX
             if self.show_model:
-                model = self.solver.get_model(self.ptnet, order)
-        result.put([sat, model])
+                model = self.solver.get_marking(self.ptnet, order)
+        result.put([verdict, model])
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
@@ -167,39 +168,46 @@ class BMC:
         """ Prover for non-reduced Petri Net.
         """
         log.info("[BMC] > Initialization")
-        log.info("[BMC] \t>> Declaration of the places from the Petri net (order: 0)")
+
+        log.info("[BMC] > Declaration of the places from the Petri net (order: 0)")
         self.solver.write(self.ptnet.smtlib_declare_places(0))
-        log.info("[BMC] \t>> Initial marking of the Petri net")
+
+        log.info("[BMC] > Initial marking of the Petri net")
         self.solver.write(self.ptnet.smtlib_initial_marking(0))
-        log.info("[BMC] \t>> Push")
+
+        log.info("[BMC] > Push")
         self.solver.push()
-        log.info("[BMC] \t>> Formula to check the satisfiability (order: 0)")
+
+        log.info("[BMC] > Formula to check the satisfiability (order: 0)")
         self.solver.write(self.formula.R.smtlib(0, assertion=True))
 
         k, k_induction_iteration = 0, float('inf')
 
-        while not self.solver.check_sat() and k < k_induction_iteration:
+        while not self.solver.check_sat():
 
             if self.induction_queue is not None and not self.induction_queue.empty():
                 k_induction_iteration = self.induction_queue.get()
-                if k >= k_induction_iteration:
-                    self.induction_queue.put(k)
 
-            log.info("[BMC] > k = {}".format(k))
-            log.info("[BMC] \t>> Pop")
+            if k >= k_induction_iteration:
+                return -1
+
+            log.info("[BMC] > Pop")
             self.solver.pop()
-            log.info("[BMC] \t>> Declaration of the places from the Petri net (order: {})".format(k + 1))
-            self.solver.write(self.ptnet.smtlib_declare_places(k + 1))
-            log.info("[BMC] \t>> Transition relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.ptnet.smtlib_transition_relation(k, eq=False))
-            log.info("[BMC] \t>> Push")
-            self.solver.push()
-            log.info("[BMC] \t>> Formula to check the satisfiability (order: {})".format(k + 1))
-            self.solver.write(self.formula.R.smtlib(k + 1, assertion=True))
-            k += 1
 
-        if self.induction_queue:
-            self.induction_queue.put(k)
+            k += 1
+            log.info("[BMC] > k = {}".format(k))
+
+            log.info("[BMC] > Declaration of the places from the Petri net (order: {})".format(k))
+            self.solver.write(self.ptnet.smtlib_declare_places(k))
+
+            log.info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
+            self.solver.write(self.ptnet.smtlib_transition_relation(k - 1, eq=False))
+
+            log.info("[BMC] > Push")
+            self.solver.push()
+
+            log.info("[BMC] > Formula to check the satisfiability (order: {})".format(k))
+            self.solver.write(self.formula.R.smtlib(k, assertion=True))
 
         return k
 
@@ -207,44 +215,67 @@ class BMC:
         """ Prover for reduced Petri Net.
         """
         log.info("[BMC] > Initialization")
-        log.info("[BMC] \t>> Declaration of the places from the initial Petri net")
+
+        log.info("[BMC] > Declaration of the places from the initial Petri net")
         self.solver.write(self.ptnet.smtlib_declare_places())
-        log.info("[BMC] \t>> Declaration of the additional variables")
+
+        log.info("[BMC] > Declaration of the additional variables")
         self.solver.write(self.system.smtlib_declare_additional_variables())
-        log.info("[BMC] \t>> Formula to check the satisfiability")
+
+        log.info("[BMC] > Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
-        log.info("[BMC] \t>> Reduction equations (not involving places from the reduced Petri net)")
+
+        log.info("[BMC] > Reduction equations (not involving places from the reduced Petri net)")
         self.solver.write(self.system.smtlib_equations_without_places_from_reduced_net())
-        log.info("[BMC] \t>> Declaration of the places from the reduced Petri net (order: 0)")
+
+        log.info("[BMC] > Declaration of the places from the reduced Petri net (order: 0)")
         self.solver.write(self.ptnet_reduced.smtlib_declare_places(0))
-        log.info("[BMC] \t>> Initial marking of the reduced Petri net")
+
+        log.info("[BMC] > Initial marking of the reduced Petri net")
         self.solver.write(self.ptnet_reduced.smtlib_initial_marking(0))
-        log.info("[BMC] \t>> Push")
+
+        log.info("[BMC] > Push")
         self.solver.push()
-        log.info("[BMC] \t>> Reduction equations")
+
+        log.info("[BMC] > Reduction equations")
         self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(0))
-        log.info("[BMC] \t>> Link initial and reduced Petri nets")
+
+        log.info("[BMC] > Link initial and reduced Petri nets")
         self.solver.write(self.system.smtlib_link_nets(0))
 
         if not self.ptnet_reduced.places and not self.solver.check_sat():
             return -1
 
-        k = 0
-        while not self.solver.check_sat():
-            log.info("[BMC] > k = {}".format(k))
-            log.info("[BMC] \t>> Pop")
-            self.solver.pop()
-            log.info("[BMC] \t>> Declaration of the places from the reduced Petri net (order: {})".format(k + 1))
-            self.solver.write(self.ptnet_reduced.smtlib_declare_places(k + 1))
-            log.info("[BMC] \t>> Transition relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k, eq=False))
-            log.info("[BMC] \t>> Push")
-            self.solver.push()
-            log.info("[BMC] \t>> Reduction equations")
-            self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(k + 1))
-            log.info("[BMC] \t>> Link initial and reduced Petri nets")
-            self.solver.write(self.system.smtlib_link_nets(k + 1))
-            k += 1
+        k, k_induction_iteration = 0, float('inf')
 
-        return None
+        while not self.solver.check_sat():
+
+            if self.induction_queue is not None and not self.induction_queue.empty():
+                k_induction_iteration = self.induction_queue.get()
+
+            if k >= k_induction_iteration:
+                return -1
+
+            log.info("[BMC] > Pop")
+            self.solver.pop()
+
+            k += 1
+            log.info("[BMC] > k = {}".format(k))
+
+            log.info("[BMC] > Declaration of the places from the reduced Petri net (order: {})".format(k))
+            self.solver.write(self.ptnet_reduced.smtlib_declare_places(k))
+
+            log.info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
+            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k - 1, eq=False))
+
+            log.info("[BMC] > Push")
+            self.solver.push()
+
+            log.info("[BMC] > Reduction equations")
+            self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(k))
+
+            log.info("[BMC] > Link initial and reduced Petri nets")
+            self.solver.write(self.system.smtlib_link_nets(k))
+
+        return k
 

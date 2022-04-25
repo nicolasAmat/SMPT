@@ -27,17 +27,11 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "4.0.0"
 
 import logging as log
-import sys
-from multiprocessing import Process, Queue
 
-from formula import Formula
-from ptnet import PetriNet
-from solver import Solver
-from system import System
-from utils import STOP, send_signal
+from solver import Z3
 
 
 class KInduction:
@@ -45,7 +39,7 @@ class KInduction:
     K-Induction method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, induction_queue=None, sequential=False):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, induction_queue=None, solver_pids=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -64,13 +58,10 @@ class KInduction:
         self.show_model = show_model
 
         # SMT solver
-        self.solver = Solver(debug)
+        self.solver = Z3(debug, solver_pids)
 
         # Queue shared with BMC
         self.induction_queue = induction_queue
-
-        # Additional solver if sequential enabled
-        self.bmc_solver = Solver(debug)
 
     def smtlib(self, k):
         """ SMT-LIB format for debugging.
@@ -90,7 +81,7 @@ class KInduction:
         """
         smt_input = ""
 
-        smt_input += "; Declaration of the places from the Petri net (iteration: {})\n".format(0)
+        smt_input += "; Declaration of the places from the Petri net (iteration: 0)\n"
         smt_input += self.ptnet.smtlib_declare_places(0)
 
         for i in range(k):
@@ -104,7 +95,7 @@ class KInduction:
             smt_input += self.ptnet.smtlib_transition_relation(i, eq=False)
 
         smt_input += "; Formula to check the satisfiability\n"
-        smt_input += self.formula.R.smtlib(k + 1, assertion=True)
+        smt_input += self.formula.R.smtlib(k, assertion=True)
 
         return smt_input
 
@@ -112,7 +103,32 @@ class KInduction:
         """ SMT-LIB format for debugging.
             Case with reduction.
         """
-        raise NotImplementedError
+        smt_input = ""
+
+        smt_input += "; Declaration of the places from the initial net (iteration: 0)\n"
+        smt_input += self.ptnet.smtlib_declare_places(0)
+
+        smt_input += "; Assert reduction equations\n"
+        smt_input += self.system.smtlib(0, 0)
+
+        for i in range(k):
+
+            smt_input += "; Assert safe states (iteration: {})\n".format(i)
+            smt_input += self.formula.P.smtlib(i, assertion=True)
+
+            smt_input += "; Declaration of the places from the initial net (iteration: {})\n".format(i + 1)
+            smt_input += self.ptnet.smtlib_declare_places(i + 1)
+        
+            smt_input += "; Assert reduction equations\n"
+            smt_input += self.system.smtlib(i + 1, i + 1)
+
+            smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
+            smt_input += self.ptnet_reduced.smtlib_transition_relation(i, eq=False)
+
+        smt_input += "; Formula to check the satisfiability (iteration: {})\n".format(k)
+        smt_input += self.formula.R.smtlib(k, assertion=True)
+
+        return smt_input
 
     def prove(self, result, concurrent_pids):
         """ Prover.
@@ -124,74 +140,99 @@ class KInduction:
         else:
             iteration = self.prove_with_reduction()
 
-        if self.induction_queue is not None:
+        if not self.solver.aborted and self.induction_queue is not None:
             self.induction_queue.put(iteration)
 
         # Kill the solver
         self.solver.kill()
-
-        # Quit if the solver has aborted
-        if self.solver.aborted:
-            return
-
-        # Put the result in the queue
-        result.put([False, None])
-
-        # Terminate concurrent methods
-        if not concurrent_pids.empty():
-            send_signal(concurrent_pids.get(), STOP)
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.
         """
         log.info("[K-INDUCTION] > Initialization")
 
-        log.info("[K-INDUCTION] \t>> Declaration of the places from the Petri net (iteration: 0)")
+        log.info("[K-INDUCTION] > Declaration of the places from the Petri net (iteration: 0)")
         self.solver.write(self.ptnet.smtlib_declare_places(0))
 
-        log.info("[K-INDUCTION] \t>> Assert safe states (iteration: 0)")
-        self.solver.write(self.formula.P.smtlib(0, assertion=True))
+        k = 0
+        log.info("[K-INDUCTION] > k = 0")
 
-        log.info("[K-INDUCTION] \t>> Declaration of the places from the Petri net (iteration: 1)")
-        self.solver.write(self.ptnet.smtlib_declare_places(1))
-
-        log.info("[K-INDUCTION] \t>> Transition relation: {} -> {}".format(0, 1))
-        self.solver.write(self.ptnet.smtlib_transition_relation(0, eq=False))
-
-        log.info("[K-INDUCTION] \t>> Push")
+        log.info("[K-INDUCTION] > Push")
         self.solver.push()
 
-        log.info("[K-INDUCTION] \t>> Formula to check the satisfiability (iteration: 1)")
-        self.solver.write(self.formula.R.smtlib(1, assertion=True))
+        log.info("[K-INDUCTION] > Formula to check the satisfiability (iteration: 0)")
+        self.solver.write(self.formula.R.smtlib(0, assertion=True))
 
-        k = 1
         while self.solver.check_sat():
 
-            log.info("[K-INDUCTION] > k = {}".format(k))
-
-            log.info("[K-INDUCTION] \t>> Pop")
+            log.info("[K-INDUCTION] > Pop")
             self.solver.pop()
 
-            log.info("[K-INDUCTION] \t>> Declaration of the places from the Petri net (iteration: {})".format(k + 1))
-            self.solver.write(self.ptnet.smtlib_declare_places(k + 1))
-
-            log.info("[K-INDUCTION] \t>> Assert states safe (iteration: {})".format(k))
+            log.info("[K-INDUCTION] > Assert states safe (iteration: {})".format(k))
             self.solver.write(self.formula.P.smtlib(k, assertion=True))
 
-            log.info("[K-INDUCTION] \t>> Transition relation: {} -> {}".format(k, k + 1))
-            self.solver.write(self.ptnet.smtlib_transition_relation(k, eq=False))
+            k += 1
+            log.info("[K-INDUCTION] > k = {}".format(k))
 
-            log.info("[K-INDUCTION] \t>> Push")
+            log.info("[K-INDUCTION] > Declaration of the places from the Petri net (iteration: {})".format(k))
+            self.solver.write(self.ptnet.smtlib_declare_places(k))
+
+            log.info("[K-INDUCTION] > Transition relation: {} -> {}".format(k - 1, k))
+            self.solver.write(self.ptnet.smtlib_transition_relation(k - 1, eq=False))
+
+            log.info("[K-INDUCTION] > Push")
             self.solver.push()
 
-            log.info("[K-INDUCTION] \t>> Formula to check the satisfiability (iteration: {})".format(k + 1))
-            self.solver.write(self.formula.R.smtlib(k + 1, assertion=True))
-
-            k += 1
+            log.info("[K-INDUCTION] > Formula to check the satisfiability (iteration: {})".format(k))
+            self.solver.write(self.formula.R.smtlib(k, assertion=True))
 
         return k
 
     def prove_with_reduction(self):
         """ Prover for reduced Petri Net.
         """
-        raise NotImplementedError
+        log.info("[K-INDUCTION] > Initialization")
+
+        log.info("[K-INDUCTION] > Declaration of the places from the initial net (iteration: 0)")
+        self.solver.write(self.ptnet.smtlib_declare_places(0))
+
+        log.info("[K-INDUCTION] > Assert reduction equations")
+        self.solver.write(self.system.smtlib(0, 0))
+
+        log.info("[K-INDUCTION] > Push")
+        self.solver.push()
+
+        k = 0
+        log.info("[K-INDUCTION] > k = 0")
+
+        log.info("[K-INDUCTION] > Formula to check the satisfiability (iteration: 0)")
+        self.solver.write(self.formula.R.smtlib(0, assertion=True))
+
+        while self.solver.check_sat():
+
+            log.info("[K-INDUCTION] > Pop")
+            self.solver.pop()
+
+            log.info("[K-INDUCTION] > Assert safe states (iteration: {})".format(k))
+            self.solver.write(self.formula.P.smtlib(k, assertion=True))
+
+            k += 1
+            log.info("[K-INDUCTION] > k = {}".format(k))
+
+            log.info("[K-INDUCTION] > Declaration of the places from the initial net (iteration: {})".format(k))
+            self.solver.write(self.ptnet.smtlib_declare_places(k))
+
+            log.info("[K-INDUCTION] > Assert reduction equations")
+            self.solver.write(self.system.smtlib(k, k))
+
+            log.info("[K-INDUCTION] > Transition relation: {} -> {}".format(k - 1, k))
+            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k - 1, eq=False))
+
+            log.info("[K-INDUCTION] > Push")
+            self.solver.push()
+
+            log.info("[K-INDUCTION] > Formula to check the satisfiability (iteration: {})".format(k))
+            self.solver.write(self.formula.R.smtlib(k, assertion=True))
+
+        return k
+
