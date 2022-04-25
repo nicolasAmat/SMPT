@@ -24,7 +24,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
 import argparse
 import logging as log
@@ -33,11 +33,13 @@ import subprocess
 import sys
 import tempfile
 import time
+from multiprocessing.dummy import Pool
 
 from formula import Formula, Properties
 from parallelizer import Parallelizer
 from ptnet import PetriNet
 from system import System
+from utils import worker
 
 
 def main():
@@ -113,7 +115,7 @@ def main():
 
     group_methods = parser.add_mutually_exclusive_group()
 
-    methods = ['INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP']
+    methods = ['INDUCTION', 'BMC', 'K-INDUCTION', 'WALK', 'STATE-EQUATION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP']
 
     group_methods.add_argument('--methods',
                                default=methods,
@@ -170,6 +172,10 @@ def main():
                         action='store_true',
                         help="check and show the certificate of invariance if there is one")
 
+    parser.add_argument('--mcc',
+                        action='store_true',
+                        help="Model Checking Contest mode")
+
     results = parser.parse_args()
 
     # Set the verbose level
@@ -179,6 +185,7 @@ def main():
         log.basicConfig(format="%(message)s")
 
     colored, path_pnml = False, None
+    state_equation = results.mcc or 'STATE-EQUATION' in results.methods
     original_net = results.path_ptnet
 
     # Check if colored net
@@ -203,7 +210,7 @@ def main():
             original_net = path_pnml
 
     # Read the input Petri net
-    ptnet = PetriNet(results.path_ptnet, path_pnml, colored)
+    ptnet = PetriNet(results.path_ptnet, path_pnml, colored, state_equation)
 
     # By default no reduction
     ptnet_reduced = None
@@ -221,9 +228,9 @@ def main():
         reduce_time = time.time() - reduce_start_time
         results.path_ptnet_reduced = fp_ptnet_reduced.name
 
-    # Read the reduced Petri net and the system of equations linking both nets 
+    # Read the reduced Petri net and the system of reduction equations
     if results.path_ptnet_reduced is not None:
-        ptnet_reduced = PetriNet(results.path_ptnet_reduced)
+        ptnet_reduced = PetriNet(results.path_ptnet_reduced, state_equation=state_equation)
         system = System(results.path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
 
     # Generate the state-space if '--auto-enumerative' enabled
@@ -285,10 +292,18 @@ def main():
         timeout = results.timeout
         global_timeout = timeout * len(properties.formulas)
 
+    # MCC preprocessing
+    pre_results = None
+    if results.mcc and (ptnet_reduced is None or ptnet_reduced.places):
+        pool = Pool(2)
+        parallelizers = [Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, ['WALK', 'STATE-EQUATION']) for property_id, formula in properties.formulas.items()]
+        pre_results = pool.map(worker, ((obj) for obj in parallelizers))
+
     # Iterate over properties
     computations = queue.Queue()
-    for property_id, formula in properties.formulas.items():
-        computations.put((property_id, formula))
+    for index, (property_id, formula) in enumerate(properties.formulas.items()):
+        if pre_results is None or pre_results[index] is not None:
+            computations.put((property_id, formula))
 
     # Counter, number of propeties to be runned for the first pass
     counter, nb_properties = 0, computations.qsize()
@@ -315,7 +330,7 @@ def main():
 
             if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
                 # Use BMC and PDR methods in parallel
-                methods += ['INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
+                methods += ['INDUCTION', 'BMC', 'K-INDUCTION', 'WALK', 'STATE-EQUATION', 'PDR-REACH', 'PDR-REACH-SATURATED']
 
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')
