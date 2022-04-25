@@ -58,13 +58,21 @@ class System:
         """
         return '\n'.join(map(str, self.equations))
 
-    def smtlib(self):
+    def smtlib(self, k=None, k_initial=None):
         """ Decalare additional variables and assert equations.
             SMT-LIB format
         """
-        smt_input = ''.join(
-            map(lambda var: "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var, var), self.additional_vars))
-        smt_input += '\n'.join(map(lambda eq: eq.smtlib(), self.equations)) + '\n'
+        if k is None:
+            smt_input = ''.join(
+                map(lambda var: "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var, var), self.additional_vars))
+        else:
+            smt_input = ''.join(
+                map(lambda var: "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(var, k, var, k), self.additional_vars))
+
+        if k is None and k_initial is None:
+            smt_input += '\n'.join(map(lambda eq: eq.smtlib(), self.equations)) + '\n'
+        else:
+            smt_input += '\n'.join(map(lambda eq: eq.smtlib_with_order(k, k_initial, self.places_reduced, [*self.places_initial] + self.additional_vars), self.equations)) + '\n'
 
         return smt_input
 
