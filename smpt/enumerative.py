@@ -23,21 +23,21 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "4.0.0"
 
 import logging as log
 import re
 import sys
 
-from solver import Solver
-from utils import STOP, send_signal
+from solver import Z3
+from utils import STOP, Verdict, send_signal
 
 
 class Enumerative:
     """ Enumerative markings method.
     """
 
-    def __init__(self, path_markings, ptnet, formula, ptnet_reduced, system, debug=False):
+    def __init__(self, path_markings, ptnet, formula, ptnet_reduced, system, debug=False, solver_pids=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -57,7 +57,7 @@ class Enumerative:
         self.parse_markings(path_markings)
 
         # SMT solver
-        self.solver = Solver(debug)
+        self.solver = Z3(debug, solver_pids)
 
     def __str__(self):
         """ Markings to textual format.
@@ -145,11 +145,11 @@ class Enumerative:
             return
 
         # Put the result in the queue 
-        sat, model = False, None
+        verdict, model = Verdict.INV, None
         if self.solver.check_sat():
-            sat = True
-            model = self.solver.get_model(self.ptnet)
-        result.put([sat, model])
+            verdict = Verdict.CEX
+            model = self.solver.get_marking(self.ptnet)
+        result.put([verdict, model])
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():

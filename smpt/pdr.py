@@ -43,8 +43,8 @@ import resource
 
 from formula import (ArithmeticOperation, Atom, FreeVariable, IntegerConstant,
                      StateFormula, TokenCount, UniversalQuantification)
-from solver import Solver
-from utils import STOP, send_signal
+from solver import Z3
+from utils import STOP, Verdict, send_signal
 
 
 class Counterexample(Exception):
@@ -324,7 +324,7 @@ class PDR:
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False,  check_proof=False, method='REACH', saturation=False, unsat_core=True):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False,  check_proof=False, method='REACH', saturation=False, unsat_core=True, solver_pids=None):
         """ Initializer.
 
             By default the PDR method uses the unsat core of the solver.
@@ -355,7 +355,7 @@ class PDR:
         self.feared_states = []
 
         # SMT solver
-        self.solver = Solver(debug)
+        self.solver = Z3(debug, solver_pids)
 
         # Used method to obtain minimal inductive cubes
         if unsat_core:
@@ -621,7 +621,7 @@ class PDR:
 
             # Construct the generalization cube
             literals = []
-            for place, tokens in s.items():
+            for place, tokens in s.tokens.items():
                 if tokens:
                     literals.append(Atom(TokenCount([place]), IntegerConstant(tokens), ">="))
             generalization = States(StateFormula(literals, "and"))
@@ -635,8 +635,8 @@ class PDR:
         log.info("[PDR] RUNNING")
 
         if self.initial_marking_reach_bad_state():
-            self.exit_helper(False, result, concurrent_pids)
-            return False
+            self.exit_helper(Verdict.CEX, result, concurrent_pids)
+            return Verdict.CEX
 
         if self.method == 'REACH':
             # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
@@ -651,8 +651,8 @@ class PDR:
 
             # Remove UNSAT cubes, and exit if R UNSAT
             if self.unsat_cubes_removal():
-                self.exit_helper(True, result, concurrent_pids)
-                return True
+                self.exit_helper(Verdict.INV, result, concurrent_pids)
+                return Verdict.INV
 
         log.info("[PDR] > R = {}".format(self.formula.R))
         log.info("[PDR] > P = {}".format(self.formula.P))
@@ -666,8 +666,8 @@ class PDR:
 
             self.oars.append([self.formula.P])
             if not self.strengthen(k):
-                self.exit_helper(False, result, concurrent_pids)
-                return False
+                self.exit_helper(Verdict.CEX, result, concurrent_pids)
+                return Verdict.CEX
 
             self.propagate_clauses(k)
 
@@ -675,8 +675,8 @@ class PDR:
                 if (not self.saturation and set(self.oars[i]) == set(self.oars[i + 1])) or (self.saturation and self.fixed_point(i)):
                     if self.check_proof:
                         self.proof_checking(i)
-                    self.exit_helper(True, result, concurrent_pids)
-                    return True
+                    self.exit_helper(Verdict.INV, result, concurrent_pids)
+                    return Verdict.INV
 
             k += 1
 
@@ -796,7 +796,7 @@ class PDR:
 
         print("################################")
 
-    def exit_helper(self, result, result_output, concurrent_pids):
+    def exit_helper(self, verdict, result_output, concurrent_pids):
         """ Helper function to put the result to the output queue,
             and stop the concurrent method if there is one.
         """
@@ -808,7 +808,7 @@ class PDR:
             return
 
         # Put the result in the queue
-        result_output.put([not result, None])
+        result_output.put([verdict, None])
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():

@@ -20,12 +20,12 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "4.0.0"
 
 import logging as log
 
-from solver import MiniZinc, Solver
-from utils import STOP, send_signal
+from solver import Z3, MiniZinc
+from utils import STOP, Verdict, send_signal
 
 
 class CP:
@@ -33,7 +33,7 @@ class CP:
     Constraint Programming method.
     """
 
-    def __init__(self, ptnet, formula, system, show_model=False, debug=False, minizinc=False):
+    def __init__(self, ptnet, formula, system, show_model=False, debug=False, minizinc=False, solver_pids=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -53,9 +53,9 @@ class CP:
 
         # Solver
         if minizinc:
-            self.solver = MiniZinc(debug)
+            self.solver = MiniZinc(debug, solver_pids)
         else:
-            self.solver = Solver(debug)
+            self.solver = Z3(debug, solver_pids)
 
     def prove(self, results, concurrent_pids):
         """ Prover.
@@ -68,7 +68,12 @@ class CP:
             sat = self.prove_smt()
 
         if sat and self.show_model:
-            model = self.solver.get_model(self.ptnet)
+            model = self.solver.get_marking(self.ptnet)
+
+        if sat:
+            verdict = Verdict.CEX
+        else:
+            verdict = Verdict.INV
 
         # Kill the solver
         self.solver.kill()
@@ -78,7 +83,7 @@ class CP:
             return        
 
         # Put the result in the queue
-        results.put([sat, model])
+        results.put([verdict, model])
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
@@ -89,10 +94,13 @@ class CP:
         """
         log.info("[CP] \t>> Set bound")
         self.solver.set_bound()
+
         log.info("[CP] \t>> Declaration of the places from the initial Petri net")
         self.solver.write(self.ptnet.minizinc_declare_places())
+
         log.info("[CP] \t>> Declaration of the additional variables and assertion of the reduction equations")
         self.solver.write(self.system.minizinc())
+
         log.info("[CP] \t>> Formula to check the satisfiability")
         self.solver.write(self.formula.R.minizinc(assertion=True))
 
@@ -103,8 +111,10 @@ class CP:
         """
         log.info("[CP] \t>> Declaration of the places from the initial Petri net")
         self.solver.write(self.ptnet.smtlib_declare_places())
+
         log.info("[CP] \t>> Declaration of the additional variables and assertion of the reduction equations")
         self.solver.write(self.system.smtlib())
+
         log.info("[CP] \t>> Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
 

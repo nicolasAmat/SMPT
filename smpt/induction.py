@@ -20,12 +20,12 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
 import logging as log
 
-from solver import Solver
-from utils import STOP, send_signal
+from solver import Z3
+from utils import STOP, Verdict, send_signal
 
 
 class Induction:
@@ -33,7 +33,7 @@ class Induction:
     INDUCTION method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, solver_pids=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -52,7 +52,7 @@ class Induction:
         self.show_model = show_model
 
         # SMT solver
-        self.solver = Solver(debug)
+        self.solver = Z3(debug, solver_pids)
 
     def smtlib(self):
         """ SMT-LIB format for debugging.
@@ -126,8 +126,13 @@ class Induction:
         if self.solver.aborted or induction is None:
             return
 
+        if induction:
+            verdict = Verdict.CEX
+        else:
+            verdict = Verdict.INV
+
         # Put the result in the queue
-        result.put([induction, None])
+        result.put([verdict, None])
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
