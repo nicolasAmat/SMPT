@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Utils to manage process.
+Utils to manage processes and verdicts
 
 This file is part of SMPT.
 
@@ -22,15 +22,35 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
 import os
 import signal
-
+from enum import Enum
 
 RESUME = signal.SIGCONT
-STOP = signal.SIGTERM
 SUSPEND = signal.SIGSTOP
+STOP = signal.SIGTERM
+KILL = signal.SIGKILL
+
+PRE_TIMEOUT = 30
+
+
+class Verdict(Enum):
+    """ Verdict enum
+        INV -> P invariant (R not reachable)
+        CEX -> R reachable (P not invariant)
+        UNKNOWN
+    """
+    INV = 1 
+    CEX = 2
+    UNKNOWN = 3
+
+
+def worker(parallelizer):
+    """ Call run method n parallelizer object.
+    """
+    return parallelizer.run(PRE_TIMEOUT)
 
 
 def send_signal(pids, signal_to_send):
@@ -48,3 +68,4 @@ def send_signal(pids, signal_to_send):
             os.kill(pid, signal_to_send)
         except OSError:
             pass
+
