@@ -40,10 +40,11 @@ class PetriNet:
     - a finite set of transitions (identified by names).
     """
 
-    def __init__(self, filename, pnml_filename=None, colored=False):
+    def __init__(self, filename, pnml_filename=None, colored=False, state_equation=False):
         """ Initializer.
         """
         self.id = ""
+        self.filename = filename
 
         self.places = {}
         self.transitions = {}
@@ -53,6 +54,9 @@ class PetriNet:
 
         # Colored management
         self.colored = colored
+
+        # State equation management
+        self.state_equation = state_equation
 
         # `.pnml` management 
         self.pnml_mapping = pnml_filename is not None
@@ -83,6 +87,12 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.minizinc_declare(), self.places.values()))
 
+    def smtlib_declare_transitions(self):
+        """ Declare transitions.
+            SMT-LIB format
+        """
+        return ''.join(map(lambda tr: tr.smtlib_declare(), self.transitions.values()))
+
     def smtlib_initial_marking(self, k=None):
         """ Assert the initial marking.
             SMT-LIB format
@@ -105,6 +115,13 @@ class PetriNet:
         smt_input += "\n))\n"
 
         return smt_input
+
+    def smtlib_state_equation(self):
+        """
+            Assert the state equation (potentially reachable markings).
+            SMT-LIB format
+        """
+        return ''.join(map(lambda pl: pl.smtlib_state_equation(), self.places.values()))
 
     def smtlib_transition_relation_textbook(self, k):
         """ Transition relations from places at order k to order k + 1.
@@ -196,14 +213,12 @@ class PetriNet:
         outputs = content[arrow + 1:]
 
         for arc in inputs:
-            tr.connected_places.append(self.parse_arc(arc, tr.inputs, tr.outputs))
+            tr.connected_places.append(self.parse_arc(arc, tr.pre, tr.post))
 
         for arc in outputs:
-            tr.connected_places.append(self.parse_arc(arc, tr.outputs))
+            tr.connected_places.append(self.parse_arc(arc, tr.post))
 
-        tr.normalize_test_arcs()
-        tr.compute_pre_vector()
-        tr.compute_delta_vector()
+        tr.normalize_flows(self.state_equation)
 
     def parse_arc(self, arc, arcs, opposite_arcs=[]):
         """ Arc parser.
@@ -318,6 +333,9 @@ class Place:
         self.id = place_id
         self.initial_marking = initial_marking
 
+        # Optional (used for state equation)
+        self.delta = {}
+
     def __str__(self):
         """ Place to .net format.
         """
@@ -336,10 +354,7 @@ class Place:
         """ Declare a place.
             SMT-LIB format
         """
-        if k is not None:
-            return "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(self.id, k, self.id, k)
-        else:
-            return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
+        return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.smtlib(k), self.smtlib(k))
 
     def minizinc_declare(self):
         """ Declare a place.
@@ -348,13 +363,24 @@ class Place:
         return "var 0..MAX: {};\n".format(self.id)
 
     def smtlib_initial_marking(self, k=None):
-        """ Assertions to set the initial marking.
+        """ Assert the initial marking.
             SMT-LIB format
         """
-        if k is not None:
-            return "(assert (= {}@{} {}))\n".format(self.id, k, self.initial_marking)
-        else:
-            return "(assert (= {} {}))\n".format(self.id, self.initial_marking)
+        return "(assert (= {} {}))\n".format(self.smtlib(k), self.initial_marking)
+
+    def smtlib_state_equation(self):
+        """ Assert the state equation.
+            SMT-LIB format
+        """
+        smt_input = ' '.join(["(* {} {})".format(tr.id, weight) if weight != 1 else tr.id for tr, weight in self.delta.items()])
+
+        if self.initial_marking != 0:
+            smt_input += " " + str(self.initial_marking)
+
+        if self.initial_marking != 0 or len(self.delta) > 1:
+            smt_input = "(+ {})".format(smt_input)
+
+        return "(assert (= {} {}))\n".format(self.smtlib(), smt_input)
 
 
 class Transition:
@@ -381,6 +407,7 @@ class Transition:
         self.tests = {}
 
         self.pre = {}
+        self.post = {}
         self.delta = {}
 
         self.connected_places = []
@@ -509,46 +536,53 @@ class Transition:
 
         return smt_input
 
-    def normalize_test_arcs(self):
-        """ Normalize test arcs.
+    def smtlib_declare(self):
+        """ Declare a transition.
+            SMT-LIB format
+        """
+        return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
+
+    def normalize_flows(self, state_equation=False):
+        """ Normalize arcs.
             If pre(t,p) > 0 and post(t,p) > 0 then
-            - test(t,p) = |pre(t,p) - post(t,p)|,
-            - input(t,p) = max(0, pre(t,p) - |pre(t,p) - post(t,p)|),
-            - output(t,p) = max(0, post(t,p) - |pre(t,p) - post(t,p)|).
+            - delta(t,p) = |pre(t,p) - post(t,p)|
+            - tests(t,p) = min(pre(t,p), post(t,p))
+            - inputs(t,p) = max(0, pre(t,p) - delta(t,p))
+            - outputs(t,p) = max(0, post(t,p) - delta(t,p))
+            Else if pre(t, p) > 0 then
+            - inputs(t,p) = pre(t,p)
+            - delta(t,p) = -pre(t,p)
+            Else if post(t,p) > 0 then
+            - output(t,p) = post(t,p)
+            - delta(t,p) = post(t,p)
         """
-        for place in set(self.inputs.keys()) & set(self.outputs.keys()):
-            
-            if self.inputs[place] == self.outputs[place]:
-                self.tests[place] = self.inputs[place]
-                del self.inputs[place]
-                del self.outputs[place]
+        for place in set(self.pre.keys()) | set(self.post.keys()):
 
-            elif self.inputs[place] > self.outputs[place]:
-                self.tests[place] = self.outputs[place]
-                self.inputs[place] = self.inputs[place] - self.outputs[place]
-                del self.outputs[place]
+            if place in self.pre and place in self.post:
 
-            elif self.inputs[place] < self.outputs[place]:
-                self.outputs[place] = self.outputs[place] - self.inputs[place]
-                self.tests[place] = self.inputs[place]
-                del self.inputs[place]
+                if self.pre[place] == self.post[place]:
+                    self.tests[place] = self.pre[place]
 
-    def compute_pre_vector(self):
-        """ Compute pre(t).
-        """
-        for place, weight in self.inputs.items():
-            if place in self.tests:
-                weight += self.tests[place]
-            self.pre[place] = weight
+                elif self.pre[place] > self.post[place]:
+                    self.tests[place] = self.post[place]
+                    abs_delta = self.pre[place] - self.post[place]
+                    self.inputs[place], self.delta[place] = abs_delta, -abs_delta
 
-        for place, weight in self.tests.items():
-            if place not in self.inputs:
-                self.pre[place] = weight
+                elif self.post[place] > self.pre[place]:
+                    self.tests[place] = self.pre[place]
+                    abs_delta = self.post[place] - self.pre[place]
+                    self.outputs[place], self.delta[place] = abs_delta, abs_delta
 
-    def compute_delta_vector(self):
-        """ Compute Delta(t).
-        """
-        self.delta = {pl: self.outputs.get(pl, 0) - self.inputs.get(pl, 0) for pl in set(self.outputs) | set(self.inputs)}
+            elif place in self.pre:
+                self.inputs[place] = self.pre[place]
+                self.delta[place] = -self.pre[place]
+
+            else:
+                self.outputs[place] = self.post[place]
+                self.delta[place] = self.post[place]
+
+            if state_equation and place in self.delta:
+                place.delta[self] = self.delta[place]
 
 
 class Marking:
