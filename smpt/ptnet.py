@@ -322,15 +322,15 @@ class PetriNet:
         inputs, outputs = {}, {}
         for place in self.places.values():
             # Inputs
-            if m_1[place] > m_2[place]:
-                inputs[place] = m_1[place] - m_2[place]
+            if m_1.tokens[place] > m_2.tokens[place]:
+                inputs[place] = m_1.tokens[place] - m_2.tokens[place]
             # Outpus
-            if m_1[place] < m_2[place]:
-                outputs[place] = m_2[place] - m_1[place]
+            if m_1.tokens[place] < m_2.tokens[place]:
+                outputs[place] = m_2.tokens[place] - m_1.tokens[place]
 
         # Return the corresponding transition
         for transition in self.transitions.values():
-            if transition.inputs == inputs and transition.outputs == outputs and all(m_1[place] >= pre for place, pre in transition.pre.items()):
+            if transition.inputs == inputs and transition.outputs == outputs and all(m_1.tokens[place] >= pre for place, pre in transition.pre.items()):
                 return transition
 
         return None
@@ -602,13 +602,26 @@ class Transition:
 
 
 class Marking:
-    """ TODO v4: to implement 
+    """ Marking.
     """
-    def __init__(self):
-        pass
+    def __init__(self, tokens={}):
+        """ Initializer.
+        """
+        self.tokens = tokens
 
     def __str__(self):
-        return ""
+        """ Marking to textual format.
+        """
+        text = ""
+
+        for place, marking in self.tokens.items():
+            if marking > 0:
+                text += " {}({})".format(str(place.id), marking)
+
+        if text == "":
+            text = " empty marking"
+
+        return text
 
 
 if __name__ == "__main__":
