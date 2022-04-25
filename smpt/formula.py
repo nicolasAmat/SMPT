@@ -33,6 +33,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 
 from ptnet import PetriNet
+from utils import Verdict
 
 TRANSLATION_COMPARISON_OPERATORS = {
     '=': operator.eq,
@@ -66,9 +67,18 @@ NEGATION_BOOLEAN_OPERATORS = {
     'or': 'and'
 }
 
-BOOLEAN_OPERATORS_TO_MINIZINC = {
+BOOLEAN_OPERATORS_TO_MINIZINC_WALK = {
     'and': '/\\',
     'or': '\\/'
+}
+
+COMPARISON_OPERATORS_TO_WALK = {
+    '=': '=',
+    '<=': '<=',
+    '>=': '>=',
+    '<': 'gt',
+    '>': 'lt',
+    'distinct': '='
 }
 
 XML_TO_COMPARISON_OPERATORS = {
@@ -298,6 +308,12 @@ class Formula:
         """
         return "; --> R\n{}\n; --> P\n{}".format(self.R.minizinc(assertion=True), self.P.minizinc(assertion=True))
 
+    def walk(self):
+        """ Formula to Walk format (selt).
+            (debugging function)
+        """
+        return "; --> R\n{}\n; --> P\n{}".format(self.R.walk(assertion=True), self.P.walk(assertion=True))
+
     def generate_deadlock(self):
         """ `deadlock` formula generator.
         """
@@ -360,19 +376,19 @@ class Formula:
         self.P = StateFormula([self.R], 'not')
         self.property_def = 'finally'
 
-    def result(self, reachable):
+    def result(self, verdict):
         """ Return the result according to the reachability of the feared events R.
         """
         if self.property_def == 'finally':
-            if reachable:
+            if verdict == Verdict.CEX:
                 return "TRUE"
-            else:
+            elif verdict == Verdict.INV:
                 return "FALSE"
 
         if self.property_def == 'globally':
-            if reachable:
+            if verdict == Verdict.CEX:
                 return "FALSE"
-            else:
+            elif verdict == Verdict.INV:
                 return "TRUE"
 
     def dnf(self):
@@ -415,6 +431,12 @@ class Expression(ABC):
     @abstractmethod
     def minizinc(self):
         """ MiniZinc format
+        """
+        pass
+
+    @abstractmethod
+    def walk(self):
+        """ Walk format
         """
         pass
 
@@ -529,7 +551,7 @@ class StateFormula(Expression):
             MiniZinc format
         """
         if len(self.operands) > 1:
-            operator = BOOLEAN_OPERATORS_TO_MINIZINC[self.operator]
+            operator = BOOLEAN_OPERATORS_TO_MINIZINC_WALK[self.operator]
         else:
             operator = ''
 
@@ -546,19 +568,27 @@ class StateFormula(Expression):
 
         return minizinc_input
 
-    def show_model(self):
-        """ Show a model.
+    def walk(self, assertion=False):
+        """ State ormula.
+            Walk format
         """
-        model = ""
+        if len(self.operands) > 1:
+            operator = BOOLEAN_OPERATORS_TO_MINIZINC_WALK[self.operator]
+        else:
+            operator = ''
 
-        for place_marking in self.operands:
-            if place_marking.right_operand.value > 0:
-                model += " {}({})".format(place_marking.left_operand, place_marking.right_operand)
+        walk_input = ' {} '.format(operator).join(map(lambda operand: operand.walk(), self.operands))
 
-        if model == "":
-            model = " empty marking"
+        if len(self.operands) > 1 or self.operator == 'not':
+            walk_input = "({})".format(walk_input)
 
-        print("# Model:", model, sep='')
+        if self.operator == 'not':
+            walk_input = "- {}".format(walk_input)
+
+        if assertion:
+            walk_input = "- ({})\n".format(walk_input)
+
+        return walk_input
 
     def negation(self, delta=None, saturated_delta=None):
         """ Return the negation of the StateFormula.
@@ -741,6 +771,20 @@ class Atom(Expression):
 
         return minizinc_input
 
+    def walk(self, assertion=False):
+        """ Atom.
+            Walk format
+        """
+        walk_input = "({} {} {})".format(self.left_operand.walk(), self.operator, self.right_operand.walk())
+
+        if self.operator == 'distinct':
+            walk_input = "- {}".format(walk_input)
+
+        if assertion:
+            walk_input = "- {}\n".format(walk_input)
+
+        return walk_input
+
     def negation(self, delta=None, saturated_delta=None):
         """ Return the negation of the Atom.
         """
@@ -876,6 +920,12 @@ class TokenCount(Expression):
 
         return minizinc_input
 
+    def walk(self):
+        """ Token count.
+            Walk format
+        """
+        return self.minizinc()
+
     def negation(self, delta=None, saturated_delta=None):
         """ Return the negation of the TokenCount.
         """
@@ -909,7 +959,7 @@ class TokenCount(Expression):
     def eval(self, m):
         """ Evaluate the subformula with marking m.
         """
-        return sum([m[pl] for pl in self.places]) + self.delta
+        return sum([m.tokens[pl] for pl in self.places]) + self.delta
 
 
 class IntegerConstant(Expression):
@@ -950,6 +1000,12 @@ class IntegerConstant(Expression):
     def minizinc(self):
         """ Integer constant.
             MiniZinc format
+        """
+        return str(self)
+
+    def walk(self):
+        """ Integer constant.
+            Walk format
         """
         return str(self)
 
@@ -1020,6 +1076,11 @@ class FreeVariable(Expression):
         """
         pass
 
+    def walk(self):
+        """ Walk format.
+        """
+        pass
+
     def negation(self, delta=None, saturated_delta=None):
         """ Return the negation of the FreeVariable (identity).
         """
@@ -1077,6 +1138,11 @@ class ArithmeticOperation(Expression):
 
     def minizinc(self):
         """ MiniZinc format.
+        """
+        pass
+
+    def walk(self):
+        """ Walk format.
         """
         pass
 
@@ -1150,6 +1216,11 @@ class UniversalQuantification(Expression):
 
     def minizinc(self):
         """ MiniZinc format.
+        """
+        pass
+
+    def walk(self):
+        """ Walk format.
         """
         pass
 
