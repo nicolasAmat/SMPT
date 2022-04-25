@@ -28,36 +28,81 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
+from abc import ABC, abstractmethod
 from subprocess import DEVNULL, PIPE, Popen
 from tempfile import NamedTemporaryFile
 
 import psutil
 
-from formula import Atom, IntegerConstant, StateFormula, TokenCount
-from utils import RESUME, STOP, SUSPEND, send_signal
+from ptnet import Marking
+from utils import KILL, RESUME, STOP, SUSPEND, send_signal
 
-# TODO v4: abstract class
 
-class Solver:
+class Solver(ABC):
     """
-    Solver interface defined by:
+    """
+
+    @abstractmethod
+    def kill(self):
+        """" Kill the process.
+        """
+        pass
+
+    @abstractmethod
+    def suspend(self):
+        """ Suspend the process.
+        """
+        pass
+
+    @abstractmethod
+    def resume(self):
+        """ Resume the process.
+        """
+        pass
+
+    @abstractmethod
+    def write(self, input):
+        """ Write instructions.
+        """
+        pass
+
+    @abstractmethod
+    def check_sat(self):
+        """
+        """
+        pass
+
+    @abstractmethod
+    def get_marking(self):
+        """
+        """
+        pass
+
+
+class Z3(Solver):
+    """
+    z3 interface defined by:
     - a z3 process,
     - an 'aborted' flag,
     - a debug option.
     """
 
-    def __init__(self, debug=False, timeout=0):
+    def __init__(self, debug=False, timeout=0, solver_pids=None):
         """ Initializer.
         """
+        # Solver
         process = ['z3', '-in']
         if timeout:
             process.append('-T:{}'.format(timeout))
-
         self.solver = Popen(process, stdin=PIPE, stdout=PIPE)
-        self.aborted = False
 
+        if solver_pids is not None:
+            solver_pids.put(self.solver.pid)
+
+        # Flags
+        self.aborted = False
         self.debug = debug
 
     def kill(self):
@@ -68,12 +113,14 @@ class Solver:
     def suspend(self):
         """ Suspend the process.
         """
-        send_signal([self.solver.pid], SUSPEND)
+        if self.solver is not None:
+            send_signal([self.solver.pid], SUSPEND)
 
     def resume(self):
         """ Resume the process.
         """
-        send_signal([self.solver.pid], RESUME)
+        if self.solver is not None:
+            send_signal([self.solver.pid], RESUME)
 
     def write(self, smt_input, debug=False):
         """ Write instructions into the standard input.
@@ -142,42 +189,6 @@ class Solver:
             self.aborted = True
             return None
 
-    # TODO v4: return a dictionnary to be consistent with `get_step` method
-    def get_model(self, ptnet, order=None):
-        """ Get a model from the current SAT stack.
-            Return a cube (conjunction of equalities).
-        """
-        # Solver instruction
-        self.write("(get-model)\n")
-        self.flush()
-
-        # Read '(model '
-        self.readline()
-
-        # Parse the model
-        model = []
-        while True:
-            place_content = self.readline().split(' ')
-            
-            # Check if parsing done
-            if len(place_content) < 2:
-                break
-
-            place_marking = self.readline().replace(' ', '').replace(')', '')
-            place = ""
-            if order is None:
-                place = place_content[1]
-            else:
-                place_content = place_content[1].split('@')
-                if int(place_content[1]) == order:
-                    place = place_content[0]
-            if place_marking and place in ptnet.places:
-                model.append(Atom(TokenCount([ptnet.places[place]]), IntegerConstant(int(place_marking)), '='))
-
-        return StateFormula(model, 'and')
-
-
-    # TODO v4: merge get_model and get_marking
     def get_marking(self, ptnet, order=None):
         """ Get a marking from the current SAT stack.
             Return a hashmap (keys: places and values: number of tokens).
@@ -190,7 +201,7 @@ class Solver:
         self.readline()
 
         # Parse the model
-        model = {}
+        marking = {}
         while True:
             place_content = self.readline().split(' ')
             
@@ -207,9 +218,9 @@ class Solver:
                 if int(place_content[1]) == order:
                     place = place_content[0]
             if place_marking and place in ptnet.places:
-                model[ptnet.places[place]] = int(place_marking)
+                marking[ptnet.places[place]] = int(place_marking)
 
-        return model
+        return Marking(marking)
 
     def get_step(self, ptnet):
         """ Get a step from the current SAT stack,
@@ -242,7 +253,7 @@ class Solver:
             # Add the place marking in the corresponding dictionnary
             markings[int(place_content[1])][ptnet.places[place_id]] = place_marking
 
-        return markings[0], markings[1]
+        return Marking(markings[0]), Marking(markings[1])
 
     def enable_unsat_core(self):
         """ Enable generation of unsat cores.
@@ -268,19 +279,24 @@ class Solver:
         return self.readline().replace('(', '').replace(')', '').split(' ')
 
 
-class MiniZinc:
+class MiniZinc(Solver):
     """ Specific MiniZinc interface defined by:
         - a MiniZinc process,
         - a debug option.
     """
 
-    def __init__(self, debug=False, timeout=0):
+    def __init__(self, debug=False, timeout=0, solver_pids=None):
         """ Initializer.
         """
+        # File to write formula
         self.file = NamedTemporaryFile('w', suffix='.mzn')
+        
+        # Solver
         self.solver = None
-        self.aborted = False
+        self.solver_pids = solver_pids
 
+        # Flags
+        self.aborted = False
         self.debug = debug
         self.timeout = timeout
 
@@ -348,6 +364,9 @@ class MiniZinc:
             process.extend(['--time-limit', str(self.timeout * 1000)])
         self.solver = Popen(process, stdout=PIPE, stderr=DEVNULL)
 
+        if self.solver_pids is not None:
+            self.solver_pids.put(self.solver.pid)
+
         minizinc_output = self.readline()
         self.first_line = minizinc_output
 
@@ -360,11 +379,11 @@ class MiniZinc:
         else:
             return minizinc_output != "=====UNSATISFIABLE====="
 
-    def get_model(self, ptnet):
+    def get_marking(self, ptnet):
         """ Get a model.
             Return a cube (conjunction of equalities).
         """
-        model = []
+        marking = {}
         line = self.first_line
 
         while line and line != '----------':
@@ -373,17 +392,97 @@ class MiniZinc:
             if len(place_content) < 2:
                 break
 
-            self.parse_value(ptnet, place_content, model)
+            self.parse_value(ptnet, place_content, marking)
 
             line = self.readline()
 
-        return StateFormula(model, 'and')
+        return Marking(marking)
 
-    def parse_value(self, ptnet, place_content, model):
+    def parse_value(self, ptnet, place_content, marking):
         """ Parse a place from the model.
         """
         place_marking = int(place_content[1].replace(';', ''))
         place = place_content[0]
 
         if place_marking and place in ptnet.places:
-            model.append(Atom(TokenCount([ptnet.places[place]]), IntegerConstant(int(place_marking)), '='))
+            marking[ptnet.places[place]] = place_marking
+
+
+class Walk(Solver):
+    """ Walk interface.
+    """
+    
+    def __init__(self, ptnet, debug=False, timeout=0, solver_pids=None):
+        """ Initializer.
+        """
+        # Petri net
+        self.ptnet = ptnet
+
+        # Selt file to write the formula
+        self.file = NamedTemporaryFile('w', suffix='.selt')
+
+        # Solver
+        self.solver = None
+        self.timeout = timeout
+        self.solver_pids = solver_pids
+
+        # Flags
+        self.debug = debug
+        self.aborted = False
+
+    def kill(self):
+        """" Kill the process.
+        """
+        if self.solver is not None:
+            send_signal([self.solver.pid], KILL)
+
+    def suspend(self):
+        """ Suspend the process.
+        """
+        if self.solver is not None:
+            send_signal([self.solver.pid], SUSPEND)
+
+    def resume(self):
+        """ Resume the process.
+        """
+        if self.solver is not None:
+            send_signal([self.solver.pid], RESUME)
+
+    def write(self, input, debug=False):
+        """ Write input to file.
+        """
+        if self.debug or debug:
+            print(input)
+
+        self.file.write(input)
+        self.file.flush()
+
+    def readline(self, debug=False):
+        """ Readline from walk.
+        """
+        output = self.solver.stdout.readline().decode('utf-8').strip()
+
+        if self.debug or debug:
+            print(output)
+
+        return output
+
+    def check_sat(self):
+        """ Check if a state violates the formula.
+        """
+        process = ['walk', '-R', '-loop', self.ptnet.filename, '-ff', str(self.file.name)]
+        if self.timeout:
+            process += ['-t', str(self.timeout)]
+        print(process)
+        self.solver = Popen(process, stdout=PIPE)
+
+        if self.solver_pids is not None:
+            self.solver_pids.put(self.solver.pid)
+
+        return self.readline() == 'FALSE'
+
+    def get_marking(self):
+        """
+        """
+        raise NotImplementedError
+
