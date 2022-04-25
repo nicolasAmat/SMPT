@@ -252,7 +252,7 @@ class PetriNet:
         if len(arc) == 1:
             weight = 1
         else:
-            weight = int(arc[1])
+            weight = self.parse_value(arc[1])
 
         # To recognize an inhibitor arc, we set a negative weight
         if inhibitor_arc:
@@ -276,7 +276,7 @@ class PetriNet:
         content = self.parse_label(content)
 
         if content:
-            initial_marking = int(content[0].replace('(', '').replace(')', ''))
+            initial_marking = self.parse_value(content[0].replace('(', '').replace(')', ''))
         else:
             initial_marking = 0
 
@@ -298,6 +298,22 @@ class PetriNet:
                 label_skipped = content[index][-1] == '}'
                 index += 1
         return content[index:]
+
+    def parse_value(self, content):
+        """ Parse integer value.
+            Input format: .net
+        """
+        if content.isnumeric():
+            return int(content)
+
+        elif content[-1] == 'K':
+            return int(content[:-1]) * 1000
+
+        elif content[-1] == 'M':
+            return int(content[:-1]) * 1000000
+
+        else:
+            raise ValueError("Non correct initial marking")
 
     def get_transition_from_step(self, m_1, m_2):
         """ Return an associate transition to a step m_1 -> m_2.
