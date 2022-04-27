@@ -40,7 +40,7 @@ class Parallelizer:
     """ Analysis methods parallelizer.
     """
 
-    def __init__(self, property_id, ptnet, formula, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, methods=[], path_markings=None, check_proof=False):
+    def __init__(self, property_id, ptnet, formula, methods, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, path_markings=None, check_proof=False):
         """ Initializer.
         """
         # Property id and corresponding formula

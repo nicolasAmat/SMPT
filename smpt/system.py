@@ -42,13 +42,19 @@ class System:
     - a list of (in)equations.
     """
 
-    def __init__(self, filename, places_initial=[], places_reduced=[]):
+    def __init__(self, filename, places_initial=None, places_reduced=None):
         """ Initializer.
         """
+        if places_initial is None:
+            places_initial = []
         self.places_initial = places_initial
+
+        if places_reduced is None:
+            places_reduced = []
         self.places_reduced = places_reduced
 
         self.additional_vars = []
+
         self.equations = []
 
         self.parser(filename)
@@ -200,7 +206,7 @@ class Equation:
         """
         return ' + '.join(map(str, self.left)) + ' = ' + ' + '.join(map(str, self.right))
 
-    def smtlib(self, k_initial=None, other_vars=[]):
+    def smtlib(self, k_initial=None, other_vars=None):
         """ Assert the equation.
 
             k_initial:  used by PDR,
@@ -208,6 +214,9 @@ class Equation:
 
             SMT-LIB format
         """
+        if other_vars is None:
+            other_vars = []
+
         return "(assert ({}".format(self.operator) \
                + self.member_smtlib(self.left, k_initial, other_vars) \
                + self.member_smtlib(self.right, k_initial, other_vars) \
@@ -250,7 +259,7 @@ class Equation:
         """
         return ' + '.join(map(lambda var: var.minizinc(), member))
 
-    def smtlib_with_order(self, k, k_initial, places_reduced, other_vars=[]):
+    def smtlib_with_order(self, k, k_initial, places_reduced, other_vars=None):
         """ Assert equations with order.
 
             k:              used by BMC and PDR
@@ -260,12 +269,15 @@ class Equation:
             
             SMTLIB format
         """
+        if other_vars is None:
+            other_vars = []
+
         return "(assert ({}".format(self.operator) \
                + self.member_smtlib_with_order(self.left, k, k_initial, places_reduced, other_vars) \
                + self.member_smtlib_with_order(self.right, k, k_initial, places_reduced, other_vars) \
                + "))"
 
-    def member_smtlib_with_order(self, member, k, k_initial, places_reduced=[], other_vars=[]):
+    def member_smtlib_with_order(self, member, k, k_initial, places_reduced=None, other_vars=None):
         """ Helper to assert a member with order (left or right).
 
             k:              used by BMC and PDR,
@@ -275,6 +287,12 @@ class Equation:
             
             SMTLIB format
         """
+        if places_reduced is None:
+            places_reduced = []
+
+        if other_vars is None:
+            other_vars = []
+
         smt_input = ""
         for var in member:
             if var.id in places_reduced:

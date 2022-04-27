@@ -296,7 +296,7 @@ def main():
     pre_results = None
     if results.mcc and (ptnet_reduced is None or ptnet_reduced.places):
         pool = Pool(2)
-        parallelizers = [Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, ['WALK', 'STATE-EQUATION']) for property_id, formula in properties.formulas.items()]
+        parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug) for property_id, formula in properties.formulas.items()]
         pre_results = pool.map(worker, ((obj) for obj in parallelizers))
 
     # Iterate over properties
@@ -343,7 +343,7 @@ def main():
         methods = list(set(methods) & set(results.methods))
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, methods, results.path_markings, results.check_proof)
+        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, results.path_markings, results.check_proof)
 
         # If computation is uncomplete add it to the queue
         if not parallelizer.run(timeout) and results.global_timeout is not None:

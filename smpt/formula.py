@@ -846,12 +846,15 @@ class TokenCount(Expression):
     - a saturated delta (optional).
     """
 
-    def __init__(self, places, delta=0, saturated_delta=[]):
+    def __init__(self, places, delta=0, saturated_delta=None):
         """ Initializer.
         """
         self.places = places
 
         self.delta = delta
+
+        if saturated_delta is None:
+            saturated_delta = []
         self.saturated_delta = saturated_delta
 
     def __str__(self):

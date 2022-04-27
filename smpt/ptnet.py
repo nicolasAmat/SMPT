@@ -245,7 +245,7 @@ class PetriNet:
 
         tr.normalize_flows(self.state_equation)
 
-    def parse_arc(self, arc, arcs, opposite_arcs=[]):
+    def parse_arc(self, arc, arcs, opposite_arcs=None):
         """ Arc parser.
             Can handle:
                 - Normal Arc,
@@ -287,7 +287,7 @@ class PetriNet:
         arcs[pl] = weight
 
         # In a case of a test arc, we add a second arc 
-        if test_arc:
+        if opposite_arcs is not None and test_arc:
             opposite_arcs[pl] = weight
 
         return pl
@@ -689,9 +689,11 @@ class Transition:
 class Marking:
     """ Marking.
     """
-    def __init__(self, tokens={}):
+    def __init__(self, tokens=None):
         """ Initializer.
         """
+        if tokens is None:
+            tokens = {}
         self.tokens = tokens
 
     def __str__(self):
