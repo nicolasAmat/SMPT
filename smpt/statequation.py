@@ -210,7 +210,7 @@ class StateEquation:
         while True:
 
             # Compute useful trap
-            trap = trap_constraints.get_trap(self.solver.get_marking(self.ptnet))
+            trap = trap_constraints.get_trap(self.solver.get_marking(ptnet))
 
             if trap:
                 # Assert trap constraints  
