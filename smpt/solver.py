@@ -255,6 +255,33 @@ class Z3(Solver):
 
         return Marking(markings[0]), Marking(markings[1])
 
+    def get_trap(self, ptnet):
+        """ Get trap from the current SAT stack.
+        """
+        # Solver instruction
+        self.write("(get-model)\n")
+        self.flush()
+
+        # Read '(model '
+        self.readline()
+
+        # Parse the model
+        trap = set()
+        while True:
+            content = self.readline().split(' ')
+            
+            # Check if parsing done
+            if len(content) < 2:
+                break
+
+            is_trap = self.readline().replace(' ', '').replace(')', '') == "true"
+            place = content[1]
+
+            if is_trap and place in ptnet.places:
+                trap.add(ptnet.places[place])
+
+        return trap
+
     def enable_unsat_core(self):
         """ Enable generation of unsat cores.
         """

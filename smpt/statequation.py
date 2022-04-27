@@ -51,6 +51,8 @@ class StateEquation:
 
         # SMT solver
         self.solver = Z3(debug, solver_pids)
+        self.debug = debug
+        self.solver_pids = solver_pids
 
     def smtlib(self, k):
         """ SMT-LIB format for understanding.
@@ -146,9 +148,22 @@ class StateEquation:
         log.info("[STATE-EQUATION] > Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
 
+        log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return False
 
+        log.info("[STATE-EQUATION] > Add read arc constraints")
+        self.solver.write(self.ptnet.smtlib_read_arc_constraints())
+
+        log.info("[STATE-EQUATION] > Check satisfiability")
+        if not self.solver.check_sat():
+            return False         
+
+        log.info("[STATE-EQUATION] > Add useful trap constraints")
+        if self.trap_constraints(self.ptnet) is not None:
+            return False
+
+        log.info("[STATE-EQUATION] > Unknown")
         return None
 
     def prove_with_reduction(self):
@@ -169,8 +184,99 @@ class StateEquation:
         log.info("[STATE-EQUATION] > Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
 
+        log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return False
 
+        log.info("[STATE-EQUATION] > Add read arc constraints")
+        self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints())
+
+        log.info("[STATE-EQUATION] > Check satisfiability")
+        if not self.solver.check_sat():
+            return False         
+
+        log.info("[STATE-EQUATION] > Add useful trap constraints")
+        if self.trap_constraints(self.ptnet_reduced) is not None:
+            return False
+
+        log.info("[STATE-EQUATION] > Unknown")
         return None
+
+    def trap_constraints(self, ptnet):
+        """ Add useful trap constraints.
+        """
+        trap_constraints = TrapConstraints(ptnet, debug=self.debug, solver_pids=self.solver_pids)
+
+        while True:
+
+            # Compute useful trap
+            trap = trap_constraints.get_trap(self.solver.get_marking(self.ptnet))
+
+            if trap:
+                # Assert trap constraints  
+                log.info("[STATE-EQUATION] > Assert a trap violating a witness")
+                smt_input = ''.join(map(lambda pl: "(> {} 0)".format(pl.id), trap))
+
+                if len(trap) > 1:
+                    smt_input = "(or {})".format(smt_input)
+
+                self.solver.write("(assert {})\n".format(smt_input))
+
+                log.info("[STATE-EQUATION] > Check satisfiability")
+                if not self.solver.check_sat():
+                    return False
+
+            else:
+                # Stop if no more useful trap constraints are found
+                return None
+
+
+class TrapConstraints:
+    """ Compute trap constraints.
+    """
+
+    def __init__(self, ptnet, debug=False, solver_pids=None):
+        """ Initializer.
+        """
+        # Start new solver
+        self.solver = Z3(debug=debug, solver_pids=solver_pids)
+
+        # Current Petri net (can be reduced)
+        self.ptnet = ptnet
+
+        self.assert_constaints()
+
+    def assert_constaints(self):
+        """ Assert trap constraints:
+            - declaration,
+            - trap is initially marked,
+            - trap definition.
+        """
+        # Declare trap variables
+        self.solver.write(self.ptnet.smtlib_declare_trap())
+
+        # Assert that places in the trap are initially marked
+        self.solver.write(self.ptnet.smtlib_trap_initially_marked())
+
+        # Trap definition
+        self.solver.write(self.ptnet.smtlib_trap_definition())
+
+    def get_trap(self, marking):
+        """ Get a trap violating the marking if there is one,
+            by only considering unmarked places in our candidate.
+        """
+        # Push
+        self.solver.push()
+
+        # Consider unmarked places in our candidate
+        self.solver.write(marking.smtlib_consider_unmarked_places_for_trap())
+
+        # Get trap if there is one
+        trap = []
+        if self.solver.check_sat():
+            trap = self.solver.get_trap(self.ptnet)
+
+        # Pop
+        self.solver.pop()
+        return trap
 

@@ -25,7 +25,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
 import re
 import sys
@@ -37,7 +37,8 @@ class PetriNet:
     Petri net defined by:
     - an identifier,
     - a finite set of places (identified by names),
-    - a finite set of transitions (identified by names).
+    - a finite set of transitions (identified by names),
+    - an initial marking.
     """
 
     def __init__(self, filename, pnml_filename=None, colored=False, state_equation=False):
@@ -48,6 +49,7 @@ class PetriNet:
 
         self.places = {}
         self.transitions = {}
+        self.initial_marking = Marking()
 
         # Mapping for colored and `.pnml`
         self.places_mapping, self.transitions_mapping = {}, {}
@@ -97,7 +99,7 @@ class PetriNet:
         """ Assert the initial marking.
             SMT-LIB format
         """
-        return ''.join(map(lambda pl: pl.smtlib_initial_marking(k), self.places.values()))
+        return self.initial_marking.smtlib(k)
 
     def smtlib_transition_relation(self, k, eq=True):
         """ Transition relation from places at order k to order k + 1.
@@ -122,6 +124,29 @@ class PetriNet:
             SMT-LIB format
         """
         return ''.join(map(lambda pl: pl.smtlib_state_equation(), self.places.values()))
+
+    def smtlib_read_arc_constraints(self):
+        """ Assert read arc constraints.
+            SMT-LIB format
+        """
+        return ''.join(map(lambda tr: tr.smtlib_read_arc_constraints(), self.transitions.values()))
+
+    def smtlib_declare_trap(self):
+        """ Declare trap Boolean variable for each place.
+            SMT-LIB format
+        """
+        return ''.join(map(lambda pl: pl.smtlib_declare_trap(), self.places.values()))
+
+    def smtlib_trap_initially_marked(self):
+        """ Assert that places in the trap must be initially marked.
+            SMT-LIB format
+        """
+        return self.initial_marking.smtlib_trap_initially_marked()
+
+    def smtlib_trap_definition(self):
+        """ Assert trap definition for each place.
+        """
+        return ''.join(map(lambda pl: pl.smtlib_trap_definition(), self.places.values()))
 
     def smtlib_transition_relation_textbook(self, k):
         """ Transition relations from places at order k to order k + 1.
@@ -281,10 +306,13 @@ class PetriNet:
             initial_marking = 0
 
         if place_id not in self.places:
-            new_place = Place(place_id, initial_marking)
-            self.places[place_id] = new_place
+            place = Place(place_id, initial_marking)
+            self.places[place_id] = place
         else:
-            self.places.get(place_id).initial_marking = initial_marking
+            place = self.places.get(place_id)
+            place.initial_marking = initial_marking
+
+        self.initial_marking.tokens[place] = initial_marking
 
     def parse_label(self, content):
         """ Label parser.
@@ -351,6 +379,8 @@ class Place:
 
         # Optional (used for state equation)
         self.delta = {}
+        self.input_transitions = set()
+        self.output_transitions = set()
 
     def __str__(self):
         """ Place to .net format.
@@ -397,6 +427,25 @@ class Place:
             smt_input = "(+ {})".format(smt_input)
 
         return "(assert (= {} {}))\n".format(self.smtlib(), smt_input)
+
+    def smtlib_declare_trap(self):
+        """ Declare trap Boolean variable.
+            SMT-LIB format
+        """
+        return "(declare-const {} Bool)\n".format(self.id)
+
+    def smtlib_trap_definition(self):
+        """ Assert trap definition for each place.
+        """
+        if not self.output_transitions:
+            return ""
+
+        smt_input = ' '.join(map(lambda tr: tr.smtlib_trap_definition_helper(), self.output_transitions))
+
+        if len(self.output_transitions) > 1:
+            smt_input = "(and {})".format(smt_input)
+
+        return "(assert (=> {} {}))\n".format(self.id, smt_input)
 
 
 class Transition:
@@ -558,6 +607,33 @@ class Transition:
         """
         return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
 
+    def smtlib_read_arc_constraints(self):
+        """ Assert read arc constraints.
+            SMT-LIB format
+        """
+        smt_input = ""
+
+        for pl, weight in self.pre.items():
+            if not self.delta.get(pl, 0) and weight > pl.initial_marking:
+                right_member = ["(> {} 0)".format(tr.id) for tr in pl.input_transitions if tr != self and tr.delta.get(pl, 0) > 0]
+                if len(right_member) > 1:
+                    right_member = "(or {})".format(''.join(right_member))
+                else:
+                    right_member = ''.join(right_member)
+                smt_input += "(assert (=> (> {} 0) {}))\n".format(self.id, right_member)
+
+        return smt_input
+
+    def smtlib_trap_definition_helper(self):
+        """ Helper to assert trap definition for each place.
+        """
+        smt_input = ' '.join(map(lambda pl: pl.id, self.post))
+
+        if len(self.post) > 1:
+            smt_input = "(or {})".format(smt_input)
+
+        return smt_input
+
     def normalize_flows(self, state_equation=False):
         """ Normalize arcs.
             If pre(t,p) > 0 and post(t,p) > 0 then
@@ -575,7 +651,6 @@ class Transition:
         for place in set(self.pre.keys()) | set(self.post.keys()):
 
             if place in self.pre and place in self.post:
-
                 if self.pre[place] == self.post[place]:
                     self.tests[place] = self.pre[place]
 
@@ -589,13 +664,23 @@ class Transition:
                     abs_delta = self.post[place] - self.pre[place]
                     self.outputs[place], self.delta[place] = abs_delta, abs_delta
 
+                if state_equation:
+                    place.input_transitions.add(self)
+                    place.output_transitions.add(self)
+
             elif place in self.pre:
                 self.inputs[place] = self.pre[place]
                 self.delta[place] = -self.pre[place]
 
+                if state_equation:
+                    place.output_transitions.add(self)
+
             else:
                 self.outputs[place] = self.post[place]
                 self.delta[place] = self.post[place]
+
+                if state_equation:
+                    place.input_transitions.add(self)
 
             if state_equation and place in self.delta:
                 place.delta[self] = self.delta[place]
@@ -622,6 +707,39 @@ class Marking:
             text = " empty marking"
 
         return text
+
+    def smtlib(self, k=None):
+        """ Assert the marking.
+            SMT-LIB format
+        """
+        return ''.join(map(lambda pl: "(assert (= {} {}))\n".format(pl.smtlib(k), self.tokens[pl]), self.tokens.keys()))
+
+    def smtlib_trap_initially_marked(self):
+        """ Assert that places in the trap must be initially marked.
+            SMT-LIB format
+        """
+        marked_places = list(filter(lambda pl: self.tokens[pl] > 0, self.tokens))
+        
+        if not marked_places:
+            return ""
+
+        smt_input = ' '.join(map(lambda pl: pl.id, marked_places))
+
+        if len(marked_places) > 1:
+            smt_input = "(or {})".format(smt_input)
+
+        return "(assert {})\n".format(smt_input)
+
+    def smtlib_consider_unmarked_places_for_trap(self):
+        """ Consider unmarked places for trap candidates.
+            SMT-LIB format
+        """
+        marked_places = list(filter(lambda pl: self.tokens[pl] > 0, self.tokens))
+
+        if not marked_places:
+            return ""
+
+        return ''.join(map(lambda pl: "(assert (not {}))\n".format(pl.id), marked_places))
 
 
 if __name__ == "__main__":
