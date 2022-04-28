@@ -53,9 +53,9 @@ class CP:
 
         # Solver
         if minizinc:
-            self.solver = MiniZinc(debug, solver_pids)
+            self.solver = MiniZinc(debug=debug, solver_pids=solver_pids)
         else:
-            self.solver = Z3(debug, solver_pids)
+            self.solver = Z3(debug=debug, solver_pids=solver_pids)
 
     def prove(self, results, concurrent_pids):
         """ Prover.

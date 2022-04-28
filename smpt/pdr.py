@@ -355,7 +355,7 @@ class PDR:
         self.feared_states = []
 
         # SMT solver
-        self.solver = Z3(debug, solver_pids)
+        self.solver = Z3(debug=debug, solver_pids=solver_pids)
 
         # Used method to obtain minimal inductive cubes
         if unsat_core:

@@ -57,7 +57,7 @@ class Enumerative:
         self.parse_markings(path_markings)
 
         # SMT solver
-        self.solver = Z3(debug, solver_pids)
+        self.solver = Z3(debug=debug, solver_pids=solver_pids)
 
     def __str__(self):
         """ Markings to textual format.

@@ -58,7 +58,7 @@ class KInduction:
         self.show_model = show_model
 
         # SMT solver
-        self.solver = Z3(debug, solver_pids)
+        self.solver = Z3(debug=debug, solver_pids=solver_pids)
 
         # Queue shared with BMC
         self.induction_queue = induction_queue
