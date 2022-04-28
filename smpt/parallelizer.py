@@ -200,12 +200,12 @@ class Parallelizer:
                     print("# Model:{}".format(model))
                 
                 self.stop()
-                return True
+                return self.property_id
 
         # Otherwise stop the methods
         self.stop()
 
-        return False
+        return None
 
     def suspend(self):
         """ Suspend the methods.
@@ -217,8 +217,11 @@ class Parallelizer:
     def stop(self):
         """ Stop the methods.
         """
+        for method in self.methods:
+            method.solver.kill()
         while not self.solver_pids.empty():
             send_signal([self.solver_pids.get()], KILL)
+
         send_signal([proc.pid for proc in self.process], RESUME)
         send_signal([proc.pid for proc in self.process], STOP)
 

@@ -301,8 +301,8 @@ def main():
 
     # Iterate over properties
     computations = queue.Queue()
-    for index, (property_id, formula) in enumerate(properties.formulas.items()):
-        if pre_results is None or pre_results[index] is not None:
+    for property_id, formula in properties.formulas.items():
+        if pre_results is None or property_id not in pre_results:
             computations.put((property_id, formula))
 
     # Counter, number of propeties to be runned for the first pass
@@ -346,7 +346,7 @@ def main():
         parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, results.path_markings, results.check_proof)
 
         # If computation is uncomplete add it to the queue
-        if not parallelizer.run(timeout) and results.global_timeout is not None:
+        if parallelizer.run(timeout) is None and results.global_timeout is not None:
             computations.put((property_id, formula))
 
         # Stop computations
