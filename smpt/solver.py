@@ -505,7 +505,7 @@ class Walk(Solver):
         if self.solver_pids is not None:
             self.solver_pids.put(self.solver.pid)
 
-        return self.readline() == 'FALSE'
+        return not (self.readline() != 'FALSE')
 
     def get_marking(self):
         """
