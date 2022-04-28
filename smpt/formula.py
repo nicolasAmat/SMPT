@@ -569,7 +569,7 @@ class StateFormula(Expression):
         return minizinc_input
 
     def walk(self, assertion=False):
-        """ State ormula.
+        """ State formula.
             Walk format
         """
         if len(self.operands) > 1:
@@ -927,7 +927,15 @@ class TokenCount(Expression):
         """ Token count.
             Walk format
         """
-        return self.minizinc()
+        smt_input = ' + '.join(map(lambda pl: "{{{}}}".format(pl.id), self.places))
+
+        if len(self.places) > 1:
+            smt_input = "({})".format(smt_input)
+
+        if self.delta:
+            smt_input = "({} {} {})".format(smt_input, self.sign(), self.delta)
+
+        return smt_input
 
     def negation(self, delta=None, saturated_delta=None):
         """ Return the negation of the TokenCount.
