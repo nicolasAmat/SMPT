@@ -927,7 +927,7 @@ class TokenCount(Expression):
         """ Token count.
             Walk format
         """
-        smt_input = ' + '.join(map(lambda pl: "{{{}}}".format(pl.id), self.places))
+        smt_input = ' + '.join(map(lambda pl: "{{{}}}".format(pl.id) if '-' in pl.id else pl.id, self.places))
 
         if len(self.places) > 1:
             smt_input = "({})".format(smt_input)
