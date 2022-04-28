@@ -273,6 +273,7 @@ class PetriNet:
         if place_id not in self.places:
             new_place = Place(place_id)
             self.places[place_id] = new_place
+            self.initial_marking.tokens[new_place] = 0
 
         if len(arc) == 1:
             weight = 1
