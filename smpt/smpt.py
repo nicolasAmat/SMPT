@@ -64,9 +64,10 @@ def main():
                         action='store_true',
                         help="print the SMT-LIB input/ouput")
 
-    parser.add_argument('path_ptnet',
+    parser.add_argument('-n', '--net',
                         metavar='ptnet',
                         type=str,
+                        required=True,
                         help='path to Petri Net (.net or .pnml format)')
 
     parser.add_argument('--colored',
@@ -113,7 +114,7 @@ def main():
                         action='store_true',
                         help='save the reduced net')
 
-    group_methods = parser.add_mutually_exclusive_group()
+    group_methods = parser.add_mutually_exclusive_group(required=True)
 
     methods = ['INDUCTION', 'BMC', 'K-INDUCTION', 'WALK', 'STATE-EQUATION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP']
 
@@ -186,31 +187,31 @@ def main():
 
     colored, path_pnml = False, None
     state_equation = results.mcc or 'STATE-EQUATION' in results.methods
-    original_net = results.path_ptnet
+    original_net = results.net
 
     # Check if colored net
     if results.colored:
         colored = True
-        path_ptnet = tempfile.NamedTemporaryFile().name
-        subprocess.run(["mcc", "smpt", "-i", results.path_ptnet, '-o', path_ptnet])
-        results.path_ptnet = path_ptnet + '.net'
-        original_net = results.path_ptnet
+        net = tempfile.NamedTemporaryFile().name
+        subprocess.run(["mcc", "smpt", "-i", results.net, '-o', net])
+        results.net = net + '.net'
+        original_net = results.net
 
     # Check if extension is `.pnml`
-    elif results.path_ptnet.lower().endswith('.pnml'):
-        path_pnml = results.path_ptnet
+    elif results.net.lower().endswith('.pnml'):
+        path_pnml = results.net
         ptnet_file = tempfile.NamedTemporaryFile(suffix='.net')
-        results.path_ptnet = ptnet_file.name
-        original_net = results.path_ptnet
+        results.net = ptnet_file.name
+        original_net = results.net
 
-        if subprocess.run(["ndrio", path_pnml, results.path_ptnet], stderr=subprocess.DEVNULL).returncode:
+        if subprocess.run(["ndrio", path_pnml, results.net], stderr=subprocess.DEVNULL).returncode:
             tina_output = subprocess.run(["tina", "-p", path_pnml], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines()
             ptnet_file.writelines("{}\n".format(line).encode() for line in tina_output[10:-5])
             ptnet_file.flush()
             original_net = path_pnml
 
     # Read the input Petri net
-    ptnet = PetriNet(results.path_ptnet, path_pnml, colored, state_equation)
+    ptnet = PetriNet(results.net, path_pnml, colored, state_equation)
 
     # By default no reduction
     ptnet_reduced = None
@@ -219,7 +220,7 @@ def main():
     # Reduce the Petri net if '--auto-reduce' enabled
     if results.auto_reduce:
         if results.save_reduced_net:
-            fp_ptnet_reduced = open(results.path_ptnet.replace('.net', '_reduced.net'), 'w+')
+            fp_ptnet_reduced = open(results.net.replace('.net', '_reduced.net'), 'w+')
         else:
             fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
         reduce_start_time = time.time()
@@ -237,10 +238,10 @@ def main():
     if results.auto_enumerative:
         fp_markings = tempfile.NamedTemporaryFile(suffix='.aut')
         if results.path_ptnet_reduced is not None:
-            path_ptnet = results.path_ptnet_reduced
+            net = results.path_ptnet_reduced
         else:
-            path_ptnet = results.path_ptnet
-        subprocess.run(["tina", "-aut", "-sp", "2", path_ptnet, fp_markings.name])
+            net = results.net
+        subprocess.run(["tina", "-aut", "-sp", "2", net, fp_markings.name])
         results.path_markings = fp_markings.name
 
     # Read properties
