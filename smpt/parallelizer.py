@@ -33,7 +33,7 @@ from kinduction import KInduction
 from pdr import PDR
 from randomwalk import RandomWalk
 from statequation import StateEquation
-from utils import KILL, RESUME, STOP, SUSPEND, Verdict, send_signal
+from utils import KILL, STOP, Verdict, send_signal_group_pid, send_signal_pids
 
 
 class Parallelizer:
@@ -62,7 +62,7 @@ class Parallelizer:
             structural_reduction = ['STRUCTURAL_REDUCTION']
 
         # Process information
-        self.methods, self.process, self.techniques  = [], [], []
+        self.methods, self.processes, self.techniques  = [], [], []
         self.computation_time = 0
 
         # Create queues to store the results
@@ -136,27 +136,16 @@ class Parallelizer:
         # Create a queue to share the pids of the concurrent methods
         concurrent_pids = Queue()
 
-        # Create daemon process
-        self.process = [Process(target=method.prove, args=(result,concurrent_pids,)) for method, result in zip(self.methods, self.results)]
+        # Create processes
+        self.processes = [Process(target=method.prove, args=(result,concurrent_pids,)) for method, result in zip(self.methods, self.results)]
 
-        # Start process
+        # Start processes
         pids = []
-        for proc in self.process:
+        for proc in self.processes:
             proc.start()
             pids.append(proc.pid)
         concurrent_pids.put(pids)
 
-        return self.handle(timeout)
-
-    def resume(self, timeout):
-        """ Resume the methods.
-        """
-        # Resume methods
-        for method in self.methods:
-            method.solver.resume()
-
-        # Resume process
-        send_signal([proc.pid for proc in self.process], RESUME)
         return self.handle(timeout)
 
     def handle(self, timeout):
@@ -165,12 +154,12 @@ class Parallelizer:
         # Get the starting time
         start_time = time.time()
 
-        # Join process
+        # Join processes
         # Wait for the first process
-        self.process[0].join(timeout=timeout)
-        # Wait for the other process (in case of aborted method)
-        if len(self.process) > 1:
-            for proc in self.process[1:]:
+        self.processes[0].join(timeout=timeout)
+        # Wait for the other processes (in case of aborted method)
+        if len(self.processes) > 1:
+            for proc in self.processes[1:]:
                 proc.join(timeout=timeout - (time.time() - start_time))
 
         # Get the computation time
@@ -207,21 +196,14 @@ class Parallelizer:
 
         return None
 
-    def suspend(self):
-        """ Suspend the methods.
-        """
-        for method in self.methods:
-            method.solver.suspend()
-        send_signal([proc.pid for proc in self.process], SUSPEND)
-
     def stop(self):
         """ Stop the methods.
         """
-        for method in self.methods:
-            method.solver.kill()
+        # Kill solvers
         while not self.solver_pids.empty():
-            send_signal([self.solver_pids.get()], KILL)
+            send_signal_group_pid(self.solver_pids.get(), KILL)
 
-        send_signal([proc.pid for proc in self.process], RESUME)
-        send_signal([proc.pid for proc in self.process], STOP)
+        # Kill methods
+        send_signal_pids([proc.pid for proc in self.processes], KILL)
+        del self.methods
 

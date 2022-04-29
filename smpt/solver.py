@@ -37,7 +37,7 @@ from tempfile import NamedTemporaryFile
 import psutil
 
 from ptnet import Marking
-from utils import KILL, RESUME, STOP, SUSPEND, send_signal
+from utils import KILL, STOP, send_signal_pids
 
 
 class Solver(ABC):
@@ -47,18 +47,6 @@ class Solver(ABC):
     @abstractmethod
     def kill(self):
         """" Kill the process.
-        """
-        pass
-
-    @abstractmethod
-    def suspend(self):
-        """ Suspend the process.
-        """
-        pass
-
-    @abstractmethod
-    def resume(self):
-        """ Resume the process.
         """
         pass
 
@@ -96,7 +84,7 @@ class Z3(Solver):
         process = ['z3', '-in']
         if timeout:
             process.append('-T:{}'.format(timeout))
-        self.solver = Popen(process, stdin=PIPE, stdout=PIPE)
+        self.solver = Popen(process, stdin=PIPE, stdout=PIPE, start_new_session=True)
 
         if solver_pids is not None:
             solver_pids.put(self.solver.pid)
@@ -109,18 +97,6 @@ class Z3(Solver):
         """" Kill the process.
         """
         self.solver.kill()
-
-    def suspend(self):
-        """ Suspend the process.
-        """
-        if self.solver is not None:
-            send_signal([self.solver.pid], SUSPEND)
-
-    def resume(self):
-        """ Resume the process.
-        """
-        if self.solver is not None:
-            send_signal([self.solver.pid], RESUME)
 
     def write(self, smt_input, debug=False):
         """ Write instructions into the standard input.
@@ -333,23 +309,7 @@ class MiniZinc(Solver):
         """" Kill the process.
         """
         if self.solver is not None:
-            send_signal([self.solver.pid], STOP)
-
-        for proc in psutil.process_iter():
-            if 'fzn-gecode' in proc.name():
-                send_signal([proc.pid], STOP)
-
-    def suspend(self):
-        """ Suspend the process.
-        """
-        if self.solver is not None:
-            send_signal([self.solver.pid], SUSPEND)
-
-    def resume(self):
-        """ Resume the process.
-        """
-        if self.solver is not None:
-            send_signal([self.solver.pid], RESUME)
+            send_signal_pids([self.solver.pid], STOP)
 
     def write(self, minizinc_input, debug=False):
         """ Write instructions into the standard input.
@@ -389,7 +349,7 @@ class MiniZinc(Solver):
         process = ['minizinc', self.file.name]
         if self.timeout:
             process.extend(['--time-limit', str(self.timeout * 1000)])
-        self.solver = Popen(process, stdout=PIPE, stderr=DEVNULL)
+        self.solver = Popen(process, stdout=PIPE, stderr=DEVNULL, start_new_session=True)
 
         if self.solver_pids is not None:
             self.solver_pids.put(self.solver.pid)
@@ -461,19 +421,7 @@ class Walk(Solver):
         """" Kill the process.
         """
         if self.solver is not None:
-            send_signal([self.solver.pid], KILL)
-
-    def suspend(self):
-        """ Suspend the process.
-        """
-        if self.solver is not None:
-            send_signal([self.solver.pid], SUSPEND)
-
-    def resume(self):
-        """ Resume the process.
-        """
-        if self.solver is not None:
-            send_signal([self.solver.pid], RESUME)
+            send_signal_pids([self.solver.pid], KILL)
 
     def write(self, input, debug=False):
         """ Write input to file.
@@ -500,7 +448,7 @@ class Walk(Solver):
         process = ['walk', '-R', '-loop', self.ptnet.filename, '-ff', str(self.file.name)]
         if self.timeout:
             process += ['-t', str(self.timeout)]
-        self.solver = Popen(process, stdout=PIPE)
+        self.solver = Popen(process, stdout=PIPE, start_new_session=True)
 
         if self.solver_pids is not None:
             self.solver_pids.put(self.solver.pid)

@@ -44,7 +44,7 @@ import resource
 from formula import (ArithmeticOperation, Atom, FreeVariable, IntegerConstant,
                      StateFormula, TokenCount, UniversalQuantification)
 from solver import Z3
-from utils import STOP, Verdict, send_signal
+from utils import STOP, Verdict, send_signal_pids
 
 
 class Counterexample(Exception):
@@ -812,5 +812,5 @@ class PDR:
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
-            send_signal(concurrent_pids.get(), STOP)
+            send_signal_pids(concurrent_pids.get(), STOP)
 

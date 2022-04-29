@@ -30,7 +30,7 @@ import re
 import sys
 
 from solver import Z3
-from utils import STOP, Verdict, send_signal
+from utils import STOP, Verdict, send_signal_pids
 
 
 class Enumerative:
@@ -153,7 +153,7 @@ class Enumerative:
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
-            send_signal(concurrent_pids.get(), STOP)
+            send_signal_pids(concurrent_pids.get(), STOP)
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri net.

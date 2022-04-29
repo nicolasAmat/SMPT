@@ -33,7 +33,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from multiprocessing.dummy import Pool
+from multiprocessing.pool import ThreadPool
 
 from formula import Formula, Properties
 from parallelizer import Parallelizer
@@ -292,12 +292,16 @@ def main():
         timeout = results.timeout
         global_timeout = timeout * len(properties.formulas)
 
-    # MCC preprocessing
+    # MCC pre-computation
     pre_results = None
     if results.mcc and (ptnet_reduced is None or ptnet_reduced.places):
-        pool = Pool(2)
-        parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug) for property_id, formula in properties.formulas.items()]
-        pre_results = pool.map(worker, ((obj) for obj in parallelizers))
+        try:
+            pool = ThreadPool(processes=2)
+            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug) for property_id, formula in properties.formulas.items()]
+            pre_results = pool.map(worker, ((obj) for obj in parallelizers))
+        finally:
+            pool.close()
+            pool.join()
 
     # Iterate over properties
     computations = queue.Queue()
@@ -348,9 +352,6 @@ def main():
         # If computation is uncomplete add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:
             computations.put((property_id, formula))
-
-        # Stop computations
-        parallelizer.stop()
 
         # Increment counter
         counter += 1

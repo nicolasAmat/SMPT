@@ -28,8 +28,6 @@ import os
 import signal
 from enum import Enum
 
-RESUME = signal.SIGCONT
-SUSPEND = signal.SIGSTOP
 STOP = signal.SIGTERM
 KILL = signal.SIGKILL
 
@@ -53,8 +51,8 @@ def worker(parallelizer):
     return parallelizer.run(PRE_TIMEOUT)
 
 
-def send_signal(pids, signal_to_send):
-    """ Send a signal to a list of process
+def send_signal_pids(pids, signal_to_send):
+    """ Send a signal to a list of processes
         (except the current process).
     """
     current_pid = os.getpid()
@@ -68,4 +66,13 @@ def send_signal(pids, signal_to_send):
             os.kill(pid, signal_to_send)
         except OSError:
             pass
+
+
+def send_signal_group_pid(pid, signal_to_send):
+    """ Send a signal to the group pid of a given process.
+    """
+    try:
+        os.killpg(os.getpgid(pid), signal_to_send)
+    except ProcessLookupError:
+        pass
 

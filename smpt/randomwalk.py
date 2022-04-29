@@ -27,7 +27,7 @@ __version__ = "4.0.0"
 import logging as log
 
 from solver import Walk
-from utils import STOP, Verdict, send_signal
+from utils import STOP, Verdict, send_signal_pids
 
 
 class RandomWalk:
@@ -69,5 +69,5 @@ class RandomWalk:
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
-            send_signal(concurrent_pids.get(), STOP)
+            send_signal_pids(concurrent_pids.get(), STOP)
 

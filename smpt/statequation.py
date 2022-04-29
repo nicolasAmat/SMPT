@@ -25,7 +25,7 @@ __version__ = "4.0.0"
 import logging as log
 
 from solver import Z3
-from utils import STOP, Verdict, send_signal
+from utils import STOP, Verdict, send_signal_pids
 
 
 class StateEquation:
@@ -53,6 +53,9 @@ class StateEquation:
         self.solver = Z3(debug=debug, solver_pids=solver_pids)
         self.debug = debug
         self.solver_pids = solver_pids
+
+        # Trap constraints
+        self.traps = None
 
     def smtlib(self, k):
         """ SMT-LIB format for understanding.
@@ -121,6 +124,8 @@ class StateEquation:
 
         # Kill the solver
         self.solver.kill()
+        if self.traps is not None:
+            self.traps.solver.kill()
 
         # Quit if the solver has aborted
         if self.solver.aborted or prove is None:
@@ -131,7 +136,7 @@ class StateEquation:
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
-            send_signal(concurrent_pids.get(), STOP)
+            send_signal_pids(concurrent_pids.get(), STOP)
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.
@@ -205,12 +210,13 @@ class StateEquation:
     def trap_constraints(self, ptnet):
         """ Add useful trap constraints.
         """
-        trap_constraints = TrapConstraints(ptnet, debug=self.debug, solver_pids=self.solver_pids)
+        self.traps = TrapConstraints(ptnet, debug=self.debug, solver_pids=self.solver_pids)
+        self.traps.assert_constaints()
 
         while True:
 
             # Compute useful trap
-            trap = trap_constraints.get_trap(self.solver.get_marking(ptnet))
+            trap = self.traps.get_trap(self.solver.get_marking(ptnet))
 
             if trap:
                 # Assert trap constraints  
@@ -243,8 +249,6 @@ class TrapConstraints:
 
         # Current Petri net (can be reduced)
         self.ptnet = ptnet
-
-        self.assert_constaints()
 
     def assert_constaints(self):
         """ Assert trap constraints:
