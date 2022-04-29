@@ -34,7 +34,7 @@ class StateEquation:
     Check that the set of potentially reachable markings does not intersect any feared state. 
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, solver_pids=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, mcc=False, debug=False, solver_pids=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -48,6 +48,9 @@ class StateEquation:
 
         # Formula to study
         self.formula = formula
+
+        # MCC mode
+        self.mcc = mcc
 
         # SMT solver
         self.solver = Z3(debug=debug, solver_pids=solver_pids)
@@ -118,21 +121,22 @@ class StateEquation:
         log.info("[STATE-EQUATION] RUNNING")
 
         if self.ptnet_reduced is None:
-            prove = self.prove_without_reduction()
+            verdict = self.prove_without_reduction()
         else:
-            prove = self.prove_with_reduction()
+            verdict = self.prove_with_reduction()
 
         # Kill the solver
         self.solver.kill()
         if self.traps is not None:
             self.traps.solver.kill()
 
-        # Quit if the solver has aborted
-        if self.solver.aborted or prove is None:
+        # Quit if the solver has aborted, or if unknow result (and mcc mode disabled)
+        if self.solver.aborted or (not self.mcc and verdict == Verdict.UNKNOWN):
             return
 
         # Put the result in the queue
-        result.put([Verdict.INV, None])
+        if verdict != Verdict.UNKNOWN:
+            result.put([verdict, None])
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
@@ -155,21 +159,21 @@ class StateEquation:
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
-            return False
+            return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(self.ptnet.smtlib_read_arc_constraints())
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
-            return False         
+            return Verdict.INV   
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet) is not None:
-            return False
+            return Verdict.INV
 
         log.info("[STATE-EQUATION] > Unknown")
-        return None
+        return Verdict.UNKNOWN
 
     def prove_with_reduction(self):
         """ Prover for reduced Petri Net.
@@ -191,21 +195,21 @@ class StateEquation:
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
-            return False
+            return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints())
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
-            return False         
+            return Verdict.INV   
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet_reduced) is not None:
-            return False
+            return Verdict.INV
 
         log.info("[STATE-EQUATION] > Unknown")
-        return None
+        return Verdict.UNKNOWN
 
     def trap_constraints(self, ptnet):
         """ Add useful trap constraints.

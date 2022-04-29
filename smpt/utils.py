@@ -31,7 +31,7 @@ from enum import Enum
 STOP = signal.SIGTERM
 KILL = signal.SIGKILL
 
-PRE_TIMEOUT = 30
+PRE_TIMEOUT = 120
 
 
 class Verdict(Enum):

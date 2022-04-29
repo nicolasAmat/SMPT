@@ -40,7 +40,7 @@ class Parallelizer:
     """ Analysis methods parallelizer.
     """
 
-    def __init__(self, property_id, ptnet, formula, methods, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, path_markings=None, check_proof=False):
+    def __init__(self, property_id, ptnet, formula, methods, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, path_markings=None, check_proof=False, mcc=False):
         """ Initializer.
         """
         # Property id and corresponding formula
@@ -89,7 +89,7 @@ class Parallelizer:
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING', 'BMC'])
 
             if method == 'STATE-EQUATION':
-                self.methods.append(StateEquation(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, solver_pids=self.solver_pids))
+                self.methods.append(StateEquation(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, mcc=mcc, debug=debug, solver_pids=self.solver_pids))
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
 
             if method == 'WALK':

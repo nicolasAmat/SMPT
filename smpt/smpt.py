@@ -297,7 +297,7 @@ def main():
     if results.mcc and (ptnet_reduced is None or ptnet_reduced.places):
         try:
             pool = ThreadPool(processes=2)
-            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug) for property_id, formula in properties.formulas.items()]
+            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], system=system, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True) for property_id, formula in properties.formulas.items()]
             pre_results = pool.map(worker, ((obj) for obj in parallelizers))
         finally:
             pool.close()
@@ -338,6 +338,8 @@ def main():
 
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')
+                    if results.mcc:
+                        methods.remove('PDR-REACH')
 
             else:
                 # Run SMT / CP methods
@@ -347,7 +349,7 @@ def main():
         methods = list(set(methods) & set(results.methods))
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced, system, results.show_techniques, results.show_time, results.show_model, results.debug, results.path_markings, results.check_proof)
+        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof)
 
         # If computation is uncomplete add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:
