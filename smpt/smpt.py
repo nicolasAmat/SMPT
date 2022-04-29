@@ -340,7 +340,7 @@ def main():
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')
                     if results.mcc:
-                        methods.remove('PDR-REACH')
+                        methods.remove('PDR-REACH-SATURATED')
 
             else:
                 # Run SMT / CP methods
