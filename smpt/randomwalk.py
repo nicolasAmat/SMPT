@@ -61,7 +61,7 @@ class RandomWalk:
         self.solver.kill()
 
         # Quit if the solver has aborted
-        if sat is None or self.solver.aborted:
+        if not sat or self.solver.aborted:
             return
 
         # Put the result in the queue 
