@@ -81,6 +81,11 @@ COMPARISON_OPERATORS_TO_WALK = {
     'distinct': '='
 }
 
+BOOLEAN_CONSTANTS_TO_WALK = {
+    True: 'T',
+    False: 'F',
+}
+
 XML_TO_COMPARISON_OPERATORS = {
     'integer-le': '<=',
     'integer-ge': '>=',
@@ -250,8 +255,18 @@ class Formula:
                         if (self.property_def == 'finally' and not negation) or (self.property_def == 'globally' and negation):
                             self.non_monotonic = True
                     inequalities.append(inequality)
-                clauses.append(StateFormula(inequalities, 'and'))
-            return StateFormula(clauses, 'or')
+
+                if not inequalities:
+                    clauses.append(BooleanConstant(True))
+                elif len(inequalities) == 1:
+                    clauses.append(inequalities[0])
+                else:
+                    clauses.append(StateFormula(inequalities, 'and'))
+
+            if len(clauses) == 1:
+                return clauses[0]
+            else:
+                return StateFormula(clauses, 'or')
 
         if node in ['integer-le', 'integer-ge', 'integer-eq']:
             left_operand = self.parse_xml(formula_xml[0], negation=negation)
@@ -329,10 +344,12 @@ class Formula:
                     ineq_R = Atom(TokenCount([pl]), IntegerConstant(-weight), '>=')
                 inequalities_R.append(ineq_R)
 
-            if len(inequalities_R) > 1:
-                clauses_R.append(StateFormula(inequalities_R, 'or'))
-            else:
+            if not inequalities_R:
+                clauses_R.append(BooleanConstant(False))
+            elif len(inequalities_R) == 1:
                 clauses_R.append(inequalities_R[0])
+            else:
+                clauses_R.append(StateFormula(inequalities_R, 'or'))
 
         self.R = StateFormula(clauses_R, 'and')
         self.P = StateFormula([self.R], 'not')
@@ -358,7 +375,12 @@ class Formula:
                     self.non_monotonic = True
                 inequalities_R.append(ineq_R)
 
-            clauses_R.append(StateFormula(inequalities_R, 'and'))
+            if not inequalities_R:
+                clauses_R.append(BooleanConstant(True))
+            elif len(inequalities_R) == 1:
+                clauses_R.append(inequalities_R[0])
+            else:
+                clauses_R.append(StateFormula(inequalities_R, 'and'))
 
         self.R = StateFormula(clauses_R, 'or')
         self.P = StateFormula([self.R], 'not')
@@ -927,7 +949,7 @@ class TokenCount(Expression):
         """ Token count.
             Walk format
         """
-        smt_input = ' + '.join(map(lambda pl: "{{{}}}".format(pl.id) if '-' in pl.id else pl.id, self.places))
+        smt_input = ' + '.join(map(lambda pl: "{{{}}}".format(pl.id) if '-' in pl.id or '.' in pl.id else pl.id, self.places))
 
         if len(self.places) > 1:
             smt_input = "({})".format(smt_input)
@@ -1035,6 +1057,77 @@ class IntegerConstant(Expression):
         """
         # DNF(k) = k
         return self
+
+    def eval(self, m):
+        """ Evaluate the subformula with marking m.
+        """
+        return self.value
+
+
+class BooleanConstant(Expression):
+    """ 
+    Boolean constant.
+    """
+
+    def __init__(self, value):
+        """ Initializer.
+        """
+        self.value = value
+
+    def __str__(self):
+        """ Boolean constant to textual format.
+            (debugging function)
+        """
+        return str(self.value)
+
+    def __eq__(self, other):
+        """ Compare BoleanConstants for equality.
+        """
+        if not isinstance(other, BooleanConstant):
+            return NotImplemented
+        else:
+            return self.value == other.value
+
+    def __hash__(self):
+        """ Hash Boolean constant.
+        """
+        return hash(self.value)
+
+    def smtlib(self, k=None, delta=None, saturated_delta=None):
+        """ Boolean constant.
+            SMT-LIB format
+        """
+        return str(self).lower()
+
+    def minizinc(self):
+        """ Boolean constant.
+            MiniZinc format
+        """
+        return str(self).lower()
+
+    def walk(self):
+        """ Boolean constant.
+            Walk format
+        """
+        return BOOLEAN_CONSTANTS_TO_WALK[self.value]
+
+    def negation(self, delta=None, saturated_delta=None):
+        """ Return the negation of the BooleanConstant.
+        """
+        return BooleanConstant(not self.value)
+
+    def generalize(self, delta=None, saturated_delta=None):
+        """ Generalize an BooleanConstant from a delta vector.
+        """
+        return self
+
+    def dnf(self, negation_propagation=False):
+        """ Convert to Disjunctive Normal Form.
+        """
+        if negation_propagation:
+            return self.negation()
+        else:
+            return self
 
     def eval(self, m):
         """ Evaluate the subformula with marking m.
