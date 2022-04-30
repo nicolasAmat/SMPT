@@ -565,7 +565,7 @@ class PDR:
             self.solver.write(cube.smtlib(assertion=True))
             if self.solver.check_sat():
                 sat_cubes.append(cube)
-                self.solver.pop()
+            self.solver.pop()
 
         # If no sat cubes, formula `P` is an invariant
         if not sat_cubes:
