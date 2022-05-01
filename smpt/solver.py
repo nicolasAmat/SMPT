@@ -34,8 +34,6 @@ from abc import ABC, abstractmethod
 from subprocess import DEVNULL, PIPE, Popen
 from tempfile import NamedTemporaryFile
 
-import psutil
-
 from ptnet import Marking
 from utils import KILL, STOP, send_signal_pids
 
