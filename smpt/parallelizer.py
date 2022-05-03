@@ -80,6 +80,14 @@ class Parallelizer:
         # Initialize methods
         for method in methods:
 
+            if method == 'WALK':
+                self.methods.append(RandomWalk(ptnet, formula, debug=debug, solver_pids=self.solver_pids))
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['WALK'])
+
+            if method == 'STATE-EQUATION':
+                self.methods.append(StateEquation(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, mcc=mcc, debug=debug, solver_pids=self.solver_pids))
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
+
             if method == 'INDUCTION':
                 self.methods.append(Induction(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, solver_pids=self.solver_pids))
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
@@ -87,14 +95,6 @@ class Parallelizer:
             if method == 'BMC':
                 self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING', 'BMC'])
-
-            if method == 'STATE-EQUATION':
-                self.methods.append(StateEquation(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, mcc=mcc, debug=debug, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
-
-            if method == 'WALK':
-                self.methods.append(RandomWalk(ptnet, formula, debug=debug, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['WALK'])
 
             if method == 'K-INDUCTION':
                 self.methods.append(KInduction(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
