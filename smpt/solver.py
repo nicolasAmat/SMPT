@@ -30,6 +30,7 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
+import logging as log
 from abc import ABC, abstractmethod
 from subprocess import DEVNULL, PIPE, Popen
 from tempfile import NamedTemporaryFile
@@ -154,12 +155,13 @@ class Z3(Solver):
         self.flush()
 
         sat = self.readline()
-        
+
         if sat == 'sat':
             return True
         elif sat == 'unsat':
             return False
         else:
+            log.warning("z3 process has been aborted")
             self.aborted = True
             return None
 
