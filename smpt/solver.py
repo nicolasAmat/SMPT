@@ -273,6 +273,7 @@ class Z3(Solver):
 
         # If `UNKNOWN` consider that the solver is still alive and return "All" as the unsat core
         if sat is None:
+            log.warning("z3 process has been aborted")
             self.aborted = False
             return ["All"]
 
@@ -361,6 +362,7 @@ class MiniZinc(Solver):
             print(minizinc_output)
 
         if minizinc_output in ["=====ERROR=====", "=====UNKNOWN====="]:
+            log.warning("MiniZinc process has been aborted")
             self.aborted = True
             return None
         else:
