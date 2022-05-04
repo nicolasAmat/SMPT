@@ -60,19 +60,19 @@ class StateEquation:
         # Trap constraints
         self.traps = None
 
-    def smtlib(self, k):
+    def smtlib(self):
         """ SMT-LIB format for understanding.
         """
         if self.ptnet_reduced is None:
-            smt_input = self.smtlib_without_reduction(k)
+            smt_input = self.smtlib_without_reduction()
         else:
-            smt_input = self.smtlib_with_reduction(k)
+            smt_input = self.smtlib_with_reduction()
 
         smt_input += "(check-sat)\n(get-model)\n"
 
         return smt_input
 
-    def smtlib_without_reduction(self, k):
+    def smtlib_without_reduction(self):
         """ SMT-LIB format for understanding.
             Case without reduction.
         """
@@ -92,7 +92,7 @@ class StateEquation:
 
         return smt_input
 
-    def smtlib_with_reduction(self, k):
+    def smtlib_with_reduction(self):
         """ SMT-LIB format for understanding.
             Case with reduction.
         """
@@ -166,7 +166,7 @@ class StateEquation:
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
-            return Verdict.INV   
+            return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet) is not None:
