@@ -60,10 +60,15 @@ class PetriNet:
         # State equation management
         self.state_equation = state_equation
 
-        # `.pnml` management 
+        # `.pnml` management
         self.pnml_mapping = pnml_filename is not None
         if self.pnml_mapping:
             self.ids_mapping(pnml_filename)
+
+        # NUPN management
+        self.nupn = None
+        if pnml_filename is not None:
+            self.nupn = NUPN(pnml_filename)
 
         # Parse the `.net` file
         self.parse_net(filename)
@@ -743,6 +748,179 @@ class Marking:
             return ""
 
         return ''.join(map(lambda pl: "(assert (not {}))\n".format(pl.id), marked_places))
+
+
+class NUPN:
+    """ NUPN defined by:
+        - a unit-safe pragma,
+        - a root unit,
+        - a finite set of units (identified by names).
+    """
+
+    def __init__(self, pnml_filename):
+        """ Initializer.
+        """
+        # Unit-safe pragma
+        self.unit_safe = False
+
+        # Root
+        self.root = None
+
+        # Unit ids associated to the corresponding unit object
+        self.units = {}
+        
+        # Parse toolspecific section
+        self.parse_pnml(pnml_filename)
+
+    def __str__(self):
+        """ NUPN to textual format.
+        """
+        # Description
+        text = "# NUPN\n"
+        text += "# Unit-safe: {}\n".format(self.unit_safe)
+        text += "# Root: {}\n".format(self.root.id)
+
+        # Subunits
+        text += '\n'.join(map(str, self.units.values()))
+
+        return text
+
+    def smtlib_local_constraints(self):
+        """ Declare units and assert local constraints.
+            SMT-LIB format
+        """
+        return ''.join(map(lambda unit: unit.smtlib(), self.units.values()))
+
+    def smtlib_hierarchy_constraints(self):
+        """ Assert hierarchy constraints
+        """
+        smt_input = ""
+
+        paths = self.root.compute_paths()
+
+        for path in paths:
+            if len(path) > 1:
+                smt_input += "(assert (<= (+ {}) 1))\n".format(' '.join(map(lambda unit: unit.id, path)))
+
+        return smt_input
+
+    def parse_pnml(self, filename):
+        """ Toolspecific section parser.
+            Input format: .pnml
+        """
+        xmlns = "{http://www.pnml.org/version-2009/grammar/pnml}"
+        ET.register_namespace('', "http://www.pnml.org/version-2009/grammar/pnml")
+
+        tree = ET.parse(filename)
+        root = tree.getroot()
+        # Check if the net is known to be unit-safe
+        structure = root.find(xmlns + "net/" + xmlns + "page/" + xmlns + "toolspecific/" + xmlns + "structure")
+
+        # Exit if no NUPN inforation
+        if structure is None:
+            return
+
+        # Get unit safe pragma
+        self.unit_safe = structure.attrib["safe"] == "true"
+        if not self.unit_safe:
+            return
+
+        # Get root unit
+        self.root = self.get_unit(structure.attrib["root"])
+
+        # Get NUPN information
+        for unit in structure.findall(xmlns + 'unit'):
+
+            # Get name
+            name = unit.attrib["id"]
+
+            # Get places
+            pnml_places = unit.find(xmlns + 'places')
+            places = {place for place in pnml_places.text.split()} if pnml_places is not None and pnml_places.text else set()
+
+            # Get subunits
+            pnml_subunits = unit.find(xmlns + 'subunits')
+            subunits = {self.get_unit(subunit) for subunit in pnml_subunits.text.split()} if pnml_subunits is not None and pnml_subunits.text else set()
+
+            # Create new unit
+            new_unit = self.get_unit(name)
+            new_unit.places = places
+            new_unit.subunits = subunits
+
+    def get_unit(self, unit):
+        """ Return the corresponding unit,
+            or create one if does not exist.
+        """
+        if unit in self.units:
+            return self.units[unit]
+
+        new_unit = Unit(unit)
+        self.units[unit] = new_unit
+
+        return new_unit
+
+
+class Unit:
+    """ NUPN unit defined by:
+        - an id,
+        - a finite set of local places,
+        - a finite set of subunits.
+    """
+    
+    def __init__(self, id):
+        """ Initializer.
+        """
+        # Id
+        self.id = id
+
+        # Set of places
+        self.places = set()
+        
+        # Set of subunits
+        self.subunits = set()
+
+    def __str__(self):
+        """ Unit to textual format.
+        """
+        return "# {}: [{}] - [{}]".format(self.id, ' '.join(self.places), ' '.join(map(lambda subunit: subunit.id, self.subunits)))
+
+    def smtlib(self):
+        """ Declare the unit and assert the local constraint.
+            SMT-LIB format
+        """
+        if not self.places:
+            return ""
+
+        # Declaration
+        smt_input = "(declare-const {} Int)\n".format(self.id)
+
+        # Unit content
+        smt_input_places = ' '.join(self.places)
+        if len(self.places) > 1:
+            smt_input_places = "(+ {})".format(smt_input_places)
+        smt_input += "(assert (= {} {}))\n".format(self.id, smt_input_places)
+
+        # Assert safe unit defintion        
+        smt_input += "(assert (<= {} 1))\n".format(self.id)
+
+        return smt_input
+
+    def compute_paths(self):
+        """ Recursively compute hierarchical paths.
+        """
+        if not self.subunits:
+            if self.places:
+                return [[self]]
+            else:
+                return [[]]
+        
+        paths = [path for subunit in self.subunits for path in subunit.compute_paths()]            
+        
+        if self.places:
+            for path in paths:
+                path.append(self)
+
+        return paths
 
 
 if __name__ == "__main__":
