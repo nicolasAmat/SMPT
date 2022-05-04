@@ -327,7 +327,7 @@ class Formula:
         """ Formula to Walk format (selt).
             (debugging function)
         """
-        return "; --> R\n{}\n; --> P\n{}".format(self.R.walk(assertion=True), self.P.walk(assertion=True))
+        return "; --> -R\n{}\n;".format(self.R.walk(assertion=True))
 
     def generate_deadlock(self):
         """ `deadlock` formula generator.
