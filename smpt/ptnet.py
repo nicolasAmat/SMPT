@@ -432,6 +432,9 @@ class Place:
         if self.initial_marking != 0 or len(self.delta) > 1:
             smt_input = "(+ {})".format(smt_input)
 
+        if not smt_input:
+            smt_input = "0"
+
         return "(assert (= {} {}))\n".format(self.smtlib(), smt_input)
 
     def smtlib_declare_trap(self):
@@ -619,13 +622,18 @@ class Transition:
         """
         smt_input = ""
 
+        # for p s.t. pre(t,p) > 0
         for pl, weight in self.pre.items():
+            # if delta(t,p) = 0 and pre(t,p) > m0(p)
             if not self.delta.get(pl, 0) and weight > pl.initial_marking:
+                # t > 0 => \/_{t' s.t. post(t,p) > 0 \ t and delta(t',p) > 0} t' > 0
                 right_member = ["(> {} 0)".format(tr.id) for tr in pl.input_transitions if tr != self and tr.delta.get(pl, 0) > 0]
-                if len(right_member) > 1:
-                    right_member = "(or {})".format(''.join(right_member))
-                else:
+                if not right_member:
+                    right_member = "false"
+                elif len(right_member) == 1:
                     right_member = ''.join(right_member)
+                else:
+                    right_member = "(or {})".format(''.join(right_member))
                 smt_input += "(assert (=> (> {} 0) {}))\n".format(self.id, right_member)
 
         return smt_input
@@ -633,6 +641,11 @@ class Transition:
     def smtlib_trap_definition_helper(self):
         """ Helper to assert trap definition for each place.
         """
+        # \/_{p' s.t. post(t, p') > 0} p'
+
+        if not self.post:
+            return "false"
+
         smt_input = ' '.join(map(lambda pl: pl.id, self.post))
 
         if len(self.post) > 1:
@@ -729,7 +742,7 @@ class Marking:
         marked_places = list(filter(lambda pl: self.tokens[pl] > 0, self.tokens))
         
         if not marked_places:
-            return ""
+            return "(assert false)\n"
 
         smt_input = ' '.join(map(lambda pl: pl.id, marked_places))
 
