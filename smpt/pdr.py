@@ -640,7 +640,7 @@ class PDR:
 
         if self.method == 'REACH':
             # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
-            resource.setrlimit(resource.RLIMIT_AS, (4294967296, 4294967296))
+            resource.setrlimit(resource.RLIMIT_AS, (1073741824, 1073741824))
 
             # Transform R into DNF
             try:
