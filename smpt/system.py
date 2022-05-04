@@ -25,7 +25,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "2.0.0"
+__version__ = "4.0.0"
 
 import re
 import sys
@@ -311,36 +311,45 @@ class Equation:
         """ Equation parser.
             Input format: .net (output of the `reduced` tool)
         """
-        left_parsing, inversed = True, False
+        current, inversed = self.left, self.right
+        minus = False
 
         for element in eq:
-            if element != '+':
-                if element in ['=', '<=', '>=', '<', '>']:
-                    self.operator = element
-                    left_parsing = False
-                else:
-                    multiplier = None
 
-                    if '-1.' in element:
-                        element = element.replace('-1.', '')  
-                        inversed = True
-                    
-                    elif element.rfind('.') > element.rfind('}'):
-                        index = element.rfind('.')
-                        element, multiplier = element[:index], element[index+1:] 
+            if element in ['=', '<=', '>=', '<', '>']:
+                self.operator = element
+                current, inversed = inversed, current
+                minus = False
+                continue
 
-                    variable = element.replace('{', '').replace('}','')
-                    self.check_variable(variable, system)
+            if element == '+':
+                minus = False
+                continue
 
-                    if left_parsing:
-                        self.left.append(Variable(variable, multiplier))
-                    else:
-                        self.right.append(Variable(variable, multiplier))
+            if element == '-':
+                minus = True
+                continue
 
-        if inversed:
-            self.left.append(self.right.pop(0))
-            if not self.right:
-                self.right.append('0')
+            multiplier = None
+
+            # `convert` specific case
+            if '-1.' in element:
+                element = element.replace('-1.', '')
+                minus ^= True
+                if minus:
+                    self.current.append('0')
+
+            elif element.rfind('.') > element.rfind('}'):
+                index = element.rfind('.')
+                element, multiplier = element[:index], element[index+1:]
+
+            variable = element.replace('{', '').replace('}','')
+            self.check_variable(variable, system)
+
+            if not minus:
+                current.append(Variable(variable, multiplier))
+            else:
+                inversed.append(Variable(variable, multiplier))
 
     def check_variable(self, element, system):
         """ Check if a given element is an additional variable and a place from the reduced net.
