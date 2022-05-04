@@ -24,6 +24,7 @@ __version__ = "4.0.0"
 
 import logging as log
 
+from ptnet import NUPN
 from solver import Z3
 from utils import STOP, Verdict, send_signal_pids
 
@@ -170,6 +171,28 @@ class StateEquation:
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet) is not None:
+            return Verdict.INV
+
+        log.info("[STATE-EQUATION] > Check satisfiability")
+        if not self.solver.check_sat():
+            return Verdict.INV
+
+        if self.ptnet.nupn is None or not self.ptnet.nupn.unit_safe:
+            log.info("[STATE-EQUATION] > Unknown")
+            return Verdict.UNKNOWN
+
+        log.info("[STATE-EQUATION] > Add unit-safe local constraints")   
+        self.solver.write(self.ptnet.nupn.smtlib_local_constraints())
+
+        log.info("[STATE-EQUATION] > Check satisfiability")
+        if not self.solver.check_sat():
+            return Verdict.INV
+
+        log.info("[STATE-EQUATION] > Add unit-safe hierarchical constraints")   
+        self.solver.write(self.ptnet.nupn.smtlib_hierarchy_constraints())
+
+        log.info("[STATE-EQUATION] > Check satisfiability")
+        if not self.solver.check_sat():
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Unknown")
