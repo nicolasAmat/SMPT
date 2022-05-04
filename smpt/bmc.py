@@ -33,7 +33,7 @@ class BMC:
     Bounded Model Checking method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, induction_queue=None, solver_pids=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, induction_queue=None, solver_pids=None, additional_techniques=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -53,6 +53,9 @@ class BMC:
 
         # Show model option
         self.show_model = show_model
+
+        # Additional techniques queue
+        self.additional_techniques = additional_techniques
 
         # SMT solver
         self.solver = Z3(debug=debug, solver_pids=solver_pids)
@@ -154,8 +157,12 @@ class BMC:
         model = None
         if order == -1:
             verdict = Verdict.INV
+            if self.additional_techniques is not None:
+                self.additional_techniques.put('K-INDUCTION')
         else:
             verdict = Verdict.CEX
+            if self.additional_techniques is not None:
+                self.additional_techniques.put('BMC')
             if self.show_model:
                 model = self.solver.get_marking(self.ptnet, order)
         result.put([verdict, model])

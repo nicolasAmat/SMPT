@@ -35,7 +35,7 @@ class StateEquation:
     Check that the set of potentially reachable markings does not intersect any feared state. 
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, mcc=False, debug=False, solver_pids=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, mcc=False, debug=False, solver_pids=None, additional_techniques=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -57,6 +57,9 @@ class StateEquation:
         self.solver = Z3(debug=debug, solver_pids=solver_pids)
         self.debug = debug
         self.solver_pids = solver_pids
+
+        # Additional techniques queue
+        self.additional_techniques = additional_techniques
 
         # Trap constraints
         self.traps = None
@@ -167,10 +170,14 @@ class StateEquation:
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
+            if self.additional_techniques is not None:
+                self.additional_techniques.put('TOPOLIGICAL')
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet) is not None:
+            if self.additional_techniques is not None:
+                self.additional_techniques.put('TOPOLIGICAL')
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Check satisfiability")
@@ -186,6 +193,9 @@ class StateEquation:
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
+            if self.additional_techniques is not None:
+                self.additional_techniques.put('TOPOLIGICAL')
+                self.additional_techniques.put('USE_NUPN')
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add unit-safe hierarchical constraints")   
@@ -193,6 +203,9 @@ class StateEquation:
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
+            if self.additional_techniques is not None:
+                self.additional_techniques.put('TOPOLIGICAL')
+                self.additional_techniques.put('USE_NUPN')
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Unknown")
@@ -225,10 +238,14 @@ class StateEquation:
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
+            if self.additional_techniques is not None:
+                self.additional_techniques.put('TOPOLIGICAL')
             return Verdict.INV   
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet_reduced) is not None:
+            if self.additional_techniques is not None:
+                self.additional_techniques.put('TOPOLIGICAL')
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Unknown")

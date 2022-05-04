@@ -60,6 +60,7 @@ class Parallelizer:
             unfolding_to_pt = ['UNFOLDING_TO_PT']
         if ptnet_reduced is not None:
             structural_reduction = ['STRUCTURAL_REDUCTION']
+        self.additional_techniques = Queue()
 
         # Process information
         self.methods, self.processes, self.techniques  = [], [], []
@@ -85,7 +86,7 @@ class Parallelizer:
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['WALK'])
 
             if method == 'STATE-EQUATION':
-                self.methods.append(StateEquation(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, mcc=mcc, debug=debug, solver_pids=self.solver_pids))
+                self.methods.append(StateEquation(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, mcc=mcc, debug=debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
 
             if method == 'INDUCTION':
@@ -93,12 +94,12 @@ class Parallelizer:
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
 
             if method == 'BMC':
-                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING', 'BMC'])
+                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'K-INDUCTION':
                 self.methods.append(KInduction(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING', 'K-INDUCTION'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'PDR-COV':
                 self.methods.append(PDR(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, check_proof=check_proof, method='COV', solver_pids=self.solver_pids))
@@ -174,8 +175,9 @@ class Parallelizer:
 
                 # Show techniques
                 if self.show_techniques:
-                    if  techniques[-1] == 'BMC' and verdict == Verdict.INV:
-                        techniques[-1] = 'K-INDUCTION'
+                    if self.additional_techniques is not None:
+                        while not self.additional_techniques.empty():
+                            techniques.append(self.additional_techniques.get())
                     print('TECHNIQUES', ' '.join(techniques), end=' ')
 
                 # Show computation time
