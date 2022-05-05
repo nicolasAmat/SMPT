@@ -12,7 +12,7 @@ Orders (state' denotes a state reached by firing one transition):
     ptnet': 1
 - Case reduced:
     ptnet : 10     ptnet_reduced : 0
-    ptnet': 11     ptnet_reduced': 1   
+    ptnet': 11     ptnet_reduced': 1
 
 NB: PDR-REACH and PDR-REACH-SATURATED are not currently compatible with the use of reductions.
 
@@ -535,7 +535,7 @@ class PDR:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.ptnet.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
 
         self.solver.write(s.smtlib_unsat_core(1))
