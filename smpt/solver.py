@@ -447,7 +447,7 @@ class Walk(Solver):
     def check_sat(self):
         """ Check if a state violates the formula.
         """
-        process = ['walk', '-R', '-loop', self.ptnet.filename, '-ff', str(self.file.name)]
+        process = ['walk', '-R', '-loop', '-seed', self.ptnet.filename, '-ff', str(self.file.name)]
         if self.timeout:
             process += ['-t', str(self.timeout)]
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)
