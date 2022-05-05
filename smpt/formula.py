@@ -717,6 +717,7 @@ class StateFormula(Expression):
         """
         return all(operand.need_saturation(current_delta) for operand in self.operands)
 
+
 class Atom(Expression):
     """
     Atom defined by:
@@ -859,6 +860,7 @@ class Atom(Expression):
             (condition: DNF)
         """
         return (not self.monotonic and all(current_delta[pl] < 0 for pl in self.left_operand.places if pl in current_delta)) or (not self.anti_monotonic and all(current_delta[pl] > 0 for pl in self.left_operand.places if pl in current_delta)) or (not self.monotonic and not self.anti_monotonic)
+
 
 class TokenCount(Expression):
     """
@@ -1131,6 +1133,12 @@ class BooleanConstant(Expression):
 
     def eval(self, m):
         """ Evaluate the subformula with marking m.
+        """
+        return self.value
+
+    def need_saturation(self, current_delta):
+        """ Return if the boolean constant possibly implies a saturation.
+            (condition: DNF)
         """
         return self.value
 
