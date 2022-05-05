@@ -31,6 +31,7 @@ __license__ = "GPLv3"
 __version__ = "4.0.0"
 
 import logging as log
+import sys
 from abc import ABC, abstractmethod
 from subprocess import DEVNULL, PIPE, Popen
 from tempfile import NamedTemporaryFile
@@ -97,6 +98,14 @@ class Z3(Solver):
         """
         self.solver.kill()
 
+    def abort(self):
+        """ Abort the process.
+        """
+        log.warning("z3 process has been aborted")
+        self.solver.kill()
+        self.aborted = True
+        sys.exit()
+
     def write(self, smt_input, debug=False):
         """ Write instructions into the standard input.
         """
@@ -107,7 +116,7 @@ class Z3(Solver):
             try:
                 self.solver.stdin.write(bytes(smt_input, 'utf-8'))
             except BrokenPipeError:
-                return ""
+                self.abort()
 
     def flush(self):
         """ Flush the standard input.
@@ -115,7 +124,7 @@ class Z3(Solver):
         try:
             self.solver.stdin.flush()
         except BrokenPipeError:
-            return
+            self.abort()
 
     def readline(self, debug=False):
         """ Read a line from the standard output.
@@ -123,7 +132,7 @@ class Z3(Solver):
         try:
             smt_output = self.solver.stdout.readline().decode('utf-8').strip()
         except BrokenPipeError:
-            return ""
+            self.abort()
 
         if self.debug or debug:
             print(smt_output)
@@ -148,7 +157,7 @@ class Z3(Solver):
         """
         self.write("(pop)\n")
 
-    def check_sat(self):
+    def check_sat(self, no_check=False):
         """ Check the satisfiability of the current stack of z3.
         """
         self.write("(check-sat)\n")
@@ -160,10 +169,10 @@ class Z3(Solver):
             return True
         elif sat == 'unsat':
             return False
-        else:
-            log.warning("z3 process has been aborted")
-            self.aborted = True
+        elif no_check:
             return None
+        else:
+            self.abort()
 
     def get_marking(self, ptnet, order=None):
         """ Get a marking from the current SAT stack.
@@ -266,15 +275,13 @@ class Z3(Solver):
     def get_unsat_core(self):
         """ Get an unsat core from the current UNSAT stack.
         """
-        sat = self.check_sat()
+        sat = self.check_sat(no_check=True)
         
         # Assert the result either `UNKNOWN` or `SAT`
         assert(sat is None or not sat)
 
         # If `UNKNOWN` consider that the solver is still alive and return "All" as the unsat core
         if sat is None:
-            log.warning("z3 process has been aborted")
-            self.aborted = False
             return ["All"]
 
         self.write("(get-unsat-core)\n")
@@ -312,6 +319,14 @@ class MiniZinc(Solver):
         if self.solver is not None:
             send_signal_pids([self.solver.pid], STOP)
 
+    def abort(self):
+        """ Abort the process.
+        """
+        log.warning("MiniZinc process has been aborted")
+        self.solver.kill()
+        self.aborted = True
+        sys.exit()
+
     def write(self, minizinc_input, debug=False):
         """ Write instructions into the standard input.
         """
@@ -325,12 +340,12 @@ class MiniZinc(Solver):
         """ Read a line from the standard output.
         """
         if self.solver is None:
-            return ""
+            self.abort()
 
         try:
             minizinc_output = self.solver.stdout.readline().decode('utf-8').strip()
         except BrokenPipeError:
-            return ""
+            self.abort()
 
         if self.debug or debug:
             print(minizinc_output)
@@ -362,9 +377,7 @@ class MiniZinc(Solver):
             print(minizinc_output)
 
         if minizinc_output in ["=====ERROR=====", "=====UNKNOWN====="]:
-            log.warning("MiniZinc process has been aborted")
-            self.aborted = True
-            return None
+            self.abort()
         else:
             return minizinc_output != "=====UNSATISFIABLE====="
 
@@ -425,6 +438,14 @@ class Walk(Solver):
         if self.solver is not None:
             send_signal_pids([self.solver.pid], KILL)
 
+    def abort(self):
+        """ Abort the process.
+        """
+        log.warning("Walk process has been aborted")
+        self.solver.kill()
+        self.aborted = True
+        sys.exit()
+
     def write(self, input, debug=False):
         """ Write input to file.
         """
@@ -437,7 +458,10 @@ class Walk(Solver):
     def readline(self, debug=False):
         """ Readline from walk.
         """
-        output = self.solver.stdout.readline().decode('utf-8').strip()
+        try:
+            output = self.solver.stdout.readline().decode('utf-8').strip()
+        except BrokenPipeError:
+            self.abort()
 
         if self.debug or debug:
             print(output)
