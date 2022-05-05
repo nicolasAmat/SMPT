@@ -171,20 +171,20 @@ class Parallelizer:
             if not result_method.empty():
 
                 verdict, model = result_method.get()
-                print('FORMULA', self.property_id, self.formula.result(verdict), end=' ')
+                output = "FORMULA {} {}".format(self.property_id, self.formula.result(verdict))
 
                 # Show techniques
                 if self.show_techniques:
                     if self.additional_techniques is not None:
                         while not self.additional_techniques.empty():
                             techniques.append(self.additional_techniques.get())
-                    print('TECHNIQUES', ' '.join(techniques), end=' ')
+                    output += " TECHNIQUES {}".format(' '.join(techniques))
 
                 # Show computation time
                 if self.show_time:
-                    print('TIME', self.computation_time, end=' ')
+                    output += " TIME {}".format(self.computation_time)
 
-                print()
+                print(output)
 
                 # Show model
                 if self.show_model and model is not None:
