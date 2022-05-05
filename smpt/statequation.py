@@ -27,7 +27,7 @@ import logging as log
 from solver import Z3
 from utils import STOP, Verdict, send_signal_pids
 
-MAX_NUMBER_UNITS = 500
+MAX_NUMBER_UNITS = 100
 
 
 class StateEquation:
@@ -185,7 +185,7 @@ class StateEquation:
         if not self.solver.check_sat():
             return Verdict.INV
 
-        if self.ptnet.nupn is None or not self.ptnet.nupn.unit_safe or len(self.ptnet.units) > MAX_NUMBER_UNITS:
+        if self.ptnet.nupn is None or not self.ptnet.nupn.unit_safe or len(self.ptnet.nupn.units) > MAX_NUMBER_UNITS:
             log.info("[STATE-EQUATION] > Unknown")
             return Verdict.UNKNOWN
 
