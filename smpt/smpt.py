@@ -349,6 +349,10 @@ def main():
         # Keep only enabled methods
         methods = list(set(methods) & set(results.methods))
 
+        # Add three walkers when fully reducible and mcc mode enabled
+        if ptnet_reduced and not ptnet_reduced.places:
+            methods += ["WALK" for _ in range(3)]
+
         # Run methods in parallel and get results
         parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof)
 
