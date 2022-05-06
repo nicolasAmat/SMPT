@@ -23,11 +23,12 @@ __license__ = "GPLv3"
 __version__ = "4.0.0"
 
 import logging as log
+import sys
 
 from solver import Z3
 from utils import STOP, Verdict, send_signal_pids
 
-MAX_NUMBER_UNITS = 100
+MAX_NUMBER_UNITS = 500
 
 
 class StateEquation:
@@ -188,6 +189,8 @@ class StateEquation:
         if self.ptnet.nupn is None or not self.ptnet.nupn.unit_safe or len(self.ptnet.nupn.units) > MAX_NUMBER_UNITS:
             log.info("[STATE-EQUATION] > Unknown")
             return Verdict.UNKNOWN
+
+        sys.setrecursionlimit(10000)
 
         log.info("[STATE-EQUATION] > Add unit-safe local constraints")   
         self.solver.write(self.ptnet.nupn.smtlib_local_constraints())
