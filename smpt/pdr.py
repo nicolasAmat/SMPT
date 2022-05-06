@@ -535,7 +535,7 @@ class PDR:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0, eq=False))
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
 
         self.solver.write(s.smtlib_unsat_core(1))
