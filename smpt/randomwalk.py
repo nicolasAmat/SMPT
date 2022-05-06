@@ -34,7 +34,7 @@ class RandomWalk:
     """ Random walk method.
     """
 
-    def __init__(self, ptnet, formula, debug=False, solver_pids=None):
+    def __init__(self, ptnet, formula, debug=False, solver_pids=None, tempfiles_queue=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -44,7 +44,7 @@ class RandomWalk:
         self.formula = formula
 
         # Walker
-        self.solver = Walk(ptnet, debug=debug, solver_pids=solver_pids)
+        self.solver = Walk(ptnet, debug=debug, solver_pids=solver_pids, tempfiles_queue=tempfiles_queue)
 
     def prove(self, result, concurrent_pids):
         """ Prover.

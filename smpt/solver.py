@@ -416,14 +416,16 @@ class Walk(Solver):
     """ Walk interface.
     """
     
-    def __init__(self, ptnet, debug=False, timeout=0, solver_pids=None):
+    def __init__(self, ptnet, debug=False, timeout=0, solver_pids=None, tempfiles_queue=None):
         """ Initializer.
         """
         # Petri net
         self.ptnet = ptnet
 
         # Selt file to write the formula
-        self.file = NamedTemporaryFile('w', prefix=str(os.getpid()), suffix='.selt')
+        self.file = NamedTemporaryFile('w', prefix=str(os.getpid()), suffix='.selt', delete=False)
+        if tempfiles_queue is not None:
+            tempfiles_queue.put(self.file.name)
 
         # Solver
         self.solver = None
