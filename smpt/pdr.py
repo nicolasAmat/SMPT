@@ -575,7 +575,7 @@ class PDR:
         self.formula.R.operands = sat_cubes
         self.formula.P = StateFormula([self.formula.R], 'not')
 
-        # Obtain feared states    
+        # Obtain feared states
         self.feared_states = [States(cube, self.saturation) for cube in sat_cubes]
      
         return False
@@ -597,7 +597,10 @@ class PDR:
             - `COV`: extract a sub-cube with only non-null equalities,
             replace equalities by "greater or equal than".
         """
-        log.info("[PDR] \t>> Generalization (s = {})".format(' or '.join(map(str, states))))
+        if states:
+            log.info("[PDR] \t>> Generalization (s = {})".format(' or '.join(map(str, states))))
+        else:
+            log.info("[PDR] \t>> Generalization (s = {})".format(self.formula.R))
 
         if self.method == 'REACH':
             # Get a marking sequence m_1 -> m_2
