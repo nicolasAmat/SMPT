@@ -637,51 +637,53 @@ class PDR:
         """
         log.info("[PDR] RUNNING")
 
-        if self.initial_marking_reach_bad_state():
-            self.exit_helper(Verdict.CEX, result, concurrent_pids)
-            return Verdict.CEX
+        try:
 
-        if self.method == 'REACH':
-            # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
-            resource.setrlimit(resource.RLIMIT_AS, (1073741824, 1073741824))
-
-            # Transform R into DNF
-            try:
-                self.formula = self.formula.dnf()
-            except MemoryError:
-                self.solver.kill()
-                return
-
-            # Remove UNSAT cubes, and exit if R UNSAT
-            if self.unsat_cubes_removal():
-                self.exit_helper(Verdict.INV, result, concurrent_pids)
-                return Verdict.INV
-
-        log.info("[PDR] > R = {}".format(self.formula.R))
-        log.info("[PDR] > P = {}".format(self.formula.P))
-
-        self.oars_initialization()
-
-        k = 1
-
-        while True:
-            log.info("[PDR] > F{} = P".format(k + 1))
-
-            self.oars.append([self.formula.P])
-            if not self.strengthen(k):
+            if self.initial_marking_reach_bad_state():
                 self.exit_helper(Verdict.CEX, result, concurrent_pids)
                 return Verdict.CEX
 
-            self.propagate_clauses(k)
+            if self.method == 'REACH':
+                # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
+                resource.setrlimit(resource.RLIMIT_AS, (4294967296, 4294967296))
 
-            for i in range(1, k + 1):
-                if (not self.saturation and set(self.oars[i]) == set(self.oars[i + 1])) or (self.saturation and self.fixed_point(i)):
-                    if self.check_proof:
-                        self.proof_checking(i)
+                # Transform R into DNF
+                self.formula = self.formula.dnf()
+
+                # Remove UNSAT cubes, and exit if R UNSAT
+                if self.unsat_cubes_removal():
                     self.exit_helper(Verdict.INV, result, concurrent_pids)
                     return Verdict.INV
 
-            k += 1
+            log.info("[PDR] > R = {}".format(self.formula.R))
+            log.info("[PDR] > P = {}".format(self.formula.P))
+
+            self.oars_initialization()
+
+            k = 1
+
+            while True:
+                log.info("[PDR] > F{} = P".format(k + 1))
+
+                self.oars.append([self.formula.P])
+                if not self.strengthen(k):
+                    self.exit_helper(Verdict.CEX, result, concurrent_pids)
+                    return Verdict.CEX
+
+                self.propagate_clauses(k)
+
+                for i in range(1, k + 1):
+                    if (not self.saturation and set(self.oars[i]) == set(self.oars[i + 1])) or (self.saturation and self.fixed_point(i)):
+                        if self.check_proof:
+                            self.proof_checking(i)
+                        self.exit_helper(Verdict.INV, result, concurrent_pids)
+                        return Verdict.INV
+
+                k += 1
+
+        except MemoryError:
+            self.solver.kill()
+            return
 
     def strengthen(self, k):
         """ Iterate until Fk excludes all states
