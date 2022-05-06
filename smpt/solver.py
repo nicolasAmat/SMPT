@@ -42,7 +42,8 @@ from utils import KILL, STOP, send_signal_pids
 
 
 class Solver(ABC):
-    """
+    """ Solver abstract class.
+        (Z3, MiniZinc, Walk)
     """
 
     @abstractmethod
