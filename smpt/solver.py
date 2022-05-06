@@ -31,6 +31,7 @@ __license__ = "GPLv3"
 __version__ = "4.0.0"
 
 import logging as log
+import os
 import sys
 from abc import ABC, abstractmethod
 from subprocess import DEVNULL, PIPE, Popen
@@ -421,7 +422,7 @@ class Walk(Solver):
         self.ptnet = ptnet
 
         # Selt file to write the formula
-        self.file = NamedTemporaryFile('w', suffix='.selt')
+        self.file = NamedTemporaryFile('w', prefix=str(os.getpid()), suffix='.selt')
 
         # Solver
         self.solver = None
