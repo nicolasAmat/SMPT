@@ -171,7 +171,7 @@ class Parallelizer:
             if not result_method.empty():
 
                 verdict, model = result_method.get()
-                output = "FORMULA {} {}".format(self.property_id, self.formula.result(verdict))
+                output = "\nFORMULA {} {}".format(self.property_id, self.formula.result(verdict))
 
                 # Show techniques
                 if self.show_techniques:
@@ -201,11 +201,10 @@ class Parallelizer:
     def stop(self):
         """ Stop the methods.
         """
-        # Kill solvers
-        while not self.solver_pids.empty():
-            send_signal_group_pid(self.solver_pids.get(), KILL)
-
         # Kill methods
         send_signal_pids([proc.pid for proc in self.processes], KILL)
         del self.methods
 
+        # Kill solvers
+        while not self.solver_pids.empty():
+            send_signal_group_pid(self.solver_pids.get(), KILL)
