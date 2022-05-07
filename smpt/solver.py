@@ -424,6 +424,7 @@ class Walk(Solver):
 
         # Selt file to write the formula
         self.file = NamedTemporaryFile('w', prefix=str(os.getpid()), suffix='.selt', delete=False)
+        self.filename = self.file.name
         if tempfiles_queue is not None:
             tempfiles_queue.put(self.file.name)
 
@@ -458,6 +459,7 @@ class Walk(Solver):
 
         self.file.write(input)
         self.file.flush()
+        self.file.close()
 
     def readline(self, debug=False):
         """ Readline from walk.
@@ -475,7 +477,7 @@ class Walk(Solver):
     def check_sat(self):
         """ Check if a state violates the formula.
         """
-        process = ['walk', '-R', '-loop', '-seed', self.ptnet.filename, '-ff', str(self.file.name)]
+        process = ['walk', '-R', '-loop', '-seed', self.ptnet.filename, '-ff', self.filename]
         if self.timeout:
             process += ['-t', str(self.timeout)]
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)
