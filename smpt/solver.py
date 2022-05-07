@@ -458,7 +458,10 @@ class Walk(Solver):
             print(input)
 
         self.file.write(input)
+
         self.file.flush()
+        os.fsync(self.file.fileno())
+
         self.file.close()
 
     def readline(self, debug=False):
