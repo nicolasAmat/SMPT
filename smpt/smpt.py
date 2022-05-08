@@ -280,6 +280,10 @@ def main():
     if results.show_reduction_ratio or results.show_time:
         print(ptnet_info)
 
+    # Generate Walk files if Walk or mcc mode enabled
+    if 'WALK' in results.methods or results.mcc:
+        properties.generate_walk_files()
+
     # Disable reduction is the Petri net is not reducible
     if system is not None and not system.equations:
         ptnet_reduced = None
@@ -368,6 +372,10 @@ def main():
         fp_ptnet_reduced.close()
     if results.auto_enumerative:
         fp_markings.close()
+
+    # Remove Walk files if Walk or mcc mode enabled
+    if 'WALK' in results.methods or results.mcc:
+        properties.remove_walk_files()
 
 
 if __name__ == '__main__':

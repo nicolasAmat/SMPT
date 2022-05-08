@@ -73,12 +73,6 @@ class Parallelizer:
         # Create queue to store solver pids
         self.solver_pids = Queue()
 
-        # If WALK enabled create a queue to store the temporary files
-        if 'WALK' in methods:
-            self.tempfiles_queue = Queue()
-        else:
-            self.tempfiles_queue = None
-
         # If K-Induction enabled create a queue to store the current iteration of BMC
         if 'K-INDUCTION' in methods:
             induction_queue = Queue()
@@ -89,7 +83,7 @@ class Parallelizer:
         for method in methods:
 
             if method == 'WALK':
-                self.methods.append(RandomWalk(ptnet, formula, debug=debug, solver_pids=self.solver_pids, tempfiles_queue=self.tempfiles_queue))
+                self.methods.append(RandomWalk(ptnet, formula, debug=debug, solver_pids=self.solver_pids))
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['WALK'])
 
             if method == 'STATE-EQUATION':
@@ -215,11 +209,3 @@ class Parallelizer:
         # Kill solvers
         while not self.solver_pids.empty():
             send_signal_group_pid(self.solver_pids.get(), KILL)
-
-        # Remove tempfiles
-        if self.tempfiles_queue is not None:
-            while not self.tempfiles_queue.empty():
-                try:
-                    os.remove(self.tempfiles_queue.get())
-                except OSError:
-                    pass

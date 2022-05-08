@@ -26,11 +26,13 @@ __version__ = "4.0.0"
 
 import itertools
 import operator
+import os
 import sys
 import uuid
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from collections import Counter
+from tempfile import NamedTemporaryFile
 
 from ptnet import PetriNet
 from utils import Verdict
@@ -172,6 +174,18 @@ class Properties:
             self.formulas[formula_id] = self.formulas[formula_id].dnf()
         return self
 
+    def generate_walk_files(self):
+        """ Generated temporary files in Walk format (selt).
+        """
+        for formula in self.formulas.values():
+            formula.generate_walk_file()
+
+    def remove_walk_files(self):
+        """ Delete temporary files.
+        """
+        for formula in self.formulas.values():
+            formula.delete_walk_file()
+
 
 class Formula:
     """
@@ -198,6 +212,8 @@ class Formula:
             if node != 'formula':
                 raise ValueError("Invalid formula")
             self.parse_xml(formula_xml[0])
+
+        self.walk_filename = None
 
     def parse_xml(self, formula_xml, negation=False):
         """ Formula parser.
@@ -327,7 +343,29 @@ class Formula:
         """ Formula to Walk format (selt).
             (debugging function)
         """
-        return "; --> -R\n{}\n;".format(self.R.walk(assertion=True))
+        return "; --> P\n{}\n;".format(self.P.walk())
+
+    def generate_walk_file(self):
+        """ Generated temporary file in Walk format (selt).
+        """
+        walk_file = NamedTemporaryFile('w', suffix='.selt', delete=False)
+        self.walk_filename = walk_file.name
+
+        walk_file.write(self.P.walk())
+        walk_file.flush()
+        os.fsync(walk_file.fileno())
+        walk_file.close()
+
+    def delete_walk_file(self):
+        """ Delete temporary file.
+        """
+        if self.walk_filename is None:
+            return
+
+        try:
+            os.remove(self.walk_filename)
+        except OSError:
+            pass
 
     def generate_deadlock(self):
         """ `deadlock` formula generator.
@@ -590,7 +628,7 @@ class StateFormula(Expression):
 
         return minizinc_input
 
-    def walk(self, assertion=False):
+    def walk(self):
         """ State formula.
             Walk format
         """
@@ -606,9 +644,6 @@ class StateFormula(Expression):
 
         if self.operator == 'not':
             walk_input = "- {}".format(walk_input)
-
-        if assertion:
-            walk_input = "- ({})\n".format(walk_input)
 
         return walk_input
 
@@ -794,7 +829,7 @@ class Atom(Expression):
 
         return minizinc_input
 
-    def walk(self, assertion=False):
+    def walk(self):
         """ Atom.
             Walk format
         """
@@ -802,9 +837,6 @@ class Atom(Expression):
 
         if self.operator == 'distinct':
             walk_input = "- {}".format(walk_input)
-
-        if assertion:
-            walk_input = "- {}\n".format(walk_input)
 
         return walk_input
 

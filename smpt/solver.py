@@ -416,17 +416,11 @@ class Walk(Solver):
     """ Walk interface.
     """
     
-    def __init__(self, ptnet, debug=False, timeout=0, solver_pids=None, tempfiles_queue=None):
+    def __init__(self, ptnet, debug=False, timeout=0, solver_pids=None):
         """ Initializer.
         """
         # Petri net
         self.ptnet = ptnet
-
-        # Selt file to write the formula
-        self.file = NamedTemporaryFile('w', prefix=str(os.getpid()), suffix='.selt', delete=False)
-        self.filename = self.file.name
-        if tempfiles_queue is not None:
-            tempfiles_queue.put(self.file.name)
 
         # Solver
         self.solver = None
@@ -451,19 +445,6 @@ class Walk(Solver):
         self.aborted = True
         sys.exit()
 
-    def write(self, input, debug=False):
-        """ Write input to file.
-        """
-        if self.debug or debug:
-            print(input)
-
-        self.file.write(input)
-
-        self.file.flush()
-        os.fsync(self.file.fileno())
-
-        self.file.close()
-
     def readline(self, debug=False):
         """ Readline from walk.
         """
@@ -477,10 +458,10 @@ class Walk(Solver):
 
         return output
 
-    def check_sat(self):
+    def check_sat(self, walk_filename):
         """ Check if a state violates the formula.
         """
-        process = ['walk', '-R', '-loop', '-seed', self.ptnet.filename, '-ff', self.filename]
+        process = ['walk', '-R', '-loop', '-seed', self.ptnet.filename, '-ff', walk_filename]
         if self.timeout:
             process += ['-t', str(self.timeout)]
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)
@@ -489,6 +470,11 @@ class Walk(Solver):
             self.solver_pids.put(self.solver.pid)
 
         return not (self.readline() != 'FALSE')
+
+    def write(self, input):
+        """ Write input to file.
+        """
+        raise NotImplementedError
 
     def get_marking(self):
         """
