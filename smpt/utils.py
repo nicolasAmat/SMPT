@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Utils to manage processes and verdicts
 
