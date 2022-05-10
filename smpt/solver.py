@@ -201,7 +201,7 @@ class Z3(Solver):
             if order is None:
                 place = place_content[1]
             else:
-                place_content = place_content[1].split('@')
+                place_content = place_content[1].rsplit('@', 1)
                 if int(place_content[1]) == order:
                     place = place_content[0]
             if place_marking and place in ptnet.places:
@@ -231,7 +231,7 @@ class Z3(Solver):
 
             # Get place marking and place id
             place_marking = int(self.readline().replace(' ', '').replace(')', ''))
-            place_content = place_content[1].split('@')
+            place_content = place_content[1].rsplit('@', 1)
             place_id = place_content[0]
             # Skip free variables
             if place_id not in ptnet.places:
