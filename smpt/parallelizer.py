@@ -22,7 +22,6 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import os
 import time
 from multiprocessing import Process, Queue
 
@@ -34,7 +33,7 @@ from kinduction import KInduction
 from pdr import PDR
 from randomwalk import RandomWalk
 from statequation import StateEquation
-from utils import KILL, STOP, Verdict, send_signal_group_pid, send_signal_pids
+from utils import KILL, send_signal_group_pid, send_signal_pids
 
 
 class Parallelizer:
@@ -99,7 +98,7 @@ class Parallelizer:
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'K-INDUCTION':
-                self.methods.append(KInduction(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
+                self.methods.append(KInduction(ptnet, formula, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'PDR-COV':

@@ -39,7 +39,7 @@ class KInduction:
     K-Induction method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, induction_queue=None, solver_pids=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False, induction_queue=None, solver_pids=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -53,9 +53,6 @@ class KInduction:
 
         # Formula to study
         self.formula = formula
-
-        # Show model option
-        self.show_model = show_model
 
         # SMT solver
         self.solver = Z3(debug=debug, solver_pids=solver_pids)
