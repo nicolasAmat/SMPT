@@ -354,7 +354,7 @@ def main():
         methods = list(set(methods) & set(results.methods))
 
         # Add three walkers when fully reducible and mcc mode enabled
-        if ptnet_reduced and not ptnet_reduced.places:
+        if results.mcc and ptnet_reduced and not ptnet_reduced.places:
             methods += ["WALK" for _ in range(3)]
 
         # Run methods in parallel and get results
