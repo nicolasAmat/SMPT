@@ -482,7 +482,7 @@ class PDR:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(k))
-        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0, eq=False))
         self.solver.write(self.assert_equations())
         self.solver.write(self.formula.R.smtlib(self.reduction * 10 + 1, assertion=True))
 
@@ -495,7 +495,7 @@ class PDR:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0, eq=False))
         self.solver.write(c.smtlib(1, assertion=True, negation=True))
 
         return self.solver.check_sat()
@@ -508,7 +508,7 @@ class PDR:
         self.solver.write(self.declare_places())
         self.solver.write(s.smtlib(0, assertion=True, negation=True))
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0, eq=False))
         self.solver.write(self.assert_equations())
         self.solver.write(s.smtlib(1, assertion=True))
 
@@ -521,7 +521,7 @@ class PDR:
 
         self.solver.write(self.declare_places())
         self.solver.write(self.assert_formula(i))
-        self.solver.write(self.ptnet_current.smtlib_transition_relation(0))
+        self.solver.write(self.ptnet_current.smtlib_transition_relation(0, eq=False))
         self.solver.write(self.assert_equations())
         self.solver.write(s.smtlib(k=1, assertion=True))
 
