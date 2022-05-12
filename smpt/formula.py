@@ -575,7 +575,7 @@ class StateFormula(Expression):
         """ State formula.
             SMT-LIB format
         """
-        smt_input = ''.join(map(lambda operand: operand.smtlib(k, delta=delta, saturated_delta=saturated_delta), self.operands))
+        smt_input = ' '.join(map(lambda operand: operand.smtlib(k, delta=delta, saturated_delta=saturated_delta), self.operands))
 
         if len(self.operands) > 1 or self.operator == 'not':
             smt_input = "({} {})".format(self.operator, smt_input)
@@ -1127,11 +1127,19 @@ class BooleanConstant(Expression):
         """
         return hash(self.value)
 
-    def smtlib(self, k=None, delta=None, saturated_delta=None):
+    def smtlib(self, k=None, assertion=False, negation=False, delta=None, saturated_delta=None):
         """ Boolean constant.
             SMT-LIB format
         """
-        return str(self).lower()
+        smt_input = str(self).lower()
+
+        if negation:
+            smt_input = "(not {})".format(smt_input)
+
+        if assertion:
+            smt_input = "(assert {})\n".format(smt_input)
+
+        return smt_input
 
     def minizinc(self):
         """ Boolean constant.
