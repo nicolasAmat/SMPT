@@ -36,10 +36,9 @@ import time
 from multiprocessing.pool import ThreadPool
 
 from formula import Formula, Properties
-from parallelizer import Parallelizer
+from parallelizer import Parallelizer, worker
 from ptnet import PetriNet
 from system import System
-from utils import worker
 
 
 def main():

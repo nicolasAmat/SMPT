@@ -24,6 +24,7 @@ __version__ = "4.0.0"
 
 import time
 from multiprocessing import Process, Queue
+from typing import Any
 
 from bmc import BMC
 from cp import CP
@@ -34,6 +35,9 @@ from pdr import PDR
 from randomwalk import RandomWalk
 from statequation import StateEquation
 from utils import KILL, send_signal_group_pid, send_signal_pids
+
+
+PRE_TIMEOUT = 120
 
 
 class Parallelizer:
@@ -63,7 +67,7 @@ class Parallelizer:
         self.additional_techniques = Queue()
 
         # Process information
-        self.methods, self.processes, self.techniques  = [], [], []
+        self.methods, self.processes, self.techniques = [], [], []
         self.computation_time = 0
 
         # Create queues to store the results
@@ -82,48 +86,70 @@ class Parallelizer:
         for method in methods:
 
             if method == 'WALK':
-                self.methods.append(RandomWalk(ptnet, formula, debug=debug, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['WALK'])
+                self.methods.append(RandomWalk(
+                    ptnet, formula, debug=debug, solver_pids=self.solver_pids))
+                self.techniques.append(
+                    collateral_processing + unfolding_to_pt + ['WALK'])
 
             if method == 'STATE-EQUATION':
-                self.methods.append(StateEquation(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, mcc=mcc, debug=debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
+                self.methods.append(StateEquation(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, mcc=mcc,
+                                    debug=debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
+                self.techniques.append(collateral_processing + unfolding_to_pt +
+                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
 
             if method == 'INDUCTION':
-                self.methods.append(Induction(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
+                self.methods.append(Induction(ptnet, formula, ptnet_reduced=ptnet_reduced,
+                                    system=system, show_model=show_model, debug=debug, solver_pids=self.solver_pids))
+                self.techniques.append(collateral_processing + unfolding_to_pt +
+                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
 
             if method == 'BMC':
-                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
+                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug,
+                                    induction_queue=induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
+                self.techniques.append(collateral_processing + unfolding_to_pt +
+                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'K-INDUCTION':
-                self.methods.append(KInduction(ptnet, formula, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
+                self.methods.append(KInduction(
+                    ptnet, formula, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
+                self.techniques.append(collateral_processing + unfolding_to_pt +
+                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'PDR-COV':
-                self.methods.append(PDR(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, debug=debug, check_proof=check_proof, method='COV', solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'PDR-COV'])
+                self.methods.append(PDR(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system,
+                                    debug=debug, check_proof=check_proof, method='COV', solver_pids=self.solver_pids))
+                self.techniques.append(collateral_processing + unfolding_to_pt +
+                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'PDR-COV'])
 
             if method == 'PDR-REACH':
-                self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof, method='REACH', saturation=False, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
+                self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof,
+                                    method='REACH', saturation=False, solver_pids=self.solver_pids))
+                self.techniques.append(
+                    collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
 
             if method == 'PDR-REACH-SATURATED':
-                self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof, method='REACH', saturation=True, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH-SATURATED'])
+                self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof,
+                                    method='REACH', saturation=True, solver_pids=self.solver_pids))
+                self.techniques.append(
+                    collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH-SATURATED'])
 
             if method == 'SMT':
-                self.methods.append(CP(ptnet, formula, system, show_model=show_model, debug=debug, minizinc=False, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
+                self.methods.append(CP(ptnet, formula, system, show_model=show_model,
+                                    debug=debug, minizinc=False, solver_pids=self.solver_pids))
+                self.techniques.append(
+                    collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
 
             if method == 'CP':
-                self.methods.append(CP(ptnet, formula, system, show_model=show_model, debug=debug, minizinc=True, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
+                self.methods.append(CP(ptnet, formula, system, show_model=show_model,
+                                    debug=debug, minizinc=True, solver_pids=self.solver_pids))
+                self.techniques.append(collateral_processing + unfolding_to_pt +
+                                       structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
 
             if method == 'ENUM':
-                self.methods.append(Enumerative(path_markings, ptnet, formula, ptnet_reduced, system, debug, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT-SMT'])
+                self.methods.append(Enumerative(
+                    path_markings, ptnet, formula, ptnet_reduced, system, debug, solver_pids=self.solver_pids))
+                self.techniques.append(
+                    collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT-SMT'])
 
     def run(self, timeout=225):
         """ Run analysis in parrallel.
@@ -138,7 +164,8 @@ class Parallelizer:
         concurrent_pids = Queue()
 
         # Create processes
-        self.processes = [Process(target=method.prove, args=(result,concurrent_pids,)) for method, result in zip(self.methods, self.results)]
+        self.processes = [Process(target=method.prove, args=(
+            result, concurrent_pids,)) for method, result in zip(self.methods, self.results)]
 
         # Start processes
         pids = []
@@ -171,7 +198,8 @@ class Parallelizer:
             if not result_method.empty():
 
                 verdict, model = result_method.get()
-                output = "\nFORMULA {} {}".format(self.property_id, self.formula.result(verdict))
+                output = "\nFORMULA {} {}".format(
+                    self.property_id, self.formula.result(verdict))
 
                 # Show techniques
                 if self.show_techniques:
@@ -189,7 +217,7 @@ class Parallelizer:
                 # Show model
                 if self.show_model and model is not None:
                     print("# Model:{}".format(model))
-                
+
                 self.stop()
                 return self.property_id
 
@@ -208,3 +236,9 @@ class Parallelizer:
         # Kill solvers
         while not self.solver_pids.empty():
             send_signal_group_pid(self.solver_pids.get(), KILL)
+
+
+def worker(parallelizer: Parallelizer) -> Any:
+    """ Call run method n parallelizer object.
+    """
+    return parallelizer.run(PRE_TIMEOUT)

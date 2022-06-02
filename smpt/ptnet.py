@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Petri Net Module
 
@@ -22,6 +20,8 @@ You should have received a copy of the GNU General Public License
 along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
+
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
@@ -30,51 +30,99 @@ __version__ = "4.0.0"
 import re
 import sys
 import xml.etree.ElementTree as ET
+from typing import Optional
 
 
 class PetriNet:
-    """
-    Petri net defined by:
-    - an identifier,
-    - a finite set of places (identified by names),
-    - a finite set of transitions (identified by names),
-    - an initial marking.
+    """ Petri net.
+
+    Attributes
+    ----------
+    id : str
+        Identifier.
+    filename : str
+        Petri net filename.
+    places : dict of str: Place
+        Finite set of places (identified by names).
+    transitions : dict of str: Transition
+        Finite set of transitions (identified by names).
+    initial_marking : Marking
+        Initial marking.
+    colored : bool
+        Colored flag.
+    colored_places_mapping : dict of str: list of str
+        Correspondence of the colored places with the unfolded ones (not colored).
+    colored_transitions_mapping: dict of str: list of str
+        Correspondence of the colored transitions with the unfolded ones (not colored).
+    state_equation : bool
+        State equation method flag.
+    pnml_mapping : bool
+        PNML mapping flag.
+    pnml_places_mapping : dict of str: str
+        Correspondence of the place ids with the names (.pnml).
+    pnml_transitions_mapping: dict of str: str
+        Correspondence of the transition ids with the names (.pnmml).
+    nupn : NUPN, optional
+        NUPN flag.
     """
 
-    def __init__(self, filename, pnml_filename=None, colored=False, state_equation=False):
+    def __init__(self, filename: str, pnml_filename: str = None, colored: bool = False, state_equation: bool = False) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        filename : str
+            Petri net filename.
+        pnml_filename : str, optional
+            PNML filename (.pnml format).
+        colored: : bool, optional
+            Colored flag.
+        state_equation : bool, optional
+            State equation method flag.
         """
-        self.id = ""
-        self.filename = filename
+        self.id: str = ""
+        self.filename: str = filename
 
-        self.places = {}
-        self.transitions = {}
-        self.initial_marking = Marking()
-
-        # Mapping for colored and `.pnml`
-        self.places_mapping, self.transitions_mapping = {}, {}
+        self.places: dict[str, Place] = {}
+        self.transitions: dict[str, Transition] = {}
+        self.initial_marking: Marking = Marking()
 
         # Colored management
-        self.colored = colored
+        self.colored: bool = colored
+
+        # Mapping when colored
+        self.colored_places_mapping: dict[str, list[str]] = {}
+        self.colored_transitions_mapping: dict[str, list[str]] = {}
 
         # State equation management
-        self.state_equation = state_equation
+        self.state_equation: bool = state_equation
 
         # `.pnml` management
-        self.pnml_mapping = pnml_filename is not None
-        if self.pnml_mapping:
+        self.pnml_mapping: bool = False
+
+        # Mapping with `.pnml`
+        self.pnml_places_mapping: dict[str, str] = {}
+        self.pnml_transitions_mapping: dict[str, str] = {}
+
+        if pnml_filename is not None:
+            self.pnml_mapping = True
             self.ids_mapping(pnml_filename)
 
         # NUPN management
-        self.nupn = None
+        self.nupn: Optional[NUPN] = None
         if pnml_filename is not None:
             self.nupn = NUPN(pnml_filename)
 
         # Parse the `.net` file
         self.parse_net(filename)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Petri net to .net format.
+
+        Returns
+        -------
+        str
+            .net format.
         """
         text = "net {}\n".format(self.id)
         text += ''.join(map(str, self.places.values()))
@@ -82,118 +130,203 @@ class PetriNet:
 
         return text
 
-    def smtlib_declare_places(self, k=None):
+    def smtlib_declare_places(self, k: Optional[int] = None) -> str:
         """ Declare places.
-            SMT-LIB format
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return ''.join(map(lambda pl: pl.smtlib_declare(k), self.places.values()))
 
-    def minizinc_declare_places(self):
+    def minizinc_declare_places(self) -> str:
         """ Declare places.
-            MiniZinc format
+
+        Returns
+        -------
+        str
+            MiniZinc format.
         """
         return ''.join(map(lambda pl: pl.minizinc_declare(), self.places.values()))
 
-    def smtlib_declare_transitions(self):
+    def smtlib_declare_transitions(self) -> str:
         """ Declare transitions.
-            SMT-LIB format
+        
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return ''.join(map(lambda tr: tr.smtlib_declare(), self.transitions.values()))
 
-    def smtlib_initial_marking(self, k=None):
+    def smtlib_initial_marking(self, k: Optional[int] = None) -> str:
         """ Assert the initial marking.
-            SMT-LIB format
+        
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return self.initial_marking.smtlib(k)
 
-    def smtlib_transition_relation(self, k, eq=True):
+    def smtlib_transition_relation(self, k: int, eq: bool = True) -> str:
         """ Transition relation from places at order k to order k + 1.
-            SMT-LIB format
+        
+        Parameters
+        ----------
+        k : int
+            Order.
+        eq : bool, optional
+            Add EQ(p_k, p_{k+1}) predicate in the transition relation.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         if not self.places:
             return ""
 
         smt_input = "(assert (or \n"
-        smt_input += ''.join(map(lambda tr: tr.smtlib(k), self.transitions.values()))
+        smt_input += ''.join(map(lambda tr: tr.smtlib(k),
+                             self.transitions.values()))
         if eq:
             smt_input += "\t(and\n\t\t"
-            smt_input += ''.join(map(lambda pl: "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k), self.places.values()))
+            smt_input += ''.join(map(lambda pl: "(= {}@{} {}@{})".format(
+                pl.id, k + 1, pl.id, k), self.places.values()))
             smt_input += "\n\t)"
         smt_input += "\n))\n"
 
         return smt_input
 
-    def smtlib_state_equation(self):
+    def smtlib_state_equation(self) -> str:
         """
             Assert the state equation (potentially reachable markings).
-            SMT-LIB format
+            
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return ''.join(map(lambda pl: pl.smtlib_state_equation(), self.places.values()))
 
-    def smtlib_read_arc_constraints(self):
+    def smtlib_read_arc_constraints(self) -> str:
         """ Assert read arc constraints.
-            SMT-LIB format
+            
+        Returns
+        -------
+            SMTT-LIB format.
         """
         return ''.join(map(lambda tr: tr.smtlib_read_arc_constraints(), self.transitions.values()))
 
-    def smtlib_declare_trap(self):
+    def smtlib_declare_trap(self) -> str:
         """ Declare trap Boolean variable for each place.
-            SMT-LIB format
+            
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return ''.join(map(lambda pl: pl.smtlib_declare_trap(), self.places.values()))
 
-    def smtlib_trap_initially_marked(self):
+    def smtlib_trap_initially_marked(self) -> str:
         """ Assert that places in the trap must be initially marked.
-            SMT-LIB format
+            
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return self.initial_marking.smtlib_trap_initially_marked()
 
-    def smtlib_trap_definition(self):
+    def smtlib_trap_definition(self) -> str:
         """ Assert trap definition for each place.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return ''.join(map(lambda pl: pl.smtlib_trap_definition(), self.places.values()))
 
-    def smtlib_transition_relation_textbook(self, k):
+    def smtlib_transition_relation_textbook(self, k: int) -> str:
         """ Transition relations from places at order k to order k + 1.
-            Textbook version not used.
-            SMT-LIB format
+
+        Note
+        ----
+        Textbook version not used.
+        
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         if not self.places:
             return ""
 
         smt_input = "(assert (or \n"
-        smt_input += ''.join(map(lambda tr: tr.smtlib_textbook(k), self.transitions.values()))
+        smt_input += ''.join(map(lambda tr: tr.smtlib_textbook(k),
+                             self.transitions.values()))
         smt_input += "))\n"
 
         return smt_input
 
-    def ids_mapping(self, pnml_filename):
+    def ids_mapping(self, filename: str) -> None:
         """ Map `names` to `ids` from the PNML file.
+
+        Parameters
+        ----------
+        filename : str
+            PNML filename (.pnml format).
         """
         xmlns = "{http://www.pnml.org/version-2009/grammar/pnml}"
 
-        tree = ET.parse(pnml_filename)
+        tree = ET.parse(filename)
         root = tree.getroot()
 
         for place_node in root.iter(xmlns + 'place'):
             place_id = place_node.attrib['id']
-            place_name = place_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
-            self.places_mapping[place_id] = place_name
+            place_name = place_node.find(xmlns + 'name/' + xmlns + 'text').text.replace(
+                '#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
+            self.pnml_places_mapping[place_id] = place_name
 
         for transition_node in root.iter(xmlns + 'transition'):
             transition_id = transition_node.attrib['id']
-            transition_name = transition_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
-            self.transitions_mapping[transition_id] = transition_name
+            transition_name = transition_node.find(xmlns + 'name/' + xmlns + 'text').text.replace(
+                '#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
+            self.pnml_transitions_mapping[transition_id] = transition_name
 
-    def parse_net(self, filename):
+    def parse_net(self, filename: str) -> None:
         """ Petri net parser.
-            Input format: .net
+
+        Parameters
+        ----------
+        filename : str
+            Petri net filename (.net format).
+
+        Raises
+        ------
+        FileNotFoundError
+            Petri net file not found.
         """
         try:
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
 
-                    content = re.split(r'\s+', line.strip().replace('#', '.').replace(',', '.'))  # '#' and ',' forbidden in SMT-LIB
+                    # '#' and ',' forbidden in SMT-LIB
+                    content = re.split(
+                        r'\s+', line.strip().replace('#', '.').replace(',', '.'))
 
                     # Skip empty lines and get the first identifier
                     if not content:
@@ -205,9 +338,11 @@ class PetriNet:
                     if element == '.':
                         kind_mapping = content.pop(0)
                         if kind_mapping == 'pl':
-                            self.places_mapping[content.pop(0)] = content
+                            colored_place = content.pop(0)
+                            self.colored_places_mapping[colored_place] = content
                         if kind_mapping == 'tr':
-                            self.transitions_mapping[content.pop(0)] = content
+                            colored_transition = content.pop(0)
+                            self.colored_transitions_mapping[colored_transition] = content
 
                     # Net id
                     if element == "net":
@@ -224,11 +359,16 @@ class PetriNet:
         except FileNotFoundError as e:
             sys.exit(e)
 
-    def parse_transition(self, content):
+    def parse_transition(self, content: list[str]) -> None:
         """ Transition parser.
-            Input format: .net
+
+        Parameters
+        ----------
+        content : list of string
+            Content to parse (.net format).
         """
-        transition_id = content.pop(0).replace('{', '').replace('}', '')  # '{' and '}' forbidden in SMT-LIB
+        transition_id = content.pop(0).replace(
+            '{', '').replace('}', '')  # '{' and '}' forbidden in SMT-LIB
 
         if transition_id in self.transitions:
             tr = self.transitions[transition_id]
@@ -250,64 +390,79 @@ class PetriNet:
 
         tr.normalize_flows(self.state_equation)
 
-    def parse_arc(self, arc, arcs, opposite_arcs=None):
+    def parse_arc(self, content: str, arcs: dict[Place, int], opposite_arcs: dict[Place, int] = None) -> Place:
         """ Arc parser.
-            Can handle:
-                - Normal Arc,
-                - Test Arc,
-                - Inhibitor Arc.
-            Input format: .net
+    
+        Note
+        ----
+        Can handle:
+            - Normal Arc,
+            - Test Arc,
+            - Inhibitor Arc.
+
+        Parameters
+        ----------
+        content : 
+            Content to parse (.net format).
+        arcs : dict of Place: int
+            Current arcs.
+        opposite_arcs : dict of Place: int, optional
+            Opposite arcs.
+
+        Returns
+        -------
+
         """
-        arc = arc.replace('{', '').replace('}', '')  # '{' and '}' forbidden in SMT-LIB
+        content = content.replace('{', '').replace(
+            '}', '')  # '{' and '}' forbidden in SMT-LIB
 
-        test_arc, inhibitor_arc = False, False
+        test_arc = False
 
-        if '?-' in arc:
-            inhibitor_arc = True
-            arc = arc.split('?-')
-        elif '?' in arc:
+        if '?-' in content:
+            place_id, _, weight_str = content.partition('?-')
+            # To recognize an inhibitor arc, we set a negative weight
+            weight = - self.parse_value(weight_str)
+        elif '?' in content:
             test_arc = True
-            arc = arc.split('?')
-        elif '*' in arc:
-            arc = arc.split('*')
+            place_id, _, weight_str = content.partition('?')
+            weight = self.parse_value(weight_str)
+        elif '*' in content:
+            place_id, _, weight_str = content.partition('*')
+            weight = self.parse_value(weight_str)
         else:
-            arc = [arc]
-
-        place_id = arc[0]
+            place_id = content
+            weight = 1
 
         if place_id not in self.places:
             new_place = Place(place_id)
             self.places[place_id] = new_place
             self.initial_marking.tokens[new_place] = 0
 
-        if len(arc) == 1:
-            weight = 1
-        else:
-            weight = self.parse_value(arc[1])
-
-        # To recognize an inhibitor arc, we set a negative weight
-        if inhibitor_arc:
-            weight = -weight
-
         pl = self.places.get(place_id)
         arcs[pl] = weight
 
-        # In a case of a test arc, we add a second arc 
-        if opposite_arcs is not None and test_arc:
+        # In a case of a test arc, we add a second arc
+        if test_arc and opposite_arcs is not None:
             opposite_arcs[pl] = weight
 
         return pl
 
-    def parse_place(self, content):
+    def parse_place(self, content: list[str]) -> None:
         """ Place parser.
-            Input format: .net
+
+        Parameters
+        ----------
+        content : list of str
+            Place to parse (.net format).
         """
-        place_id = content.pop(0).replace('{', '').replace('}', '')  # '{' and '}' forbidden in SMT-LIB
+        place_id = content.pop(0).replace('{', '').replace(
+            '}', '')  # '{' and '}' forbidden in SMT-LIB
 
         content = self.parse_label(content)
 
         if content:
-            initial_marking = self.parse_value(content[0].replace('(', '').replace(')', ''))
+            initial_marking = self.parse_value(
+                content[0].replace('(', '').replace(')', ''))
         else:
             initial_marking = 0
 
@@ -320,9 +475,19 @@ class PetriNet:
 
         self.initial_marking.tokens[place] = initial_marking
 
-    def parse_label(self, content):
+    def parse_label(self, content: list[str]) -> list[str]:
         """ Label parser.
-            Input format: .net
+
+        Parameters
+        ----------
+        content : list of str
+            Content to parse (.net format).
+
+        Returns
+        -------
+        list of str
+            Content without labels.
+
         """
         index = 0
         if content and content[index] == ':':
@@ -333,9 +498,24 @@ class PetriNet:
                 index += 1
         return content[index:]
 
-    def parse_value(self, content):
+    def parse_value(self, content: str) -> int:
         """ Parse integer value.
-            Input format: .net
+
+        Parameters
+        ----------
+        content : str
+            Content to parse (.net format).
+
+        Returns
+        -------
+        int
+            Corresponding integer value.
+
+        Raises
+        ------
+        ValueError
+            Incorrect integer value.
+
         """
         if content.isnumeric():
             return int(content)
@@ -347,10 +527,22 @@ class PetriNet:
             return int(content[:-1]) * 1000000
 
         else:
-            raise ValueError("Non correct initial marking")
+            raise ValueError("Incorrect integer value")
 
-    def get_transition_from_step(self, m_1, m_2):
+    def get_transition_from_step(self, m_1: Marking, m_2: Marking) -> Optional[Transition]:
         """ Return an associate transition to a step m_1 -> m_2.
+
+        Parameters
+        ----------
+        m_1 : Marking
+            Starting marking.
+        m_2 : Marking
+            Reached marking.
+
+        Returns
+        -------
+        Transitions, optional
+            Transition corresponding to the step.
         """
         # Get inputs and outputs
         inputs, outputs = {}, {}
@@ -371,60 +563,112 @@ class PetriNet:
 
 
 class Place:
-    """
-    Place defined by:
-    - an identifier,
-    - an initial marking,
+    """ Place.
+
+    Attributes
+    ----------
+    id : str
+        An identifier.
+    initial_marking : Marking
+        Initial marking of the place.
+    delta : dict of Transition: int
+        Delta vector.
+    input_transitions: set of Transition
+        Input transitions.
+    output_transitions : set of Transition 
+        Output transitions.
     """
 
-    def __init__(self, place_id, initial_marking=0):
+    def __init__(self, place_id: str, initial_marking: int = 0) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        place_id : str
+            An identifier.
+        initial_marking : int, optional
+            Initial marking of the place.
         """
-        self.id = place_id
-        self.initial_marking = initial_marking
+        self.id: str = place_id
+        self.initial_marking: int = initial_marking
 
         # Optional (used for state equation)
-        self.delta = {}
-        self.input_transitions = set()
-        self.output_transitions = set()
+        self.delta: dict[Transition, int] = {}
+        self.input_transitions: set[Transition] = set()
+        self.output_transitions: set[Transition] = set()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Place to .net format.
+
+        Returns
+        -------
+        str
+            .net format.
         """
         if self.initial_marking:
             return "pl {} ({})\n".format(self.id, self.initial_marking)
         else:
             return ""
 
-    def smtlib(self, k=None):
+    def smtlib(self, k: Optional[int] = None) -> str:
         """ Place identifier.
-            SMT-LIB format
-        """
-        return "{}@{}".format(self.id, k) if k is not None else self.id 
 
-    def smtlib_declare(self, k=None):
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return "{}@{}".format(self.id, k) if k is not None else self.id
+
+    def smtlib_declare(self, k: Optional[int] = None) -> str:
         """ Declare a place.
-            SMT-LIB format
+
+        Parameters
+        ----------
+        k : int, optional
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.smtlib(k), self.smtlib(k))
 
-    def minizinc_declare(self):
+    def minizinc_declare(self) -> str:
         """ Declare a place.
-            MiniZinc format
+
+        Returns
+        -------
+        str
+            MiniZinc format.
         """
         return "var 0..MAX: {};\n".format(self.id)
 
-    def smtlib_initial_marking(self, k=None):
+    def smtlib_initial_marking(self, k: Optional[int] = None) -> str:
         """ Assert the initial marking.
-            SMT-LIB format
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return "(assert (= {} {}))\n".format(self.smtlib(k), self.initial_marking)
 
-    def smtlib_state_equation(self):
+    def smtlib_state_equation(self) -> str:
         """ Assert the state equation.
-            SMT-LIB format
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
-        smt_input = ' '.join(["(* {} {})".format(tr.id, weight) if weight != 1 else tr.id for tr, weight in self.delta.items()])
+        smt_input = ' '.join(["(* {} {})".format(tr.id, weight) if weight !=
+                             1 else tr.id for tr, weight in self.delta.items()])
 
         if self.initial_marking != 0:
             smt_input += " " + str(self.initial_marking)
@@ -437,19 +681,29 @@ class Place:
 
         return "(assert (= {} {}))\n".format(self.smtlib(), smt_input)
 
-    def smtlib_declare_trap(self):
+    def smtlib_declare_trap(self) -> str:
         """ Declare trap Boolean variable.
-            SMT-LIB format
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return "(declare-const {} Bool)\n".format(self.id)
 
-    def smtlib_trap_definition(self):
+    def smtlib_trap_definition(self) -> str:
         """ Assert trap definition for each place.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         if not self.output_transitions:
             return ""
 
-        smt_input = ' '.join(map(lambda tr: tr.smtlib_trap_definition_helper(), self.output_transitions))
+        smt_input = ' '.join(
+            map(lambda tr: tr.smtlib_trap_definition_helper(), self.output_transitions))
 
         if len(self.output_transitions) > 1:
             smt_input = "(and {})".format(smt_input)
@@ -458,37 +712,60 @@ class Place:
 
 
 class Transition:
-    """
-    Transition defined by:
-    - an identifier
-    - input places (flow)
-      associated to the weight of the arc,
-    - output places (flow)
-      associated to the weight of the arc,
-    - test places (null flow),
-      associated to the weight of the arc,
-    - pre vector (firing condition),
-    - a list of the places connected to the transition.
+    """ Transition.
+
+    Attributes
+    ----------
+    id : str
+        An identifier.
+    inputs : dict of Place: int
+        Input places (flow), associated to the weight of the arc.
+    outputs : dict of Place: int
+        Output places (flow), associated to the weight of the arc.
+    test: dict of Place: int
+        Test places (null flow), associated to the weight of the arc.
+    pre: dict of Place: int
+        Pre vector (firing condition).
+    post: dict of Place: int
+        Post vector.
+    delta: dict of Place: int
+        Delta vector (change marking).
+    connected_places: list of Place
+        List of the places connected to the transition.
+    ptnet: PetriNet
+        Associated Petri net.
     """
 
-    def __init__(self, transition_id, ptnet):
+    def __init__(self, transition_id: str, ptnet: PetriNet) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        transition_id : str
+            An identifier.
+        ptnet : PetriNet
+            Associated Petri net.
         """
-        self.id = transition_id
+        self.id: str = transition_id
 
-        self.inputs = {}
-        self.outputs = {}
-        self.tests = {}
+        self.inputs: dict[Place, int] = {}
+        self.outputs: dict[Place, int] = {}
+        self.tests: dict[Place, int] = {}
 
-        self.pre = {}
-        self.post = {}
-        self.delta = {}
+        self.pre: dict[Place, int] = {}
+        self.post: dict[Place, int] = {}
+        self.delta: dict[Place, int] = {}
 
-        self.connected_places = []
-        self.ptnet = ptnet
+        self.connected_places: list[Place] = []
+        self.ptnet: PetriNet = ptnet
 
-    def __str__(self):
-        """ Transition to .net format.
+    def __str__(self) -> str:
+        """ Transition to textual format.
+        
+        Returns
+        -------
+        str
+            .net format.
         """
         text = "tr {} ".format(self.id)
 
@@ -509,8 +786,20 @@ class Transition:
         text += '\n'
         return text
 
-    def str_arc(self, place, weight):
-        """ Arc to .net format.
+    def str_arc(self, place: Place, weight: int) -> str:
+        """ Arc to textual format.
+
+        Parameters
+        ----------
+        place : place
+            Input place.
+        weight : int
+            Weight of the arc (negative if inhibitor).
+
+        Returns
+        -------
+        str
+            .net format.
         """
         text = place.id
 
@@ -522,9 +811,18 @@ class Transition:
 
         return text
 
-    def smtlib(self, k):
+    def smtlib(self, k: int) -> str:
         """ Transition relation from places at order k to order k + 1.
-            SMT-LIB format
+            
+        Parameters
+        ----------
+        k : int
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         smt_input = "\t(and\n\t\t"
 
@@ -543,12 +841,14 @@ class Transition:
                     smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.outputs[pl],
                                                                         weight)
                 else:
-                    smt_input += "(= {}@{} (- {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
+                    smt_input += "(= {}@{} (- {}@{} {}))".format(pl.id,
+                                                                 k + 1, pl.id, k, weight)
 
         # Update output places
         for pl, weight in self.outputs.items():
             if pl not in self.inputs or self.inputs[pl] < 0:
-                smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
+                smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id,
+                                                             k + 1, pl.id, k, weight)
         smt_input += "\n\t\t"
 
         # Unconnected places must not be changed
@@ -560,10 +860,22 @@ class Transition:
 
         return smt_input
 
-    def smtlib_textbook(self, k):
+    def smtlib_textbook(self, k: int) -> str:
         """ Transition relation from places at order k to order k + 1.
-            Textbook version (not used).
-            SMT-LIB format
+        
+        Note
+        ----
+        Textbook version, not used in practice.
+        
+        Parameters
+        ----------
+        k : int
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         smt_input = "\t(and\n\t\t(=>\n\t\t\t(and "
 
@@ -582,12 +894,14 @@ class Transition:
                     smt_input += "(= {}@{} (- (+ {}@{} {}) {}))".format(pl.id, k + 1, pl.id, k, self.outputs[pl],
                                                                         weight)
                 else:
-                    smt_input += "(= {}@{} (- {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
+                    smt_input += "(= {}@{} (- {}@{} {}))".format(pl.id,
+                                                                 k + 1, pl.id, k, weight)
 
         # Update output places
         for pl, weight in self.outputs.items():
             if pl not in self.inputs or self.inputs[pl] < 0:
-                smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, weight)
+                smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id,
+                                                             k + 1, pl.id, k, weight)
 
         # Unconnected places must not be changed
         for pl in self.ptnet.places.values():
@@ -610,15 +924,23 @@ class Transition:
 
         return smt_input
 
-    def smtlib_declare(self):
+    def smtlib_declare(self) -> str:
         """ Declare a transition.
-            SMT-LIB format
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
 
-    def smtlib_read_arc_constraints(self):
+    def smtlib_read_arc_constraints(self) -> str:
         """ Assert read arc constraints.
-            SMT-LIB format
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         smt_input = ""
 
@@ -627,19 +949,27 @@ class Transition:
             # if delta(t,p) = 0 and pre(t,p) > m0(p)
             if not self.delta.get(pl, 0) and weight > pl.initial_marking:
                 # t > 0 => \/_{t' s.t. post(t,p) > 0 \ t and delta(t',p) > 0} t' > 0
-                right_member = ["(> {} 0)".format(tr.id) for tr in pl.input_transitions if tr != self and tr.delta.get(pl, 0) > 0]
+                right_member = ["(> {} 0)".format(
+                    tr.id) for tr in pl.input_transitions if tr != self and tr.delta.get(pl, 0) > 0]
                 if not right_member:
-                    right_member = "false"
+                    smt_input_right_member = "false"
                 elif len(right_member) == 1:
-                    right_member = ''.join(right_member)
+                    smt_input_right_member = ''.join(right_member)
                 else:
-                    right_member = "(or {})".format(''.join(right_member))
-                smt_input += "(assert (=> (> {} 0) {}))\n".format(self.id, right_member)
+                    smt_input_right_member = "(or {})".format(
+                        ''.join(right_member))
+                smt_input += "(assert (=> (> {} 0) {}))\n".format(self.id,
+                                                                  smt_input_right_member)
 
         return smt_input
 
-    def smtlib_trap_definition_helper(self):
+    def smtlib_trap_definition_helper(self) -> str:
         """ Helper to assert trap definition for each place.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         # \/_{p' s.t. post(t, p') > 0} p'
 
@@ -653,19 +983,27 @@ class Transition:
 
         return smt_input
 
-    def normalize_flows(self, state_equation=False):
+    def normalize_flows(self, state_equation: bool = False) -> None:
         """ Normalize arcs.
-            If pre(t,p) > 0 and post(t,p) > 0 then
-            - delta(t,p) = |pre(t,p) - post(t,p)|
-            - tests(t,p) = min(pre(t,p), post(t,p))
-            - inputs(t,p) = max(0, pre(t,p) - delta(t,p))
-            - outputs(t,p) = max(0, post(t,p) - delta(t,p))
-            Else if pre(t, p) > 0 then
-            - inputs(t,p) = pre(t,p)
-            - delta(t,p) = -pre(t,p)
-            Else if post(t,p) > 0 then
-            - output(t,p) = post(t,p)
-            - delta(t,p) = post(t,p)
+
+        Note
+        ----
+        If pre(t,p) > 0 and post(t,p) > 0 then
+        - delta(t,p) = |pre(t,p) - post(t,p)|
+        - tests(t,p) = min(pre(t,p), post(t,p))
+        - inputs(t,p) = max(0, pre(t,p) - delta(t,p))
+        - outputs(t,p) = max(0, post(t,p) - delta(t,p))
+        Else if pre(t, p) > 0 then
+        - inputs(t,p) = pre(t,p)
+        - delta(t,p) = -pre(t,p)
+        Else if post(t,p) > 0 then
+        - output(t,p) = post(t,p)
+        - delta(t,p) = post(t,p)
+
+        Parameters
+        ----------
+        state_equation : bool, optional
+            State equation method flag.
         """
         for place in set(self.pre.keys()) | set(self.post.keys()):
 
@@ -707,16 +1045,32 @@ class Transition:
 
 class Marking:
     """ Marking.
+
+    Attributes
+    ----------
+    tokens : dict of Place: int
+        Number of tokens associated to the places.
     """
-    def __init__(self, tokens=None):
+
+    def __init__(self, tokens: Optional[dict[Place, int]] = None) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        tokens : dict of Place: int, optional
+            Number of tokens associated to the places.
         """
         if tokens is None:
             tokens = {}
-        self.tokens = tokens
+        self.tokens: dict[Place, int] = tokens
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Marking to textual format.
+
+        Returns
+        -------
+        str
+            .net format.
         """
         text = ""
 
@@ -729,18 +1083,28 @@ class Marking:
 
         return text
 
-    def smtlib(self, k=None):
+    def smtlib(self, k: int = None) -> str:
         """ Assert the marking.
-            SMT-LIB format
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return ''.join(map(lambda pl: "(assert (= {} {}))\n".format(pl.smtlib(k), self.tokens[pl]), self.tokens.keys()))
 
-    def smtlib_trap_initially_marked(self):
+    def smtlib_trap_initially_marked(self) -> str:
         """ Assert that places in the trap must be initially marked.
             SMT-LIB format
         """
-        marked_places = list(filter(lambda pl: self.tokens[pl] > 0, self.tokens))
-        
+        marked_places = list(
+            filter(lambda pl: self.tokens[pl] > 0, self.tokens))
+
         if not marked_places:
             return "(assert false)\n"
 
@@ -751,11 +1115,16 @@ class Marking:
 
         return "(assert {})\n".format(smt_input)
 
-    def smtlib_consider_unmarked_places_for_trap(self):
+    def smtlib_consider_unmarked_places_for_trap(self) -> str:
         """ Consider unmarked places for trap candidates.
-            SMT-LIB format
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
-        marked_places = list(filter(lambda pl: self.tokens[pl] > 0, self.tokens))
+        marked_places = list(
+            filter(lambda pl: self.tokens[pl] > 0, self.tokens))
 
         if not marked_places:
             return ""
@@ -764,29 +1133,45 @@ class Marking:
 
 
 class NUPN:
-    """ NUPN defined by:
-        - a unit-safe pragma,
-        - a root unit,
-        - a finite set of units (identified by names).
+    """ NUPN.
+
+    Attributes
+    ----------
+    unit_safe : bool
+        Unit-safe pragma.
+    root : Unit
+        Root unit.
+    units : dict of str: Unit
+        Finite set of units (identified by ids).
     """
 
-    def __init__(self, pnml_filename):
+    def __init__(self, pnml_filename: str) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        pnml_filename : str
+            PNML filename (.pnml format).
         """
         # Unit-safe pragma
-        self.unit_safe = False
+        self.unit_safe: bool = False
 
         # Root
-        self.root = None
+        self.root: Unit = None
 
         # Unit ids associated to the corresponding unit object
-        self.units = {}
-        
+        self.units: dict[str, Unit] = {}
+
         # Parse toolspecific section
         self.parse_pnml(pnml_filename)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ NUPN to textual format.
+
+        Returns
+        -------
+        str
+            Debugging format.
         """
         # Description
         text = "# NUPN\n"
@@ -798,14 +1183,23 @@ class NUPN:
 
         return text
 
-    def smtlib_local_constraints(self):
+    def smtlib_local_constraints(self) -> str:
         """ Declare units and assert local constraints.
-            SMT-LIB format
+            
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         return ''.join(map(lambda unit: unit.smtlib(), self.units.values()))
 
-    def smtlib_hierarchy_constraints(self):
-        """ Assert hierarchy constraints
+    def smtlib_hierarchy_constraints(self) -> str:
+        """ Assert hierarchy constraints.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         smt_input = ""
 
@@ -813,21 +1207,28 @@ class NUPN:
 
         for path in paths:
             if len(path) > 1:
-                smt_input += "(assert (<= (+ {}) 1))\n".format(' '.join(map(lambda unit: unit.id, path)))
+                smt_input += "(assert (<= (+ {}) 1))\n".format(
+                    ' '.join(map(lambda unit: unit.id, path)))
 
         return smt_input
 
-    def parse_pnml(self, filename):
+    def parse_pnml(self, filename: str) -> None:
         """ Toolspecific section parser.
-            Input format: .pnml
+
+        Parameters
+        ----------
+        filename : str
+            Petri net filename (.pnml format).
         """
         xmlns = "{http://www.pnml.org/version-2009/grammar/pnml}"
-        ET.register_namespace('', "http://www.pnml.org/version-2009/grammar/pnml")
+        ET.register_namespace(
+            '', "http://www.pnml.org/version-2009/grammar/pnml")
 
         tree = ET.parse(filename)
         root = tree.getroot()
         # Check if the net is known to be unit-safe
-        structure = root.find(xmlns + "net/" + xmlns + "page/" + xmlns + "toolspecific/" + xmlns + "structure")
+        structure = root.find(xmlns + "net/" + xmlns + "page/" +
+                              xmlns + "toolspecific/" + xmlns + "structure")
 
         # Exit if no NUPN inforation
         if structure is None:
@@ -849,20 +1250,32 @@ class NUPN:
 
             # Get places
             pnml_places = unit.find(xmlns + 'places')
-            places = {place for place in pnml_places.text.split()} if pnml_places is not None and pnml_places.text else set()
+            places = {place for place in pnml_places.text.split(
+            )} if pnml_places is not None and pnml_places.text else set()
 
             # Get subunits
             pnml_subunits = unit.find(xmlns + 'subunits')
-            subunits = {self.get_unit(subunit) for subunit in pnml_subunits.text.split()} if pnml_subunits is not None and pnml_subunits.text else set()
+            subunits = {self.get_unit(subunit) for subunit in pnml_subunits.text.split(
+            )} if pnml_subunits is not None and pnml_subunits.text else set()
 
             # Create new unit
             new_unit = self.get_unit(name)
             new_unit.places = places
             new_unit.subunits = subunits
 
-    def get_unit(self, unit):
+    def get_unit(self, unit: str) -> Unit:
         """ Return the corresponding unit,
             or create one if does not exist.
+
+        Parameters
+        ----------
+        unit : str
+            Unit id.
+
+        Returns
+        -------
+        unit
+            Corresponding unit (fresh if did not exist)
         """
         if unit in self.units:
             return self.units[unit]
@@ -874,32 +1287,52 @@ class NUPN:
 
 
 class Unit:
-    """ NUPN unit defined by:
-        - an id,
-        - a finite set of local places,
-        - a finite set of subunits.
+    """ NUPN.
+
+    Parameters
+    ----------
+    id : str
+        An identifier.
+    places : set of str
+        A finite set of local places (identifiers).
+    subunits : set of Unit
+        A finite set of subunits.
     """
-    
-    def __init__(self, id):
+
+    def __init__(self, id: str) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        id : str
+            An identifier.
         """
         # Id
-        self.id = id
+        self.id: str = id
 
         # Set of places
-        self.places = set()
-        
-        # Set of subunits
-        self.subunits = set()
+        self.places: set[str] = set()
 
-    def __str__(self):
+        # Set of subunits
+        self.subunits: set[Unit] = set()
+
+    def __str__(self) -> str:
         """ Unit to textual format.
+
+        Returns
+        -------
+        str
+            Debugging format.
         """
         return "# {}: [{}] - [{}]".format(self.id, ' '.join(self.places), ' '.join(map(lambda subunit: subunit.id, self.subunits)))
 
-    def smtlib(self):
+    def smtlib(self) -> str:
         """ Declare the unit and assert the local constraint.
-            SMT-LIB format
+            
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         if not self.places:
             return ""
@@ -913,45 +1346,30 @@ class Unit:
             smt_input_places = "(+ {})".format(smt_input_places)
         smt_input += "(assert (= {} {}))\n".format(self.id, smt_input_places)
 
-        # Assert safe unit defintion        
+        # Assert safe unit defintion
         smt_input += "(assert (<= {} 1))\n".format(self.id)
 
         return smt_input
 
-    def compute_paths(self):
+    def compute_paths(self) -> list[list[Unit]]:
         """ Recursively compute hierarchical paths.
+
+        Returns
+        -------
+        list of list of Unit
+            List of paths.
         """
         if not self.subunits:
             if self.places:
                 return [[self]]
             else:
                 return [[]]
-        
-        paths = [path for subunit in self.subunits for path in subunit.compute_paths()]            
-        
+
+        paths = [
+            path for subunit in self.subunits for path in subunit.compute_paths()]
+
         if self.places:
             for path in paths:
                 path.append(self)
 
         return paths
-
-
-if __name__ == "__main__":
-
-    if len(sys.argv) == 1:
-        sys.exit("Argument missing: ./ptnet.py <path_to_Petri_net>")
-
-    ptnet = PetriNet(sys.argv[1])
-
-    print("> Petri Net (.net format)")
-    print("-------------------------")
-    print(ptnet)
-
-    print("> Generated SMT-LIB")
-    print("-------------------")
-    print(">> Declare places")
-    print(ptnet.smtlib_declare_places())
-    print(">> Initial marking")
-    print(ptnet.smtlib_initial_marking())
-    print(">> Transition relation (0 -> 1)")
-    print(ptnet.smtlib_transition_relation(0))

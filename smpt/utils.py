@@ -29,24 +29,19 @@ from enum import Enum
 STOP = signal.SIGTERM
 KILL = signal.SIGKILL
 
-PRE_TIMEOUT = 120
-
 
 class Verdict(Enum):
-    """ Verdict enum
+    """ Verdict enum.
+
+        Note
+        ----
         INV -> P invariant (R not reachable)
         CEX -> R reachable (P not invariant)
         UNKNOWN
     """
-    INV = 1 
+    INV = 1
     CEX = 2
     UNKNOWN = 3
-
-
-def worker(parallelizer):
-    """ Call run method n parallelizer object.
-    """
-    return parallelizer.run(PRE_TIMEOUT)
 
 
 def send_signal_pids(pids, signal_to_send):
@@ -73,4 +68,3 @@ def send_signal_group_pid(pid, signal_to_send):
         os.killpg(os.getpgid(pid), signal_to_send)
     except ProcessLookupError:
         pass
-

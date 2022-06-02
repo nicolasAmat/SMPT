@@ -1,13 +1,6 @@
+
 """
-Interface for z3 and MiniZinc solvers.
-
-Uses SMT-LIB v2 format
-Standard: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf
-
-Dependency: https://github.com/Z3Prover/z3
-
-This module can easily be hacked to replace Z3
-by another SMT solver supporting the SMT-LIB format.
+Interface for z3, MiniZinc solvers and Walk Petri net explorer.
 
 This file is part of SMPT.
 
@@ -25,102 +18,187 @@ You should have received a copy of the GNU General Public License
 along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
+
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
 import logging as log
-import os
 import sys
 from abc import ABC, abstractmethod
+from multiprocessing import Queue
 from subprocess import DEVNULL, PIPE, Popen
 from tempfile import NamedTemporaryFile
+from typing import Optional
 
-from ptnet import Marking
+from ptnet import Marking, PetriNet, Place
 from utils import KILL, STOP, send_signal_pids
 
 
 class Solver(ABC):
     """ Solver abstract class.
-        (Z3, MiniZinc, Walk)
+
+        Note
+        ----
+        Can be: Z3, MiniZinc, Walk
     """
 
     @abstractmethod
-    def kill(self):
+    def kill(self) -> None:
         """" Kill the process.
         """
         pass
 
     @abstractmethod
-    def write(self, input):
+    def abort(self) -> None:
+        """ Abort the solver.
+        """
+        pass
+
+    @abstractmethod
+    def write(self, input: str, debug: Optional[bool] = None) -> None:
         """ Write instructions.
+
+        Parameters
+        ----------
+        input : str 
+            Input instructions.
+        debug : bool
+            Debugging flag.
         """
         pass
 
     @abstractmethod
-    def check_sat(self):
-        """
+    def readline(self, debug: Optional[bool] = False) -> str:
+        """ Read a line from the standard output.
+
+        Parameters
+        ----------
+        debug : bool, optional
+            Debugging flag.
+
+        Returns
+        -------
+        str
+            Line read.
         """
         pass
 
     @abstractmethod
-    def get_marking(self):
+    def check_sat(self) -> Optional[bool]:
+        """ Check the satisfiability of the current stack.
+
+        Returns
+        -------
+        bool, optional
+            Satisfiability of the current stack.
         """
+        pass
+
+    @abstractmethod
+    def get_marking(self, ptnet: PetriNet, k: Optional[int] = None) -> Marking:
+        """ Get a marking from the current stack.
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Current Petri net.
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        Marking
+            Marking from the current stack.
         """
         pass
 
 
 class Z3(Solver):
-    """
-    z3 interface defined by:
-    - a z3 process,
-    - an 'aborted' flag,
-    - a debug option.
+    """ z3 interface.
+
+    Note
+    ----
+
+    Uses SMT-LIB v2 format
+    Standard: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf
+
+    Dependency: https://github.com/Z3Prover/z3
+
+    This class can easily be hacked to replace Z3
+    by another SMT solver supporting the SMT-LIB format.
+
+    Attributes
+    ----------
+    solver : Popen
+        A z3 process.
+    aborted :bool
+        Aborted flag.
+    debug : bool
+        Debugging flag.
     """
 
-    def __init__(self, debug=False, timeout=0, solver_pids=None):
+    def __init__(self, debug: bool = False, timeout: int = 0, solver_pids: Queue = None) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        debug: bool
+            Debugging flag.
+        timeout: int
+            Timeout of the solver.
+        solver_pids : Queue
+            Queue of solver pids.
         """
         # Solver
         process = ['z3', '-in']
         if timeout:
             process.append('-T:{}'.format(timeout))
-        self.solver = Popen(process, stdin=PIPE, stdout=PIPE, start_new_session=True)
+        self.solver: Popen = Popen(process, stdin=PIPE,
+                                   stdout=PIPE, start_new_session=True)
 
         if solver_pids is not None:
             solver_pids.put(self.solver.pid)
 
         # Flags
-        self.aborted = False
-        self.debug = debug
+        self.aborted: bool = False
+        self.debug: bool = debug
 
-    def kill(self):
+    def kill(self) -> None:
         """" Kill the process.
         """
         self.solver.kill()
 
-    def abort(self):
-        """ Abort the process.
+    def abort(self) -> None:
+        """ Abort the solver.
         """
         log.warning("z3 process has been aborted")
         self.solver.kill()
         self.aborted = True
         sys.exit()
 
-    def write(self, smt_input, debug=False):
-        """ Write instructions into the standard input.
+    def write(self, input: str, debug: bool = False) -> None:
+        """ Write instructions to the standard input.
+
+        Parameters
+        ----------
+        input : str 
+            Input instructions.
+        debug : bool
+            Debugging flag.
         """
         if self.debug or debug:
-            print(smt_input)
+            print(input)
 
-        if smt_input != "":
+        if input != "":
             try:
-                self.solver.stdin.write(bytes(smt_input, 'utf-8'))
+                self.solver.stdin.write(bytes(input, 'utf-8'))
             except BrokenPipeError:
                 self.abort()
 
-    def flush(self):
+    def flush(self) -> None:
         """ Flush the standard input.
         """
         try:
@@ -128,8 +206,18 @@ class Z3(Solver):
         except BrokenPipeError:
             self.abort()
 
-    def readline(self, debug=False):
+    def readline(self, debug: bool = False):
         """ Read a line from the standard output.
+
+        Parameters
+        ----------
+        debug : bool, optional
+            Debugging flag.
+
+        Returns
+        -------
+        str
+            Line read.
         """
         try:
             smt_output = self.solver.stdout.readline().decode('utf-8').strip()
@@ -141,26 +229,46 @@ class Z3(Solver):
 
         return smt_output
 
-    def reset(self):
+    def reset(self) -> None:
         """ Reset.
-            Erase all assertions and declarations.
+
+        Note
+        ----
+        Erase all assertions and declarations.
         """
         self.write("(reset)\n")
 
     def push(self):
         """ Push.
-            Creates a new scope by saving the current stack size.
+
+        Note
+        ----
+        Creates a new scope by saving the current stack size.
         """
         self.write("(push)\n")
 
-    def pop(self):
+    def pop(self) -> None:
         """ Pop.
-            Removes any assertion or declaration performed between it and the matching push.
+
+        Note
+        ----
+        Removes any assertion or declaration performed between it and the last push.
         """
         self.write("(pop)\n")
 
-    def check_sat(self, no_check=False):
+    def check_sat(self, no_check: bool = False) -> Optional[bool]:
         """ Check the satisfiability of the current stack of z3.
+
+        Parameters
+        ----------
+        no_check : bool
+            Do not abort the solver in case of unknown verdict.
+
+        Returns
+        -------
+        bool, optional
+                Satisfiability of the current stack.
+
         """
         self.write("(check-sat)\n")
         self.flush()
@@ -171,14 +279,25 @@ class Z3(Solver):
             return True
         elif sat == 'unsat':
             return False
-        elif no_check:
-            return None
-        else:
+        elif not no_check:
             self.abort()
 
-    def get_marking(self, ptnet, order=None):
+        return None
+
+    def get_marking(self, ptnet: PetriNet, order: Optional[int] = None) -> Marking:
         """ Get a marking from the current SAT stack.
-            Return a hashmap (keys: places and values: number of tokens).
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Current Petri net.
+        order : int, optional
+            Order.
+
+        Returns
+        -------
+        Marking : 
+            Marking from the current SAT stack.
         """
         # Solver instruction
         self.write("(get-model)\n")
@@ -191,7 +310,7 @@ class Z3(Solver):
         marking = {}
         while True:
             place_content = self.readline().split(' ')
-            
+
             # Check if parsing done
             if len(place_content) < 2:
                 break
@@ -209,7 +328,7 @@ class Z3(Solver):
 
         return Marking(marking)
 
-    def get_step(self, ptnet):
+    def get_step(self, ptnet: PetriNet) -> tuple[Marking, Marking]:
         """ Get a step from the current SAT stack,
             meaning a pair of markings (m, m') s.t. m -> m'
         """
@@ -221,7 +340,7 @@ class Z3(Solver):
         self.readline()
 
         # Parse the model
-        markings = [{}, {}]
+        markings: list[dict[Place, int]] = [{}, {}]
         while True:
             place_content = self.readline().split(' ')
 
@@ -230,7 +349,8 @@ class Z3(Solver):
                 break
 
             # Get place marking and place id
-            place_marking = int(self.readline().replace(' ', '').replace(')', ''))
+            place_marking = int(
+                self.readline().replace(' ', '').replace(')', ''))
             place_content = place_content[1].rsplit('@', 1)
             place_id = place_content[0]
             # Skip free variables
@@ -238,11 +358,12 @@ class Z3(Solver):
                 continue
 
             # Add the place marking in the corresponding dictionnary
-            markings[int(place_content[1])][ptnet.places[place_id]] = place_marking
+            markings[int(place_content[1])
+                     ][ptnet.places[place_id]] = place_marking
 
         return Marking(markings[0]), Marking(markings[1])
 
-    def get_trap(self, ptnet):
+    def get_trap(self, ptnet: PetriNet) -> set[Place]:
         """ Get trap from the current SAT stack.
         """
         # Solver instruction
@@ -256,7 +377,7 @@ class Z3(Solver):
         trap = set()
         while True:
             content = self.readline().split(' ')
-            
+
             # Check if parsing done
             if len(content) < 2:
                 break
@@ -269,16 +390,21 @@ class Z3(Solver):
 
         return trap
 
-    def enable_unsat_core(self):
+    def enable_unsat_core(self) -> None:
         """ Enable generation of unsat cores.
         """
         self.write("(set-option :produce-unsat-cores true)\n")
 
-    def get_unsat_core(self):
+    def get_unsat_core(self) -> str:
         """ Get an unsat core from the current UNSAT stack.
+
+        Returns
+        -------
+        str
+            Unsat core.
         """
         sat = self.check_sat(no_check=True)
-        
+
         # Assert the result either `UNKNOWN` or `SAT`
         assert(sat is None or not sat)
 
@@ -298,47 +424,47 @@ class MiniZinc(Solver):
         - a debug option.
     """
 
-    def __init__(self, debug=False, timeout=0, solver_pids=None):
+    def __init__(self, debug: bool = False, timeout: int = 0, solver_pids: Queue[int] = None) -> None:
         """ Initializer.
         """
         # File to write formula
         self.file = NamedTemporaryFile('w', suffix='.mzn')
-        
+
         # Solver
-        self.solver = None
-        self.solver_pids = solver_pids
+        self.solver: Optional[Popen] = None
+        self.solver_pids: Queue[int] = solver_pids
 
         # Flags
-        self.aborted = False
-        self.debug = debug
-        self.timeout = timeout
+        self.aborted: bool = False
+        self.debug: bool = debug
+        self.timeout: int = timeout
 
-        self.first_line = ""
+        self.first_line: str = ""
 
-    def kill(self):
+    def kill(self) -> None:
         """" Kill the process.
         """
         if self.solver is not None:
             send_signal_pids([self.solver.pid], STOP)
 
-    def abort(self):
-        """ Abort the process.
+    def abort(self) -> None:
+        """ Abort the solver.
         """
         log.warning("MiniZinc process has been aborted")
         self.solver.kill()
         self.aborted = True
         sys.exit()
 
-    def write(self, minizinc_input, debug=False):
+    def write(self, input: str, debug: bool = False) -> None:
         """ Write instructions into the standard input.
         """
         if self.debug or debug:
-            print(minizinc_input)
+            print(input)
 
-        self.file.write(minizinc_input)
+        self.file.write(input)
         self.file.flush()
 
-    def readline(self, debug=False):
+    def readline(self, debug: bool = False) -> str:
         """ Read a line from the standard output.
         """
         if self.solver is None:
@@ -354,12 +480,12 @@ class MiniZinc(Solver):
 
         return minizinc_output
 
-    def set_bound(self):
+    def set_bound(self) -> None:
         """ Set integer bound.
         """
         self.write("int: MAX = 1000000;\n")
 
-    def check_sat(self):
+    def check_sat(self) -> Optional[bool]:
         """ Check the satisfiability.
         """
         self.write("solve satisfy;\n")
@@ -367,7 +493,8 @@ class MiniZinc(Solver):
         process = ['minizinc', self.file.name]
         if self.timeout:
             process.extend(['--time-limit', str(self.timeout * 1000)])
-        self.solver = Popen(process, stdout=PIPE, stderr=DEVNULL, start_new_session=True)
+        self.solver = Popen(process, stdout=PIPE,
+                            stderr=DEVNULL, start_new_session=True)
 
         if self.solver_pids is not None:
             self.solver_pids.put(self.solver.pid)
@@ -380,14 +507,15 @@ class MiniZinc(Solver):
 
         if minizinc_output in ["=====ERROR=====", "=====UNKNOWN====="]:
             self.abort()
+            return None
         else:
             return minizinc_output != "=====UNSATISFIABLE====="
 
-    def get_marking(self, ptnet):
+    def get_marking(self, ptnet: PetriNet, k: Optional[int] = None) -> Marking:
         """ Get a model.
             Return a cube (conjunction of equalities).
         """
-        marking = {}
+        marking: dict[Place, int] = {}
         line = self.first_line
 
         while line and line != '----------':
@@ -402,7 +530,7 @@ class MiniZinc(Solver):
 
         return Marking(marking)
 
-    def parse_value(self, ptnet, place_content, marking):
+    def parse_value(self, ptnet: PetriNet, place_content: list[str], marking: dict[Place, int]):
         """ Parse a place from the model.
         """
         place_marking = int(place_content[1].replace(';', ''))
@@ -415,21 +543,21 @@ class MiniZinc(Solver):
 class Walk(Solver):
     """ Walk interface.
     """
-    
+
     def __init__(self, ptnet, debug=False, timeout=0, solver_pids=None):
         """ Initializer.
         """
         # Petri net
-        self.ptnet = ptnet
+        self.ptnet: PetriNet = ptnet
 
         # Solver
-        self.solver = None
-        self.timeout = timeout
-        self.solver_pids = solver_pids
+        self.solver: Optional[Popen] = None
+        self.timeout: int = timeout
+        self.solver_pids: Queue[int] = solver_pids
 
         # Flags
-        self.debug = debug
-        self.aborted = False
+        self.debug: bool = debug
+        self.aborted: bool = False
 
     def kill(self):
         """" Kill the process.
@@ -438,7 +566,7 @@ class Walk(Solver):
             send_signal_pids([self.solver.pid], KILL)
 
     def abort(self):
-        """ Abort the process.
+        """ Abort the solver.
         """
         log.warning("Walk process has been aborted")
         self.solver.kill()
@@ -461,7 +589,8 @@ class Walk(Solver):
     def check_sat(self, walk_filename):
         """ Check if a state violates the formula.
         """
-        process = ['walk', '-R', '-loop', '-seed', self.ptnet.filename, '-ff', walk_filename]
+        process = ['walk', '-R', '-loop', '-seed',
+                   self.ptnet.filename, '-ff', walk_filename]
         if self.timeout:
             process += ['-t', str(self.timeout)]
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)
@@ -471,13 +600,22 @@ class Walk(Solver):
 
         return not (self.readline() != 'FALSE')
 
-    def write(self, input):
-        """ Write input to file.
+    def write(self):
+        """ Write instructions.
+
+        Raises
+        ------
+        NotImplementedError
+            This methods must not be called.
         """
         raise NotImplementedError
 
     def get_marking(self):
-        """
+        """ Get a marking from the current SAT stack.
+
+        Raises
+        ------
+        NotImplementedError
+            This method must not be called.
         """
         raise NotImplementedError
-
