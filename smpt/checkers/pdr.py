@@ -41,9 +41,10 @@ import copy
 import logging as log
 import resource
 
-from formula import (ArithmeticOperation, Atom, FreeVariable, IntegerConstant,
-                     StateFormula, TokenCount, UniversalQuantification)
-from solver import Z3
+from interfaces.solver import Z3
+from ptio.formula import (ArithmeticOperation, Atom, FreeVariable,
+                          IntegerConstant, StateFormula, TokenCount,
+                          UniversalQuantification)
 from utils import STOP, Verdict, send_signal_pids
 
 

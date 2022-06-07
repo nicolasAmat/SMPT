@@ -29,7 +29,7 @@ import logging as log
 import re
 import sys
 
-from solver import Z3
+from interfaces.solver import Z3
 from utils import STOP, Verdict, send_signal_pids
 
 

@@ -35,10 +35,10 @@ import tempfile
 import time
 from multiprocessing.pool import ThreadPool
 
-from formula import Formula, Properties
 from parallelizer import Parallelizer, worker
-from ptnet import PetriNet
-from system import System
+from ptio.formula import Formula, Properties
+from ptio.ptnet import PetriNet
+from ptio.system import System
 
 
 def main():

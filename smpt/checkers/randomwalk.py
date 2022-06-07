@@ -26,7 +26,7 @@ __version__ = "4.0.0"
 
 import logging as log
 
-from solver import Walk
+from interfaces.solver import Walk
 from utils import STOP, Verdict, send_signal_pids
 
 

@@ -24,7 +24,7 @@ __version__ = "4.0.0"
 
 import logging as log
 
-from solver import Z3, MiniZinc
+from interfaces.solver import Z3, MiniZinc
 from utils import STOP, Verdict, send_signal_pids
 
 
