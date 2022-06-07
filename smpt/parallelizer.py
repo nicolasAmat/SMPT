@@ -26,14 +26,14 @@ import time
 from multiprocessing import Process, Queue
 from typing import Any
 
-from bmc import BMC
-from cp import CP
-from enumerative import Enumerative
-from induction import Induction
-from kinduction import KInduction
-from pdr import PDR
-from randomwalk import RandomWalk
-from statequation import StateEquation
+from checkers.bmc import BMC
+from checkers.cp import CP
+from checkers.enumerative import Enumerative
+from checkers.induction import Induction
+from checkers.kinduction import KInduction
+from checkers.pdr import PDR
+from checkers.randomwalk import RandomWalk
+from checkers.statequation import StateEquation
 from utils import KILL, send_signal_group_pid, send_signal_pids
 
 
