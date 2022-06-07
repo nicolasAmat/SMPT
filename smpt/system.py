@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 """
 Reduction Equations Module
@@ -22,6 +21,8 @@ You should have received a copy of the GNU General Public License
 along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
+
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
@@ -29,44 +30,74 @@ __version__ = "4.0.0"
 
 import re
 import sys
-
-from ptnet import PetriNet
+from typing import Optional
 
 
 class System:
-    """
-    Equation system defined by:
-    - a list of places from the initial Petri net,
-    - a list of places from the reduced Petri net,
-    - a list of additional variables,
-    - a list of (in)equations.
+    """ Reduction equations system.
+
+    Attributes
+    ----------
+    places_initial : list of str
+        A list of place identifiers from the initial Petri net.
+    places_reduced : list of str
+        A list of place identifiers from the reduced Petri net.
+    additional_vars : list of Variable
+        A list of additional variables (not places).
+    equations : list of Equation
+        A list of (in)equations.
     """
 
-    def __init__(self, filename, places_initial=None, places_reduced=None):
+    def __init__(self, filename: str, places_initial: Optional[list[str]] = None, places_reduced: Optional[list[str]] = None) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        filename : str
+            Path to reduction system (.net format).
+        places_initial : list of str, optional
+            A list of place identifiers from the initial Petri net.
+        places_reduced : list of str, optional
+            A list of place indentifiers from the reduced Petri net.
         """
         if places_initial is None:
             places_initial = []
-        self.places_initial = places_initial
+        self.places_initial: list[str] = places_initial
 
         if places_reduced is None:
             places_reduced = []
-        self.places_reduced = places_reduced
+        self.places_reduced: list[str] = places_reduced
 
-        self.additional_vars = []
+        self.additional_vars: list[str] = []
 
-        self.equations = []
+        self.equations: list[Equation] = []
 
         self.parser(filename)
 
-    def __str__(self):
-        """ Equations to `reduce` tool format.
+    def __str__(self) -> str:
+        """ Equations to textual format.
+
+            Returns
+            -------
+            str
+                Debugging format.
         """
         return '\n'.join(map(str, self.equations))
 
-    def smtlib(self, k=None, k_initial=None):
-        """ Decalare additional variables and assert equations.
-            SMT-LIB format
+    def smtlib(self, k: Optional[int] = None, k_initial: Optional[int] = None) -> str:
+        """ Decalare the additional variables and assert the equations.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order for the current net (reduced one).
+        k_initial : int, optional
+            Order for the initial net (used by PDR).
+
+        Returns
+        --------
+        str
+            SMT-LIB format.
         """
         if k is None:
             smt_input = ''.join(
@@ -76,15 +107,21 @@ class System:
                 map(lambda var: "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(var, k, var, k), self.additional_vars))
 
         if k is None and k_initial is None:
-            smt_input += '\n'.join(map(lambda eq: eq.smtlib(), self.equations)) + '\n'
+            smt_input += '\n'.join(map(lambda eq: eq.smtlib(),
+                                   self.equations)) + '\n'
         else:
-            smt_input += '\n'.join(map(lambda eq: eq.smtlib_with_order(k, k_initial, self.places_reduced, [*self.places_initial] + self.additional_vars), self.equations)) + '\n'
+            smt_input += '\n'.join(map(lambda eq: eq.smtlib_with_order(k, k_initial, self.places_reduced, [
+                                   *self.places_initial] + self.additional_vars), self.equations)) + '\n'
 
         return smt_input
 
-    def minizinc(self):
-        """ Declare additional variables and assert equations.
-            SMT-LIB format
+    def minizinc(self) -> str:
+        """ Declare the additional variables and assert the equations.
+
+        Returns
+        -------
+        str
+            MiniZinc format.
         """
         minizinc_input = ""
 
@@ -92,48 +129,71 @@ class System:
             if var not in self.places_reduced:
                 minizinc_input += "var 0..MAX: {};\n".format(var)
 
-        minizinc_input += ''.join(map(lambda eq: eq.minizinc(), self.equations))
+        minizinc_input += ''.join(map(lambda eq: eq.minizinc(),
+                                  self.equations))
 
         return minizinc_input
 
-    def smtlib_declare_additional_variables(self, k_initial=None):
-        """ Declare additional variables.
+    def smtlib_declare_additional_variables(self, k_initial: Optional[int] = None) -> str:
+        """ Declare the additional variables.
 
-            k_initial: used by PDR.
-
-            SMT-LIB format
+        Parameters
+        ----------
+        k_initial : int, optional
+            Order for the initial net (used by PDR).
+        
+        Returns
+        --------
+        str
+            SMT-LIB format.
         """
         smt_input = ""
 
         for var in self.additional_vars:
             if var not in self.places_reduced:
-                var_name = var if k_initial is None else "{}@{}".format(var, k_initial)
-                smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var_name, var_name)
+                var_name = var if k_initial is None else "{}@{}".format(
+                    var, k_initial)
+                smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(
+                    var_name, var_name)
 
         return smt_input
 
-    def smtlib_equations_without_places_from_reduced_net(self, k_initial=None):
+    def smtlib_equations_without_places_from_reduced_net(self, k_initial: Optional[int] = None) -> str:
         """ Assert equations not involving places in the reduced net.
 
-            k_initial: used by PDR.
+        Parameters
+        ----------
+        k_initial : int, optional
+            Order for the initial net (used by PDR).
 
-            SMT-LIB format
+        Returns
+        --------
+        str
+            SMT-LIB format.
         """
         smt_input = ""
 
         for eq in self.equations:
             if not eq.contain_reduced:
-                smt_input += eq.smtlib(k_initial, [*self.places_initial] + self.additional_vars) + '\n'
+                smt_input += eq.smtlib(k_initial,
+                                       [*self.places_initial] + self.additional_vars) + '\n'
 
         return smt_input
 
-    def smtlib_equations_with_places_from_reduced_net(self, k, k_initial=None):
+    def smtlib_equations_with_places_from_reduced_net(self, k: int, k_initial: Optional[int] = None) -> str:
         """ Assert equations involving places in the reduced net.
 
-            k:         used by BMC and PDR,
-            k_initial: used by PDR.
+        Parameters
+        ----------
+        k : int
+            Order for the current net (reduced one).
+        k_initial : int, optional
+            Order for the initial net (used by PDR).
 
-            SMT-LIB format
+        Returns
+        --------
+        str
+            SMT-LIB format.
         """
         smt_input = ""
 
@@ -144,13 +204,20 @@ class System:
 
         return smt_input
 
-    def smtlib_link_nets(self, k, k_initial=None):
+    def smtlib_link_nets(self, k: int, k_initial: Optional[int] = None) -> str:
         """ Assert equalities between places common to the initial and reduced nets.
 
-            k:         used by BMC and PDR,
-            k_initial: used by PDR.
+        Parameters
+        ----------
+        k : int
+            Order for the current net (reduced one).
+        k_initial : int, optional
+            Order for the initial net (used by PDR).
 
-            SMT-LIB format
+        Returns
+        --------
+        str
+            SMT-LIB format.
         """
         smt_input = ""
 
@@ -159,13 +226,23 @@ class System:
                 if k_initial is None:
                     smt_input += "(assert (= {}@{} {}))\n".format(pl, k, pl)
                 else:
-                    smt_input += "(assert (= {}@{} {}@{}))\n".format(pl, k, pl, k_initial)
+                    smt_input += "(assert (= {}@{} {}@{}))\n".format(pl,
+                                                                     k, pl, k_initial)
 
         return smt_input
 
-    def parser(self, filename):
+    def parser(self, filename: str) -> None:
         """ System of reduction equations parser.
-            Input format: .net (output of the `reduce` tool)
+            
+        Parameters
+        ----------
+        filename : str
+            Path to reduction system (.net format).
+
+        Raises
+        ------
+        FileNotFoundError
+            Reduction system file not found.
         """
         try:
             with open(filename, 'r') as fp:
@@ -174,57 +251,85 @@ class System:
                 if content:
                     for line in re.split('\n+', content.group())[1:-1]:
                         if line.partition(' |- ')[0] not in ['. O', '. C']:
-                            self.equations.append(Equation(re.split(r'\s+', line.partition(' |- ')[2]), self))
+                            self.equations.append(
+                                Equation(line, self))
             fp.close()
         except FileNotFoundError as e:
             sys.exit(e)
 
 
 class Equation:
-    """
-    Equation defined by:
-    - left members,
-    - right members,
-    - an operator,
-    - a boolean indicating whether the equation
-      involves places from the reduced net.
+    """ Reduction equation.
+
+    Attributes
+    ----------
+    left : list of Variable
+        A left members (sum).
+    right : list of Variable
+        A right members (sum).
+    operator : str
+        An operator (=, <=, >=, <, >).
+    contain_reduced : bool
+        A boolean indicating whether the equation involves places from the reduced net.
     """
 
-    def __init__(self, eq, system):
+    def __init__(self, content: str, system: System) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        content : str
+            Equation to parse.
+        system : System
+            Current system of reduction equations.
         """
-        self.left = []
-        self.right = []
-        self.operator = ""
+        self.left: list[Variable] = []
+        self.right: list[Variable] = []
+        self.operator: str = ""
 
-        self.contain_reduced = False
+        self.contain_reduced: bool = False
 
-        self.parse_equation(eq, system)
+        self.parse_equation(content, system)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Equation to .net format.
+
+        Returns
+        -------
+        str
+            Debugging format.
         """
         return ' + '.join(map(str, self.left)) + ' = ' + ' + '.join(map(str, self.right))
 
-    def smtlib(self, k_initial=None, other_vars=None):
-        """ Assert the equation.
+    def smtlib(self, k_initial: Optional[int] = None, additional_vars: Optional[list[str]] = None) -> str:
+        """ Assert the Equation.
 
-            k_initial:  used by PDR,
-            other_vars: identifiers from equations and initial net.
+        Parameters
+        ----------
+        k_initial : int, optional
+            Order for the initial net (used by PDR).
+        additional_vars : list of str
+            Identfifiers of additional variables.
 
-            SMT-LIB format
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
-        if other_vars is None:
-            other_vars = []
+        if additional_vars is None:
+            additional_vars = []
 
         return "(assert ({}".format(self.operator) \
-               + self.member_smtlib(self.left, k_initial, other_vars) \
-               + self.member_smtlib(self.right, k_initial, other_vars) \
+               + self.member_smtlib(self.left, k_initial, additional_vars) \
+               + self.member_smtlib(self.right, k_initial, additional_vars) \
                + "))"
 
-    def minizinc(self):
-        """ Assert the equation.
-            MiniZinc format
+    def minizinc(self) -> str:
+        """ Assert the Equation.
+
+        Returns
+        -------
+            MiniZinc format.
         """
         return "constraint " \
                + self.member_minizinc(self.left) \
@@ -232,18 +337,30 @@ class Equation:
                + self.member_minizinc(self.right) \
                + ";\n"
 
-    def member_smtlib(self, member, k_initial, other_vars):
+    def member_smtlib(self, member: list[Variable], k_initial: Optional[int] = None, additional_vars: Optional[list[str]] = None) -> str:
         """ Helper to assert a member (left or right).
 
-            k_initial:  used by PDR,
-            other_vars: identifiers from equations and initial net.
-
-            SMT-LIB format
+        Parameters
+        ----------
+        member : list of Variable
+            One of the two members (left or right).
+        k_initial : int, optional
+            Order for the initial net (used by PDR).
+        additional_vars : list of str, optional
+             Identfifiers of additional variables.
+            
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
+        if additional_vars is None:
+            additional_vars = []
+
         smt_input = ""
 
         for var in member:
-            if k_initial is None or var.id not in other_vars:
+            if k_initial is None or var.id not in additional_vars:
                 smt_input += var.smtlib()
             else:
                 smt_input += var.smtlib(k_initial)
@@ -253,51 +370,83 @@ class Equation:
 
         return smt_input
 
-    def member_minizinc(self, member):
+    def member_minizinc(self, member: list[Variable]) -> str:
         """ Helper to assert a member (left or right).
-            MiniZinc format
+
+        Parameters
+        ----------
+        member : list of Variable
+            One of the two members (left or right).
+
+        Returns
+        -------
+        str
+            MiniZinc format.
         """
         return ' + '.join(map(lambda var: var.minizinc(), member))
 
-    def smtlib_with_order(self, k, k_initial, places_reduced, other_vars=None):
+    def smtlib_with_order(self, k: Optional[int], k_initial: Optional[int] = None, places_reduced: Optional[list[str]] = None, additional_vars: Optional[list[str]] = None) -> str:
         """ Assert equations with order.
 
-            k:              used by BMC and PDR
-            k_initial:      used by PDR
-            places_reduced: place identifiers from the reduced net
-            other_vars:     other identifiers from equations and initial net
+        Parameters
+        ----------
+        k : int
+            Order for the current net (reduced one).
+        k_initial : int, optional
+            Order for the initial net (used by PDR).
+        places_reduced : list of str, optional
+            Identifiers of the reduced places.
+        additional_vars : list of str, optional
+            Identfifiers of additional variables.
             
-            SMTLIB format
-        """
-        if other_vars is None:
-            other_vars = []
-
-        return "(assert ({}".format(self.operator) \
-               + self.member_smtlib_with_order(self.left, k, k_initial, places_reduced, other_vars) \
-               + self.member_smtlib_with_order(self.right, k, k_initial, places_reduced, other_vars) \
-               + "))"
-
-    def member_smtlib_with_order(self, member, k, k_initial, places_reduced=None, other_vars=None):
-        """ Helper to assert a member with order (left or right).
-
-            k:              used by BMC and PDR,
-            k_initial:      used by PDR,
-            places_reduced: place identifiers from the reduced net,
-            other_vars:     other identifiers from equations and initial net.
-            
-            SMTLIB format
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         if places_reduced is None:
             places_reduced = []
 
-        if other_vars is None:
-            other_vars = []
+        if additional_vars is None:
+            additional_vars = []
+
+        return "(assert ({}".format(self.operator) \
+               + self.member_smtlib_with_order(self.left, k, k_initial, places_reduced, additional_vars) \
+               + self.member_smtlib_with_order(self.right, k, k_initial, places_reduced, additional_vars) \
+               + "))"
+
+    def member_smtlib_with_order(self, member, k: Optional[int], k_initial: Optional[int] = None, places_reduced: Optional[list[str]] = None, additional_vars: Optional[list[str]] = None) -> str:
+        """ Helper to assert a member with order (left or right).
+
+        Parameters
+        ----------
+        member : list of Variable
+            One of the two members (left or right).
+        k : int
+            Order for the current net (reduced one).
+        k_initial : int, optional
+            Order for the initial net (used by PDR).
+        places_reduced : list of str
+            Identifiers of the reduced places.
+        additional_vars : list of str
+            Identfifiers of additional variables.
+            
+        Returns
+        -------
+        str
+            SMTLIB format.
+        """
+        if places_reduced is None:
+            places_reduced = []
+
+        if additional_vars is None:
+            additional_vars = []
 
         smt_input = ""
         for var in member:
             if var.id in places_reduced:
                 smt_input += var.smtlib(k)
-            elif k_initial is not None and var.id in other_vars:
+            elif k_initial is not None and var.id in additional_vars:
                 smt_input += var.smtlib(k_initial)
             else:
                 smt_input += var.smtlib()
@@ -307,14 +456,22 @@ class Equation:
 
         return smt_input
 
-    def parse_equation(self, eq, system):
+    def parse_equation(self, content: str, system: System) -> None:
         """ Equation parser.
-            Input format: .net (output of the `reduced` tool)
+
+        Parameters
+        ----------
+        content : str
+            Content to parse (.net format).
+        system : System
+            Current system of reduction equations. 
         """
+        elements = re.split(r'\s+', content.partition(' |- ')[2])
+
         current, inversed = self.left, self.right
         minus = False
 
-        for element in eq:
+        for element in elements:
 
             if element in ['=', '<=', '>=', '<', '>']:
                 self.operator = element
@@ -337,13 +494,13 @@ class Equation:
                 element = element.replace('-1.', '')
                 minus ^= True
                 if minus:
-                    self.current.append('0')
+                    current.append(Variable('0', multiplier))
 
             elif element.rfind('.') > element.rfind('}'):
                 index = element.rfind('.')
                 element, multiplier = element[:index], element[index+1:]
 
-            variable = element.replace('{', '').replace('}','')
+            variable = element.replace('{', '').replace('}', '')
             self.check_variable(variable, system)
 
             if not minus:
@@ -351,8 +508,15 @@ class Equation:
             else:
                 inversed.append(Variable(variable, multiplier))
 
-    def check_variable(self, element, system):
+    def check_variable(self, element: str, system: System) -> None:
         """ Check if a given element is an additional variable and a place from the reduced net.
+
+        Parameters
+        ----------
+        element : str
+            Variable of integer constant.
+        system : System
+            Current system of reduction equations.
         """
         if not element.isnumeric():
             if element not in system.places_initial and element not in system.additional_vars:
@@ -362,61 +526,83 @@ class Equation:
 
 
 class Variable:
-    """
-    Variable defined by:
-    - an identifier,
-    - a multiplier (if there is one).
+    """ Variable.
+
+    Note
+    ----
+    May be constant value. 
+
+    Attributes
+    ----------
+    id : str
+        An identifier.
+    multiplier : str, optional
+        A multiplier (if there is one).
     """
 
-    def __init__(self, id, multiplier=None):
+    def __init__(self, id: str, multiplier: Optional[str] = None) -> None:
         """ Initializer.
-        """
-        self.id = id
-        self.multiplier = multiplier
 
-    def __str__(self):
-        """ Variable to .net format.
+        Parameters
+        ----------
+        id : str
+            An identifier.
+        multiplier : int, optional
+            A multiplier.
+        """
+        self.id: str = id
+        self.multiplier: Optional[str] = multiplier
+
+    def __str__(self) -> str:
+        """ Variable to textual format.
+
+        Returns
+        -------
+        str
+            Debugging format.
         """
         text = ""
+
         if self.multiplier is not None:
             text += "{}.".format(self.multiplier)
+
         return text + self.id
 
-    def smtlib(self, k=None):
-        """ Variable and its multiplier if needed.
-            SMT-LIB format
+    def smtlib(self, k: Optional[int] = None) -> str:
+        """ Assert the Variable and its multiplier if needed.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         smtlib_input = self.id
+
         if k is not None:
             smtlib_input += "@{}".format(k)
+
         if self.multiplier is not None:
             smtlib_input = "(* {} {})".format(self.multiplier, smtlib_input)
+
         return " {}".format(smtlib_input)
 
-    def minizinc(self):
-        """ Variable and its multiplier if needed.
-            MiniZinc format
+    def minizinc(self) -> str:
+        """ Assert the Variable and its multiplier if needed.
+
+        Returns
+        -------
+        str
+            MiniZinc format.
         """
         minizinc_input = self.id
+
         if self.multiplier:
-            minizinc_input = "({} * {})".format(self.multiplier, minizinc_input)
+            minizinc_input = "({} * {})".format(self.multiplier,
+                                                minizinc_input)
+
         return minizinc_input
-
-
-if __name__ == "__main__":
-
-    if len(sys.argv) < 3:
-        sys.exit("Argument missing: ./system.py <path_to_initial_Petri_net> <path_to_reduced_Petri_net>")
-
-    ptnet = PetriNet(sys.argv[1])
-    ptnet_reduced = PetriNet(sys.argv[2])
-
-    system = System(sys.argv[2], ptnet.places.keys(), ptnet_reduced.places.keys())
-
-    print("> Textual Equations")
-    print("-------------------")
-    print(system)
-
-    print("> Generated SMT-LIB")
-    print("-------------------")
-    print(system.smtlib())
