@@ -25,8 +25,8 @@ __version__ = "4.0.0"
 import logging as log
 import sys
 
+from exec.utils import STOP, Verdict, send_signal_pids
 from interfaces.solver import Z3
-from utils import STOP, Verdict, send_signal_pids
 
 MAX_NUMBER_UNITS = 500
 

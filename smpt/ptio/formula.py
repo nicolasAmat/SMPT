@@ -34,8 +34,7 @@ from collections import Counter
 from tempfile import NamedTemporaryFile
 from typing import Any, Optional, Sequence
 
-from utils import Verdict
-
+from exec.utils import Verdict
 from ptio.ptnet import Marking, PetriNet, Place
 
 TRANSLATION_COMPARISON_OPERATORS = {

@@ -35,7 +35,7 @@ import tempfile
 import time
 from multiprocessing.pool import ThreadPool
 
-from parallelizer import Parallelizer, worker
+from exec.parallelizer import Parallelizer, worker
 from ptio.formula import Formula, Properties
 from ptio.ptnet import PetriNet
 from ptio.system import System

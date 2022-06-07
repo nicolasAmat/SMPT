@@ -26,8 +26,8 @@ __version__ = "4.0.0"
 
 import logging as log
 
+from exec.utils import STOP, Verdict, send_signal_pids
 from interfaces.solver import Walk
-from utils import STOP, Verdict, send_signal_pids
 
 
 class RandomWalk:

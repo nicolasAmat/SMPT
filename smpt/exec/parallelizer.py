@@ -34,8 +34,7 @@ from checkers.kinduction import KInduction
 from checkers.pdr import PDR
 from checkers.randomwalk import RandomWalk
 from checkers.statequation import StateEquation
-from utils import KILL, send_signal_group_pid, send_signal_pids
-
+from exec.utils import KILL, send_signal_group_pid, send_signal_pids
 
 PRE_TIMEOUT = 120
 

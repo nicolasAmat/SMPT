@@ -33,8 +33,8 @@ from subprocess import DEVNULL, PIPE, Popen
 from tempfile import NamedTemporaryFile
 from typing import Optional
 
+from exec.utils import KILL, STOP, send_signal_pids
 from ptio.ptnet import Marking, PetriNet, Place
-from utils import KILL, STOP, send_signal_pids
 
 
 class Solver(ABC):
