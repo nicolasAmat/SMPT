@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 """
+Main
+
 This file is part of SMPT.
 
 SMPT is free software: you can redistribute it and/or modify
@@ -17,12 +19,7 @@ You should have received a copy of the GNU General Public License
 along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from cx_Freeze import setup, Executable
+from smpt import smpt
 
-setup(
-    name='smpt',
-    version='2.0.0',
-    description='SMPT - an SMT-based model-checker that takes advantage of nets reduction',
-    author='Nicolas AMAT, LAAS-CNRS',
-    executables = [Executable("smpt.py")]
-)
+if __name__ == '__main__':
+    smpt.main()

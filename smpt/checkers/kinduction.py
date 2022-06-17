@@ -31,7 +31,7 @@ __version__ = "4.0.0"
 
 import logging as log
 
-from interfaces.solver import Z3
+from smpt.interfaces.solver import Z3
 
 
 class KInduction:

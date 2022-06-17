@@ -26,15 +26,15 @@ import time
 from multiprocessing import Process, Queue
 from typing import Any
 
-from checkers.bmc import BMC
-from checkers.cp import CP
-from checkers.enumerative import Enumerative
-from checkers.induction import Induction
-from checkers.kinduction import KInduction
-from checkers.pdr import PDR
-from checkers.randomwalk import RandomWalk
-from checkers.statequation import StateEquation
-from exec.utils import KILL, send_signal_group_pid, send_signal_pids
+from smpt.checkers.bmc import BMC
+from smpt.checkers.cp import CP
+from smpt.checkers.enumerative import Enumerative
+from smpt.checkers.induction import Induction
+from smpt.checkers.kinduction import KInduction
+from smpt.checkers.pdr import PDR
+from smpt.checkers.randomwalk import RandomWalk
+from smpt.checkers.statequation import StateEquation
+from smpt.exec.utils import KILL, send_signal_group_pid, send_signal_pids
 
 PRE_TIMEOUT = 120
 

@@ -41,9 +41,9 @@ import copy
 import logging as log
 import resource
 
-from exec.utils import STOP, Verdict, send_signal_pids
-from interfaces.solver import Z3
-from ptio.formula import (ArithmeticOperation, Atom, FreeVariable,
+from smpt.exec.utils import STOP, Verdict, send_signal_pids
+from smpt.interfaces.solver import Z3
+from smpt.ptio.formula import (ArithmeticOperation, Atom, FreeVariable,
                           IntegerConstant, StateFormula, TokenCount,
                           UniversalQuantification)
 
