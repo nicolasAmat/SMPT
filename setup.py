@@ -19,10 +19,12 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 
 from cx_Freeze import setup, Executable
 
+
 setup(
-    name='smpt',
-    version='4.0.0',
-    description='SMPT - an SMT-based model-checker that takes advantage of nets reduction',
-    author='Nicolas AMAT, LAAS-CNRS',
-    executables = [Executable("smpt/__main__.py", targetName="smpt.exe")]
+    name="SMPT",
+    version="4.0",
+    description="SMPT - an SMT-based model-checker that takes advantage of nets reduction",
+    author="Nicolas Amat, LAAS-CNRS",
+    author_email="namat@laas.fr",
+    executables=[Executable("smpt/__main__.py", targetName="smpt.exe")]
 )
