@@ -39,6 +39,7 @@ __version__ = "4.0.0"
 
 import copy
 import logging as log
+import platform
 import resource
 
 from smpt.exec.utils import STOP, Verdict, send_signal_pids
@@ -646,6 +647,7 @@ class PDR:
                 return Verdict.CEX
 
             if self.method == 'REACH':
+                if platform.system() == 'Linux':
                 # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
                 resource.setrlimit(resource.RLIMIT_AS, (4294967296, 4294967296))
 
