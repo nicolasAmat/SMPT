@@ -43,7 +43,7 @@ class Parallelizer:
     """ Analysis methods parallelizer.
     """
 
-    def __init__(self, property_id, ptnet, formula, methods, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, path_markings=None, check_proof=False, mcc=False):
+    def __init__(self, property_id, ptnet, formula, methods, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, path_markings=None, check_proof=False, path_proof=None, mcc=False):
         """ Initializer.
         """
         # Property id and corresponding formula
@@ -116,19 +116,19 @@ class Parallelizer:
 
             if method == 'PDR-COV':
                 self.methods.append(PDR(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system,
-                                    debug=debug, check_proof=check_proof, method='COV', solver_pids=self.solver_pids))
+                                    debug=debug, check_proof=check_proof, path_proof=path_proof, method='COV', solver_pids=self.solver_pids))
                 self.techniques.append(collateral_processing + unfolding_to_pt +
                                        structural_reduction + ['IMPLICIT', 'SAT-SMT', 'PDR-COV'])
 
             if method == 'PDR-REACH':
                 self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof,
-                                    method='REACH', saturation=False, solver_pids=self.solver_pids))
+                                    path_proof=path_proof, method='REACH', saturation=False, solver_pids=self.solver_pids))
                 self.techniques.append(
                     collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
 
             if method == 'PDR-REACH-SATURATED':
                 self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof,
-                                    method='REACH', saturation=True, solver_pids=self.solver_pids))
+                                    path_proof=path_proof, method='REACH', saturation=True, solver_pids=self.solver_pids))
                 self.techniques.append(
                     collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH-SATURATED'])
 

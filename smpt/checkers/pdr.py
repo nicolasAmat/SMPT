@@ -327,7 +327,7 @@ class PDR:
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False,  check_proof=False, method='REACH', saturation=False, unsat_core=True, solver_pids=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False,  check_proof=False, path_proof=None, method='REACH', saturation=False, unsat_core=True, solver_pids=None):
         """ Initializer.
 
             By default the PDR method uses the unsat core of the solver.
@@ -368,6 +368,7 @@ class PDR:
 
         # Proof checking option
         self.check_proof = check_proof
+        self.path_proof = path_proof
 
         # Set method: `COV` or `REACH`
         self.method = method
@@ -648,9 +649,9 @@ class PDR:
                 return Verdict.CEX
 
             if self.method == 'REACH':
-                if platform.system() == 'Linux':
                 # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
-                resource.setrlimit(resource.RLIMIT_AS, (4294967296, 4294967296))
+                if platform.system() == 'Linux':
+                    resource.setrlimit(resource.RLIMIT_AS, (4294967296, 4294967296))
 
                 # Transform R into DNF
                 self.formula = self.formula.dnf()
@@ -681,6 +682,8 @@ class PDR:
                     if (not self.saturation and set(self.oars[i]) == set(self.oars[i + 1])) or (self.saturation and self.fixed_point(i)):
                         if self.check_proof:
                             self.proof_checking(i)
+                        if self.path_proof is not None:
+                            self.proof_exporting(i)
                         self.exit_helper(Verdict.INV, result, concurrent_pids)
                         return Verdict.INV
 
@@ -805,6 +808,13 @@ class PDR:
         print("# UNSAT(Proof /\ T /\ -Proof'):", not self.solver.check_sat())
 
         print("################################")
+
+    def proof_exporting(self, i):
+        """ Export the certificate of invariance.
+        """
+        with open(self.path_proof, 'w') as fp_proof:        
+            fp_proof.write(self.declare_places(0))
+            fp_proof.write(self.assert_negation_formula(i))
 
     def exit_helper(self, verdict, result_output, concurrent_pids):
         """ Helper function to put the result to the output queue,
