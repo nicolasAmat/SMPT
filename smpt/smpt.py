@@ -172,6 +172,12 @@ def main():
                         action='store_true',
                         help="check and show the certificate of invariance if there is one")
 
+    parser.add_argument('--export-proof',
+                        action='store',
+                        dest='path_proof',
+                        type=str,
+                        help='export the proof of invariance if there is one')
+
     parser.add_argument('--mcc',
                         action='store_true',
                         help="Model Checking Contest mode")
@@ -357,7 +363,7 @@ def main():
             methods += ["WALK" for _ in range(3)]
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof)
+        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof, export_proof=results.export_proof)
 
         # If computation is uncomplete add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:
