@@ -276,6 +276,7 @@ class States:
         literals = []
 
         if self.saturation:
+            unsat_core = ['All'] if unsat_core == [''] else unsat_core
 
             if unsat_core != ['All']:
                 # Case unsat core engine dit not give up
