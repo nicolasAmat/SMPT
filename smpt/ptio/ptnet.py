@@ -33,6 +33,15 @@ import xml.etree.ElementTree as ET
 from typing import Optional
 
 
+MULTIPLIER_TO_INT = {
+    'K': 1000,
+    'M': 1000000,
+    'G': 1000000000,
+    'T': 1000000000000,
+    'P': 1000000000000000,
+    'E': 1000000000000000000
+}
+
 class PetriNet:
     """ Petri net.
 
@@ -520,14 +529,12 @@ class PetriNet:
         if content.isnumeric():
             return int(content)
 
-        elif content[-1] == 'K':
-            return int(content[:-1]) * 1000
+        multiplier = content[-1]
 
-        elif content[-1] == 'M':
-            return int(content[:-1]) * 1000000
-
-        else:
+        if multiplier not in MULTIPLIER_TO_INT:
             raise ValueError("Incorrect integer value")
+
+        return int(content[:-1]) * MULTIPLIER_TO_INT[multiplier]
 
     def get_transition_from_step(self, m_1: Marking, m_2: Marking) -> Optional[Transition]:
         """ Return an associate transition to a step m_1 -> m_2.
