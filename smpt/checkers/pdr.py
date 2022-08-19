@@ -42,11 +42,12 @@ import logging as log
 import platform
 import resource
 
-from smpt.exec.utils import STOP, Verdict, send_signal_pids
-from smpt.interfaces.solver import Z3
+from smpt.exec.utils import STOP, send_signal_pids
+from smpt.interfaces.z3 import Z3
 from smpt.ptio.formula import (ArithmeticOperation, Atom, FreeVariable,
-                          IntegerConstant, StateFormula, TokenCount,
-                          UniversalQuantification)
+                               IntegerConstant, StateFormula, TokenCount,
+                               UniversalQuantification)
+from smpt.ptio.verdict import Verdict
 
 
 class Counterexample(Exception):

@@ -26,8 +26,9 @@ __version__ = "4.0.0"
 
 import logging as log
 
-from smpt.exec.utils import STOP, Verdict, send_signal_pids
-from smpt.interfaces.solver import Walk
+from smpt.exec.utils import STOP, send_signal_pids
+from smpt.interfaces.walk import Walk
+from smpt.ptio.verdict import Verdict
 
 
 class RandomWalk:

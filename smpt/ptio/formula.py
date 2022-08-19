@@ -34,8 +34,8 @@ from collections import Counter
 from tempfile import NamedTemporaryFile
 from typing import Any, Optional, Sequence
 
-from smpt.exec.utils import Verdict
 from smpt.ptio.ptnet import Marking, PetriNet, Place
+from smpt.ptio.verdict import Verdict
 
 TRANSLATION_COMPARISON_OPERATORS = {
     '=': operator.eq,

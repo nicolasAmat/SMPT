@@ -17,16 +17,25 @@ You should have received a copy of the GNU General Public License
 along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
+
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
+
 import logging as log
+from multiprocessing import Queue
+from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
-from smpt.exec.utils import STOP, Verdict, send_signal_pids
-from smpt.interfaces.solver import Z3
+from smpt.exec.utils import STOP, send_signal_pids
+from smpt.interfaces.z3 import Z3
+from smpt.ptio.formula import Formula
+from smpt.ptio.ptnet import Marking, PetriNet
+from smpt.ptio.system import System
+from smpt.ptio.verdict import Verdict
 
 
 class BMC(AbstractChecker):

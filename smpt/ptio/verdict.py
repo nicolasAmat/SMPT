@@ -1,5 +1,5 @@
 """
-Abstract Checker.
+Verdict Module
 
 This file is part of SMPT.
 
@@ -17,27 +17,27 @@ You should have received a copy of the GNU General Public License
 along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from __future__ import annotations
-
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-from abc import ABC, abstractmethod
-from multiprocessing import Queue
-from typing import Optional
+import signal
+from enum import Enum
 
-from smpt.ptio.ptnet import Marking
-from smpt.ptio.verdict import Verdict
+STOP = signal.SIGTERM
+KILL = signal.SIGKILL
 
 
-class AbstractChecker(ABC):
-    """ Abstract Checker.
+class Verdict(Enum):
+    """ Verdict enum.
+
+        Note
+        ----
+        INV -> P invariant (R not reachable)
+        CEX -> R reachable (P not invariant)
+        UNKNOWN
     """
-
-    @abstractmethod
-    def prove(self, result: Queue[Verdict], concurrent_pids: Queue[Optional[int]]):
-        """ Prover.
-        """
-        pass
+    INV = 1
+    CEX = 2
+    UNKNOWN = 3

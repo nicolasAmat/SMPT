@@ -1,5 +1,5 @@
 """
-Utils to manage processes and verdicts
+Utils to Manage Processes
 
 This file is part of SMPT.
 
@@ -24,24 +24,9 @@ __version__ = "4.0.0"
 
 import os
 import signal
-from enum import Enum
 
 STOP = signal.SIGTERM
 KILL = signal.SIGKILL
-
-
-class Verdict(Enum):
-    """ Verdict enum.
-
-        Note
-        ----
-        INV -> P invariant (R not reachable)
-        CEX -> R reachable (P not invariant)
-        UNKNOWN
-    """
-    INV = 1
-    CEX = 2
-    UNKNOWN = 3
 
 
 def send_signal_pids(pids, signal_to_send):
