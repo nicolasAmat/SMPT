@@ -94,7 +94,7 @@ class Induction:
 
         smt_input += "; Assert states safes (0)\n"
         smt_input += self.formula.P.smtlib(0, assertion=True)
-            
+
         smt_input += "; Declaration of the places from the Petri net (1)\n"
         smt_input += self.ptnet.smtlib_declare_places(1)
 
@@ -141,7 +141,7 @@ class Induction:
 
         smt_input += "; Assert states safes (0)\n"
         smt_input += self.formula.P.smtlib(0, assertion=True)
-            
+
         smt_input += "; Declaration of the places from the Petri net (1)\n"
         smt_input += self.ptnet.smtlib_declare_places(1)
 
@@ -182,7 +182,7 @@ class Induction:
             verdict = Verdict.INV
 
         # Put the result in the queue
-        result.put([verdict, None])
+        result.put((verdict, None))
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
@@ -212,13 +212,15 @@ class Induction:
         log.info("[INDUCTION] > Assert safe states (0)")
         self.solver.write(self.formula.P.smtlib(0, assertion=True))
 
-        log.info("[INDUCTION] > Declaration of the places from the Petri net (iteration: 1)")
+        log.info(
+            "[INDUCTION] > Declaration of the places from the Petri net (iteration: 1)")
         self.solver.write(self.ptnet.smtlib_declare_places(1))
 
         log.info("[INDUCTION] > Transition relation: 0 -> 1")
         self.solver.write(self.ptnet.smtlib_transition_relation(0, eq=False))
 
-        log.info("[INDUCTION] > Formula to check the satisfiability (iteration: 1)")
+        log.info(
+            "[INDUCTION] > Formula to check the satisfiability (iteration: 1)")
         self.solver.write(self.formula.R.smtlib(1, assertion=True))
 
         if not self.solver.check_sat():
@@ -260,13 +262,14 @@ class Induction:
         self.solver.write(self.system.smtlib(1, 1))
 
         log.info("[INDUCTION] > Transition relation: 0 -> 1")
-        self.solver.write(self.ptnet_reduced.smtlib_transition_relation(0, eq=False))
+        self.solver.write(
+            self.ptnet_reduced.smtlib_transition_relation(0, eq=False))
 
-        log.info("[INDUCTION] > Formula to check the satisfiability (iteration: 1)")
+        log.info(
+            "[INDUCTION] > Formula to check the satisfiability (iteration: 1)")
         self.solver.write(self.formula.R.smtlib(1, assertion=True))
 
         if not self.solver.check_sat():
             return False
 
         return None
-

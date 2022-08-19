@@ -62,10 +62,9 @@ class RandomWalk:
         if not sat or self.solver.aborted:
             return
 
-        # Put the result in the queue 
-        result.put([Verdict.CEX, None])
+        # Put the result in the queue
+        result.put((Verdict.CEX, None))
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
             send_signal_pids(concurrent_pids.get(), STOP)
-

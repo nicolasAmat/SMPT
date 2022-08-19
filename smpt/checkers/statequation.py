@@ -84,7 +84,7 @@ class StateEquation:
         """ SMT-LIB format for understanding.
             Case without reduction.
         """
-        smt_input = "" 
+        smt_input = ""
 
         smt_input += "; Declaration of the places from the Petri net\n"
         smt_input += self.ptnet.smtlib_declare_places()
@@ -104,7 +104,7 @@ class StateEquation:
         """ SMT-LIB format for understanding.
             Case with reduction.
         """
-        smt_input = "" 
+        smt_input = ""
 
         smt_input += "; Declaration of the places from the initial Petri net\n"
         smt_input += self.ptnet.smtlib_declare_places()
@@ -144,7 +144,7 @@ class StateEquation:
 
         # Put the result in the queue
         if verdict != Verdict.UNKNOWN:
-            result.put([verdict, None])
+            result.put((verdict, None))
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
@@ -156,7 +156,8 @@ class StateEquation:
         log.info("[STATE-EQUATION] > Declaration of the places from the Petri net")
         self.solver.write(self.ptnet.smtlib_declare_places())
 
-        log.info("[STATE-EQUATION] > Declaration of the transitions from the Petri net")
+        log.info(
+            "[STATE-EQUATION] > Declaration of the transitions from the Petri net")
         self.solver.write(self.ptnet.smtlib_declare_transitions())
 
         log.info("[STATE-EQUATION] > State Equation")
@@ -194,7 +195,7 @@ class StateEquation:
 
         sys.setrecursionlimit(10000)
 
-        log.info("[STATE-EQUATION] > Add unit-safe local constraints")   
+        log.info("[STATE-EQUATION] > Add unit-safe local constraints")
         self.solver.write(self.ptnet.nupn.smtlib_local_constraints())
 
         log.info("[STATE-EQUATION] > Check satisfiability")
@@ -204,7 +205,7 @@ class StateEquation:
                 self.additional_techniques.put('USE_NUPN')
             return Verdict.INV
 
-        log.info("[STATE-EQUATION] > Add unit-safe hierarchical constraints")   
+        log.info("[STATE-EQUATION] > Add unit-safe hierarchical constraints")
         self.solver.write(self.ptnet.nupn.smtlib_hierarchy_constraints())
 
         log.info("[STATE-EQUATION] > Check satisfiability")
@@ -223,10 +224,12 @@ class StateEquation:
         log.info("[STATE-EQUATION] > Declaration of the places from the Petri net")
         self.solver.write(self.ptnet.smtlib_declare_places())
 
-        log.info("[STATE-EQUATION] > Declaration of the variables and assert reduction equations")
+        log.info(
+            "[STATE-EQUATION] > Declaration of the variables and assert reduction equations")
         self.solver.write(self.system.smtlib())
 
-        log.info("[STATE-EQUATION] > Declaration of the transitions from the Petri net")
+        log.info(
+            "[STATE-EQUATION] > Declaration of the transitions from the Petri net")
         self.solver.write(self.ptnet_reduced.smtlib_declare_transitions())
 
         log.info("[STATE-EQUATION] > State Equation")
@@ -246,7 +249,7 @@ class StateEquation:
         if not self.solver.check_sat():
             if self.additional_techniques is not None:
                 self.additional_techniques.put('TOPOLIGICAL')
-            return Verdict.INV   
+            return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet_reduced) is not None:
@@ -260,7 +263,8 @@ class StateEquation:
     def trap_constraints(self, ptnet):
         """ Add useful trap constraints.
         """
-        self.traps = TrapConstraints(ptnet, debug=self.debug, solver_pids=self.solver_pids)
+        self.traps = TrapConstraints(
+            ptnet, debug=self.debug, solver_pids=self.solver_pids)
         self.traps.assert_constaints()
 
         while True:
@@ -269,9 +273,10 @@ class StateEquation:
             trap = self.traps.get_trap(self.solver.get_marking(ptnet))
 
             if trap:
-                # Assert trap constraints  
+                # Assert trap constraints
                 log.info("[STATE-EQUATION] > Assert a trap violating a witness")
-                smt_input = ''.join(map(lambda pl: "(> {} 0)".format(pl.id), trap))
+                smt_input = ''.join(
+                    map(lambda pl: "(> {} 0)".format(pl.id), trap))
 
                 if len(trap) > 1:
                     smt_input = "(or {})".format(smt_input)
@@ -333,4 +338,3 @@ class TrapConstraints:
         # Pop
         self.solver.pop()
         return trap
-
