@@ -17,6 +17,8 @@ You should have received a copy of the GNU General Public License
 along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
+
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
@@ -29,9 +31,16 @@ STOP = signal.SIGTERM
 KILL = signal.SIGKILL
 
 
-def send_signal_pids(pids, signal_to_send):
+def send_signal_pids(pids: list[int], signal_to_send: signal.Signals):
     """ Send a signal to a list of processes
         (except the current process).
+
+    Parameters
+    ----------
+    pids : list of int
+        List of processes.
+    signal_to_send : Signals
+        Signal to send.
     """
     current_pid = os.getpid()
 
@@ -46,8 +55,15 @@ def send_signal_pids(pids, signal_to_send):
             pass
 
 
-def send_signal_group_pid(pid, signal_to_send):
+def send_signal_group_pid(pid: int, signal_to_send: signal.Signals):
     """ Send a signal to the group pid of a given process.
+ 
+    Parameters
+    ----------
+    pid : int
+        Process.
+    signal_to_send : Signals
+        Signal to send.
     """
     try:
         os.killpg(os.getpgid(pid), signal_to_send)

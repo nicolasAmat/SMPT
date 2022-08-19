@@ -53,6 +53,9 @@ class MiniZinc(Solver):
         self.solver: Optional[Popen] = None
         self.solver_pids: Queue[int] = solver_pids
 
+        # Set integer bound
+        self.write("int: MAX = 1000000;\n")
+
         # Flags
         self.aborted: bool = False
         self.debug: bool = debug
@@ -98,11 +101,6 @@ class MiniZinc(Solver):
             print(minizinc_output)
 
         return minizinc_output
-
-    def set_bound(self) -> None:
-        """ Set integer bound.
-        """
-        self.write("int: MAX = 1000000;\n")
 
     def check_sat(self) -> Optional[bool]:
         """ Check the satisfiability.

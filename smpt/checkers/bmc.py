@@ -39,39 +39,88 @@ from smpt.ptio.verdict import Verdict
 
 
 class BMC(AbstractChecker):
-    """
-    Bounded Model Checking method.
+    """ Bounded Model Checking (BMC) method.
+
+    Attributes
+    ----------
+    ptnet : PetriNet
+        Initial Petri net.
+    ptnet_reduced : PetriNet, optional
+        Reduced Petri net.
+    system : System, optional
+        System of reduction equations.
+    formula : Formula
+        Reachability formula.
+    induction_queue : Queue of int, optional
+        Queue for the exchange with k-induction.
+    show_model : bool
+        Show model flag.
+    additional_techniques : Queue of str, optional
+        Queue to add the returning technique.
+    solver : Z3
+        SMT solver (Z3).
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, induction_queue=None, solver_pids=None, additional_techniques=None):
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
         """ Initializer.
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Initial Petri net.
+        formula : Formula
+            Reachability formula.
+        ptnet_reduced : PetriNet, optional
+            Reduced Petri net.
+        system : System, optional
+            System of reduction equations.
+        show_model : bool, optional
+            Show model flag.
+        debug : bool, optional
+            Debugging flag.
+        induction_queue : Queue of int, optional
+            Queue for the exchange with k-induction.
+        solver_pids : Queue of int, optional
+            Queue to share the current PID.
+        additional_techniques : Queue of str, optional
+            Queue to add the returning technique.
         """
         # Initial Petri net
-        self.ptnet = ptnet
+        self.ptnet: PetriNet = ptnet
 
         # Reduced Petri net
-        self.ptnet_reduced = ptnet_reduced
+        self.ptnet_reduced: Optional[PetriNet] = ptnet_reduced
 
         # System of linear equations
-        self.system = system
+        self.system: Optional[System] = system
 
         # Formula to study
-        self.formula = formula
+        self.formula: Formula = formula
 
         # Queue shared with K-Induction
-        self.induction_queue = induction_queue
+        self.induction_queue: Optional[Queue[int]] = induction_queue
 
         # Show model option
-        self.show_model = show_model
+        self.show_model: bool = show_model
 
         # Additional techniques queue
-        self.additional_techniques = additional_techniques
+        self.additional_techniques: Optional[Queue[str]] = additional_techniques
 
         # SMT solver
-        self.solver = Z3(debug=debug, solver_pids=solver_pids)
+        self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
 
-    def smtlib(self, k):
-        """ SMT-LIB format for understanding.
+    def smtlib(self, k: int) -> str:
+        """ Output for understanding.
+
+        Parameters
+        ----------
+        k : int
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         if self.ptnet_reduced is None:
             smt_input = self.smtlib_without_reduction(k)
@@ -83,9 +132,18 @@ class BMC(AbstractChecker):
 
         return smt_input
 
-    def smtlib_without_reduction(self, k):
-        """ SMT-LIB format for understanding.
-            Case without reduction.
+    def smtlib_without_reduction(self, k: int) -> str:
+        """ Helper for understanding (without reduction).
+
+        Parameters
+        ----------
+        k : int
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         smt_input = ""
 
@@ -107,9 +165,18 @@ class BMC(AbstractChecker):
 
         return smt_input
 
-    def smtlib_with_reduction(self, k):
-        """ SMT-LIB format for understanding.
-            Case with reduction.
+    def smtlib_with_reduction(self, k: int) -> str:
+        """ Helper for understanding (with reduction).
+
+        Parameters
+        ----------
+        k : int
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         smt_input = ""
 
@@ -146,8 +213,15 @@ class BMC(AbstractChecker):
 
         return smt_input
 
-    def prove(self, result, concurrent_pids):
+    def prove(self, result: Queue[tuple[Verdict, Marking]], concurrent_pids: Queue[list[int]]) -> None:
         """ Prover.
+
+        Parameters
+        ----------
+        result : Queue of tuple of Verdict, Marking
+            Queue to exchange the verdict.
+        concurrent_pids : Queue of int
+            Queue to get the PIDs of the concurrent methods.
         """
         log.info("[BMC] RUNNING")
 
@@ -175,14 +249,19 @@ class BMC(AbstractChecker):
                 self.additional_techniques.put('BMC')
             if self.show_model:
                 model = self.solver.get_marking(self.ptnet, order)
-        result.put([verdict, model])
+        result.put((verdict, model))
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
             send_signal_pids(concurrent_pids.get(), STOP)
 
-    def prove_without_reduction(self):
+    def prove_without_reduction(self) -> int:
         """ Prover for non-reduced Petri Net.
+
+        Returns
+        -------
+        int
+            Order of the counter-example.
         """
         log.info("[BMC] > Initialization")
 
@@ -228,8 +307,13 @@ class BMC(AbstractChecker):
 
         return k
 
-    def prove_with_reduction(self):
+    def prove_with_reduction(self) -> int:
         """ Prover for reduced Petri Net.
+
+        Returns
+        -------
+        int
+            Order of the counter-example.
         """
         log.info("[BMC] > Initialization")
 

@@ -28,40 +28,82 @@ __version__ = "4.0.0"
 import logging as log
 import re
 import sys
+from multiprocessing import Queue
+from typing import Optional
 
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.z3 import Z3
+from smpt.ptio.formula import Formula
+from smpt.ptio.ptnet import Marking, PetriNet
+from smpt.ptio.system import System
 from smpt.ptio.verdict import Verdict
 
 
 class Enumerative:
     """ Enumerative markings method.
+
+    Attributes
+    ----------
+    ptnet : PetriNet
+        Initial Petri net.
+    ptnet_reduced : PetriNet, optional
+        Reduced Petri net.
+    system : System, optional
+        System of reduction equations.
+    formula : Formula
+        Reachability formula.
+    markings : list of dict of str, int
+        Reachable markings.
+    solver : Z3
+        SMT solver (Z3).
     """
 
-    def __init__(self, path_markings, ptnet, formula, ptnet_reduced, system, debug=False, solver_pids=None):
+    def __init__(self, path_markings: str, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        path_markings : str
+            Path to the list of markings (.aut format).
+        ptnet : PetriNet
+            Initial Petri net.
+        formula : Formula
+            Reachability formula.
+        ptnet_reduced : PetriNet, optional
+            Reduced Petri net.
+        system : System, optional
+            System of reduction equations.
+        debug : bool, optional
+            Debugging flag.
+        solver_pids : Queue of int, optional
+            Queue to share the current PID.
         """
         # Initial Petri net
-        self.ptnet = ptnet
+        self.ptnet: PetriNet = ptnet
 
         # Reduced Petri net
-        self.ptnet_reduced = ptnet_reduced
+        self.ptnet_reduced: Optional[PetriNet] = ptnet_reduced
 
         # System of linear equations
-        self.system = system
+        self.system: Optional[System] = system
 
         # Formula to study
-        self.formula = formula
+        self.formula: Formula = formula
 
         # Reachable markings
-        self.markings = []
+        self.markings: list[dict[str, int]] = []
         self.parse_markings(path_markings)
 
         # SMT solver
-        self.solver = Z3(debug=debug, solver_pids=solver_pids)
+        self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Markings to textual format.
+
+        Returns
+        -------
+        str
+            Debugging format.
         """
         text = ""
         for marking in self.markings:
@@ -71,9 +113,13 @@ class Enumerative:
             text += "\n"
         return text
 
-    def smtlib(self):
+    def smtlib(self) -> str:
         """ Assert markings (DNF).
-            SMT-LIB format
+        
+        Returns
+        -------
+        str
+            SMT-LIB format.
         """
         if not self.markings:
             return ""
@@ -97,8 +143,13 @@ class Enumerative:
 
         return smt_input
 
-    def parse_markings(self, filename):
+    def parse_markings(self, filename: str) -> None:
         """ Parse markings (.aut file format).
+
+        Parameters
+        ----------
+        filename : str
+            Path to the list of markings (.aut format).
         """
         try:
             with open(filename, 'r') as fp:
@@ -114,7 +165,8 @@ class Enumerative:
                                 consistent = False
                                 break
                             place_marking = place_marking[1].split('*')
-                            place_id = place_marking[0].replace('`', '').replace('{', '').replace('}', '')
+                            place_id = place_marking[0].replace(
+                                '`', '').replace('{', '').replace('}', '')
                             if place_id == '':
                                 consistent = False
                                 break
@@ -128,8 +180,15 @@ class Enumerative:
         except FileNotFoundError as e:
             sys.exit(e)
 
-    def prove(self, result, concurrent_pids):
+    def prove(self, result: Queue[tuple[Verdict, Marking]], concurrent_pids: Queue[list[int]]) -> None:
         """ Prover.
+
+        Parameters
+        ----------
+        result : Queue of tuple of Verdict, Marking
+            Queue to exchange the verdict.
+        concurrent_pids : Queue of int
+            Queue to get the PIDs of the concurrent methods.
         """
         log.info("[ENUMERATIVE] RUNNING")
 
@@ -145,18 +204,18 @@ class Enumerative:
         if self.solver.aborted:
             return
 
-        # Put the result in the queue 
+        # Put the result in the queue
         verdict, model = Verdict.INV, None
         if self.solver.check_sat():
             verdict = Verdict.CEX
             model = self.solver.get_marking(self.ptnet)
-        result.put([verdict, model])
+        result.put((verdict, model))
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
             send_signal_pids(concurrent_pids.get(), STOP)
 
-    def prove_without_reduction(self):
+    def prove_without_reduction(self) -> None:
         """ Prover for non-reduced Petri net.
         """
         log.info("[ENUMERATIVE] Declaration of the places")
@@ -166,7 +225,7 @@ class Enumerative:
         log.info("[ENUMERATIVE] Markings")
         self.solver.write(self.smtlib())
 
-    def prove_with_reduction(self):
+    def prove_with_reduction(self) -> None:
         """ Prover for reduced Petri net.
         """
         log.info("[ENUMERATIVE] Declaration of the places")
@@ -177,4 +236,3 @@ class Enumerative:
         self.solver.write(self.formula.R.smtlib(assertion=True))
         log.info("[ENUMERATIVE] Markings from the reduced Petri net")
         self.solver.write(self.smtlib())
-

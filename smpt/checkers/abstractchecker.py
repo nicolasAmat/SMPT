@@ -26,7 +26,6 @@ __version__ = "4.0.0"
 
 from abc import ABC, abstractmethod
 from multiprocessing import Queue
-from typing import Optional
 
 from smpt.ptio.ptnet import Marking
 from smpt.ptio.verdict import Verdict
@@ -37,7 +36,14 @@ class AbstractChecker(ABC):
     """
 
     @abstractmethod
-    def prove(self, result: Queue[Verdict], concurrent_pids: Queue[Optional[int]]):
+    def prove(self, result: Queue[tuple[Verdict, Marking]], concurrent_pids: Queue[list[int]]) -> None:
         """ Prover.
+
+        Parameters
+        ----------
+        result : Queue of Verdict
+            Queue to exchange the verdict.
+        concurrent_pids : Queue of int
+            Queue to get the PIDs of the concurrent methods.
         """
         pass
