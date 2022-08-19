@@ -51,6 +51,8 @@ class BMC(AbstractChecker):
         System of reduction equations.
     formula : Formula
         Reachability formula.
+    path_proof : str, optional
+        Path to proof (.scn format).
     induction_queue : Queue of int, optional
         Queue for the exchange with k-induction.
     show_model : bool
@@ -61,7 +63,7 @@ class BMC(AbstractChecker):
         SMT solver (Z3).
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, path_proof: Optional[str] = None, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
         """ Initializer.
 
         Parameters
@@ -78,12 +80,15 @@ class BMC(AbstractChecker):
             Show model flag.
         debug : bool, optional
             Debugging flag.
+        path_proof : str, optional
+            Path to proof (.scn format).
         induction_queue : Queue of int, optional
             Queue for the exchange with k-induction.
         solver_pids : Queue of int, optional
             Queue to share the current PID.
         additional_techniques : Queue of str, optional
             Queue to add the returning technique.
+        path_proof : str
         """
         # Initial Petri net
         self.ptnet: PetriNet = ptnet
@@ -96,6 +101,9 @@ class BMC(AbstractChecker):
 
         # Formula to study
         self.formula: Formula = formula
+
+        # Path proof
+        self.path_proof = path_proof
 
         # Queue shared with K-Induction
         self.induction_queue: Optional[Queue[int]] = induction_queue
@@ -158,7 +166,7 @@ class BMC(AbstractChecker):
             smt_input += self.ptnet.smtlib_declare_places(i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet.smtlib_transition_relation(i, eq=False)
+            smt_input += self.ptnet.smtlib_transition_relation(i, eq=False, tr=(self.path_proof is not None))
 
         smt_input += "; Formula to check the satisfiability\n"
         smt_input += self.formula.R.smtlib(k + 1, assertion=True)
@@ -203,7 +211,7 @@ class BMC(AbstractChecker):
             smt_input += self.ptnet_reduced.smtlib_declare_places(i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet_reduced.smtlib_transition_relation(i, eq=False)
+            smt_input += self.ptnet_reduced.smtlib_transition_relation(i, eq=False, tr=(self.path_proof is not None))
 
         smt_input += "; Reduction equations\n"
         smt_input += self.system.smtlib_equations_with_places_from_reduced_net(k)
@@ -230,9 +238,6 @@ class BMC(AbstractChecker):
         else:
             order = self.prove_with_reduction()
 
-        # Kill the solver
-        self.solver.kill()
-
         # Quit if the solver has aborted
         if self.solver.aborted:
             return
@@ -250,6 +255,9 @@ class BMC(AbstractChecker):
             if self.show_model:
                 model = self.solver.get_marking(self.ptnet, order)
         result.put((verdict, model))
+
+        # Kill the solver
+        self.solver.kill()
 
         # Terminate concurrent methods
         if not concurrent_pids.empty():
@@ -297,13 +305,18 @@ class BMC(AbstractChecker):
             self.solver.write(self.ptnet.smtlib_declare_places(k))
 
             log.info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
-            self.solver.write(self.ptnet.smtlib_transition_relation(k - 1, eq=False))
+            self.solver.write(self.ptnet.smtlib_transition_relation(k - 1, eq=False, tr=(self.path_proof is not None)))
 
             log.info("[BMC] > Push")
             self.solver.push()
 
             log.info("[BMC] > Formula to check the satisfiability (order: {})".format(k))
             self.solver.write(self.formula.R.smtlib(k, assertion=True))
+
+        # Write trace if export proof option enabled
+        if self.path_proof:
+            with open(self.path_proof, 'w') as fp_proof:
+                fp_proof.write(' '.join(self.solver.get_trace(self.ptnet, k)))
 
         return k
 
@@ -367,7 +380,7 @@ class BMC(AbstractChecker):
             self.solver.write(self.ptnet_reduced.smtlib_declare_places(k))
 
             log.info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
-            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k - 1, eq=False))
+            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k - 1, eq=False, tr=(self.path_proof is not None)))
 
             log.info("[BMC] > Push")
             self.solver.push()
@@ -377,6 +390,11 @@ class BMC(AbstractChecker):
 
             log.info("[BMC] > Link initial and reduced Petri nets")
             self.solver.write(self.system.smtlib_link_nets(k))
+
+        # Write trace if export proof option enabled
+        if self.path_proof:
+            with open(self.path_proof, 'w') as fp_proof:
+                fp_proof.write(' '.join(self.solver.get_trace(self.ptnet_reduced, k)))
 
         return k
 

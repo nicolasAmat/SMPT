@@ -42,6 +42,7 @@ MULTIPLIER_TO_INT = {
     'E': 1000000000000000000
 }
 
+
 class PetriNet:
     """ Petri net.
 
@@ -189,7 +190,7 @@ class PetriNet:
         """
         return self.initial_marking.smtlib(k)
 
-    def smtlib_transition_relation(self, k: int, eq: bool = True) -> str:
+    def smtlib_transition_relation(self, k: int, eq: bool = True, tr: bool = False) -> str:
         """ Transition relation from places at order k to order k + 1.
         
         Parameters
@@ -198,20 +199,34 @@ class PetriNet:
             Order.
         eq : bool, optional
             Add EQ(p_k, p_{k+1}) predicate in the transition relation.
+        tr : bool, optional
+            Add transition ids.
 
         Returns
         -------
         str
             SMT-LIB format.
         """
-        if not self.places:
-            return ""
+        smt_input = ""
 
-        smt_input = "(assert (or \n"
-        smt_input += ''.join(map(lambda tr: tr.smtlib(k),
-                             self.transitions.values()))
+        if not self.places:
+            return smt_input
+
+        if tr:
+            smt_input += "(declare-const TRACE@{} Int)\n".format(k)
+
+        smt_input += "(assert (or \n"
+
+        if tr:
+            smt_input += ''.join(map(lambda it: it[1].smtlib(k, id=it[0]),
+                                 enumerate(self.transitions.values())))
+        else:
+            smt_input += ''.join(map(lambda tr: tr.smtlib(k),
+                                     self.transitions.values()))
         if eq:
             smt_input += "\t(and\n\t\t"
+            if tr:
+                smt_input += "(= TRACE@{} (-1))\n\t\t".format(k)
             smt_input += ''.join(map(lambda pl: "(= {}@{} {}@{})".format(
                 pl.id, k + 1, pl.id, k), self.places.values()))
             smt_input += "\n\t)"
@@ -818,13 +833,15 @@ class Transition:
 
         return text
 
-    def smtlib(self, k: int) -> str:
+    def smtlib(self, k: int, id: Optional[int] = None) -> str:
         """ Transition relation from places at order k to order k + 1.
             
         Parameters
         ----------
         k : int
             Order.
+        id : int, optional
+            Id of the transition.
 
         Returns
         -------
@@ -832,6 +849,10 @@ class Transition:
             SMT-LIB format.
         """
         smt_input = "\t(and\n\t\t"
+
+        # Trace label
+        if id is not None:
+            smt_input += "(= TRACE@{} {})\n\t\t".format(k, id)
 
         # Firing condition on input places
         for pl, weight in self.pre.items():

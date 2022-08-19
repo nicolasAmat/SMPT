@@ -222,7 +222,7 @@ class Z3(Solver):
         self.write("(get-model)\n")
         self.flush()
 
-        # Read '(model '
+        # Read '( '
         self.readline()
 
         # Parse the model
@@ -246,6 +246,37 @@ class Z3(Solver):
                 marking[ptnet.places[place]] = int(place_marking)
 
         return Marking(marking)
+
+    def get_trace(self, ptnet: PetriNet, length: int) -> list[str]:
+        """ Get the trace from the current SAT stack.
+        """
+        # Solver instruction
+        self.write("(get-model)\n")
+        self.flush()
+
+        # Read '(model '
+        self.readline()
+
+        # Parse the model
+        trace = ["" for _ in range(length)]
+        
+        while True:
+            content = self.readline().split(' ')
+
+            # Check if parsing done
+            if len(content) < 2:
+                break
+
+            id = self.readline().replace(' ', '').replace(')', '')
+
+            # Get place marking and place id
+            content = content[1].rsplit('@', 1)
+
+            if content[0] == "TRACE" and id != "(-1":
+                trace[int(content[1])] = list(ptnet.transitions.keys())[int(id)]
+
+        return trace
+
 
     def get_step(self, ptnet: PetriNet) -> tuple[Marking, Marking]:
         """ Get a step from the current SAT stack,

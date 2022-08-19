@@ -103,7 +103,7 @@ class Parallelizer:
                                        structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
 
             if method == 'BMC':
-                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug,
+                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, path_proof=path_proof,
                                     induction_queue=induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
                 self.techniques.append(collateral_processing + unfolding_to_pt +
                                        structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])

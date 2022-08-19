@@ -31,7 +31,7 @@ from smpt.ptio.verdict import Verdict
 
 class Induction:
     """
-    INDUCTION method.
+    Induction method.
     """
 
     def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, solver_pids=None):
