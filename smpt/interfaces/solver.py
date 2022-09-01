@@ -34,11 +34,6 @@ from smpt.ptio.ptnet import Marking, PetriNet
 class Solver(ABC):
     """ Solver abstract class.
 
-        Attributes
-        ----------
-        aborted : bool
-            Aborted flag.
-
         Note
         ----
         Can be: Z3, MiniZinc, Walk

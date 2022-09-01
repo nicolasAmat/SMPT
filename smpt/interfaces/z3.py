@@ -53,7 +53,7 @@ class Z3(Solver):
     ----------
     solver : Popen
         A z3 process.
-    aborted :bool
+    aborted : bool
         Aborted flag.
     debug : bool
         Debugging flag.

@@ -1017,7 +1017,7 @@ class Transition:
         Note
         ----
         If pre(t,p) > 0 and post(t,p) > 0 then
-        - delta(t,p) = |pre(t,p) - post(t,p)|
+        - delta(t,p) = abs(pre(t,p) - post(t,p))
         - tests(t,p) = min(pre(t,p), post(t,p))
         - inputs(t,p) = max(0, pre(t,p) - delta(t,p))
         - outputs(t,p) = max(0, post(t,p) - delta(t,p))

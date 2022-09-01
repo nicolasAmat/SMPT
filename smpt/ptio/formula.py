@@ -1163,7 +1163,7 @@ class StateFormula(Expression):
         """ Convert to Disjunctive Normal Form (DNF).
 
         Parameters
-         ----------
+        ----------
         negation_propagation : bool
             Propagate a negation.
 
@@ -2332,7 +2332,7 @@ class ArithmeticOperation(SimpleExpression):
     operands : list of 
         A list of operands.
     operator : str
-        An operator (+, *).
+        An operator ('+', '*').
     """
 
     def __init__(self, operands: list[SimpleExpression], operator: str) -> None:
