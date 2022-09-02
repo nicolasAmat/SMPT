@@ -176,13 +176,13 @@ class StateEquation:
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             if self.additional_techniques is not None:
-                self.additional_techniques.put('TOPOLIGICAL')
+                self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet) is not None:
             if self.additional_techniques is not None:
-                self.additional_techniques.put('TOPOLIGICAL')
+                self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Check satisfiability")
@@ -201,7 +201,7 @@ class StateEquation:
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             if self.additional_techniques is not None:
-                self.additional_techniques.put('TOPOLIGICAL')
+                self.additional_techniques.put('TOPOLOGICAL')
                 self.additional_techniques.put('USE_NUPN')
             return Verdict.INV
 
@@ -211,7 +211,7 @@ class StateEquation:
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             if self.additional_techniques is not None:
-                self.additional_techniques.put('TOPOLIGICAL')
+                self.additional_techniques.put('TOPOLOGICAL')
                 self.additional_techniques.put('USE_NUPN')
             return Verdict.INV
 
@@ -248,13 +248,13 @@ class StateEquation:
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             if self.additional_techniques is not None:
-                self.additional_techniques.put('TOPOLIGICAL')
+                self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet_reduced) is not None:
             if self.additional_techniques is not None:
-                self.additional_techniques.put('TOPOLIGICAL')
+                self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Unknown")
