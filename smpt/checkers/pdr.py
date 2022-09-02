@@ -7,12 +7,12 @@ Aaron Bradley, VMCAI 2011
 Adapted for Petri nets
 
 Orders (state' denotes a state reached by firing one transition):
-- Case non-reduced:
-    ptnet : 0
-    ptnet': 1
-- Case reduced:
-    ptnet : 10     ptnet_reduced : 0
-    ptnet': 11     ptnet_reduced': 1
+Case non-reduced:
+ptnet : 0
+ptnet': 1
+Case reduced:
+ptnet : 10     ptnet_reduced : 0
+ptnet': 11     ptnet_reduced': 1
 
 NB: PDR-REACH and PDR-REACH-SATURATED are not currently compatible with the use of reductions.
 
