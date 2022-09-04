@@ -29,7 +29,7 @@ import logging as log
 import sys
 from multiprocessing import Queue
 from subprocess import DEVNULL, PIPE, Popen
-from tempfile import NamedTemporaryFile
+import tempfile
 from typing import Optional
 
 from smpt.exec.utils import STOP, send_signal_pids
@@ -38,16 +38,31 @@ from smpt.ptio.ptnet import Marking, PetriNet, Place
 
 
 class MiniZinc(Solver):
-    """ Specific MiniZinc interface defined by:
-        - a MiniZinc process,
-        - a debug option.
+    """ MiniZinc interface.
+
+    Attributes
+    ----------
+    file : _TemporaryFileWrapper
+        Query file (.mzn format).
+    solver : Popen; optional
+        A MiniZinc process.
+    solver_pids : Queue
+        Queue of solver pids.
+    aborted : bool
+        Aborted flag.
+    debug : bool
+        Debugging flag.
+    timeout : int
+        Time limit.
+    first_line : str
+        First line read from the solver.
     """
 
     def __init__(self, debug: bool = False, timeout: int = 0, solver_pids: Queue[int] = None) -> None:
         """ Initializer.
         """
         # File to write formula
-        self.file = NamedTemporaryFile('w', suffix='.mzn')
+        self.file: tempfile._TemporaryFileWrapper[str] = tempfile.NamedTemporaryFile('w', suffix='.mzn')
 
         # Solver
         self.solver: Optional[Popen] = None
@@ -79,6 +94,13 @@ class MiniZinc(Solver):
 
     def write(self, input: str, debug: bool = False) -> None:
         """ Write instructions into the standard input.
+
+        Parameters
+        ----------
+        input : str 
+            Input instructions.
+        debug : bool
+            Debugging flag.
         """
         if self.debug or debug:
             print(input)
@@ -88,6 +110,16 @@ class MiniZinc(Solver):
 
     def readline(self, debug: bool = False) -> str:
         """ Read a line from the standard output.
+   
+        Parameters
+        ----------
+        debug : bool, optional
+            Debugging flag.
+
+        Returns
+        -------
+        str
+            Line read.
         """
         if self.solver is None:
             self.abort()
@@ -103,7 +135,12 @@ class MiniZinc(Solver):
         return minizinc_output
 
     def check_sat(self) -> Optional[bool]:
-        """ Check the satisfiability.
+        """ Check the satisfiability of the current stack.
+
+        Returns
+        -------
+        bool, optional
+            Satisfiability of the current stack.
         """
         self.write("solve satisfy;\n")
 
@@ -129,8 +166,19 @@ class MiniZinc(Solver):
             return minizinc_output != "=====UNSATISFIABLE====="
 
     def get_marking(self, ptnet: PetriNet, k: Optional[int] = None) -> Marking:
-        """ Get a model.
-            Return a cube (conjunction of equalities).
+        """ Get a marking from the current stack.
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Current Petri net.
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        Marking
+            Marking from the current stack.
         """
         marking: dict[Place, int] = {}
         line = self.first_line
@@ -147,8 +195,17 @@ class MiniZinc(Solver):
 
         return Marking(marking)
 
-    def parse_value(self, ptnet: PetriNet, place_content: list[str], marking: dict[Place, int]):
+    def parse_value(self, ptnet: PetriNet, place_content: list[str], marking: dict[Place, int]) -> None:
         """ Parse a place from the model.
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Current Petri net.
+        place_content : list of str
+            Content to parse.
+        marking : dict of Place, int
+            Current marking.
         """
         place_marking = int(place_content[1].replace(';', ''))
         place = place_content[0]
