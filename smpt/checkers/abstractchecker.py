@@ -1,5 +1,5 @@
 """
-Abstract Checker.
+Abstract Checker
 
 This file is part of SMPT.
 

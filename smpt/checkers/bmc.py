@@ -1,5 +1,5 @@
 """
-BMC: Bounded Model Checking
+BMC (Bounded Model Checking) Method
 
 This file is part of SMPT.
 
@@ -58,12 +58,12 @@ class BMC(AbstractChecker):
     show_model : bool
         Show model flag.
     additional_techniques : Queue of str, optional
-        Queue to add the returning technique.
+        Queue to add some additional technique.
     solver : Z3
         SMT solver (Z3).
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, path_proof: Optional[str] = None, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, path_proof: Optional[str] = None, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -87,8 +87,9 @@ class BMC(AbstractChecker):
         solver_pids : Queue of int, optional
             Queue to share the current PID.
         additional_techniques : Queue of str, optional
-            Queue to add the returning technique.
+            Queue to add some additional technique.
         path_proof : str
+            Path to proof (.scn format)
         """
         # Initial Petri net
         self.ptnet: PetriNet = ptnet
@@ -112,7 +113,8 @@ class BMC(AbstractChecker):
         self.show_model: bool = show_model
 
         # Additional techniques queue
-        self.additional_techniques: Optional[Queue[str]] = additional_techniques
+        self.additional_techniques: Optional[Queue[str]
+                                             ] = additional_techniques
 
         # SMT solver
         self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
@@ -162,11 +164,13 @@ class BMC(AbstractChecker):
         smt_input += self.ptnet.smtlib_initial_marking(0)
 
         for i in range(k):
-            smt_input += "; Declaration of the places from the Petri net (order: {})\n".format(i + 1)
+            smt_input += "; Declaration of the places from the Petri net (order: {})\n".format(
+                i + 1)
             smt_input += self.ptnet.smtlib_declare_places(i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet.smtlib_transition_relation(i, eq=False, tr=(self.path_proof is not None))
+            smt_input += self.ptnet.smtlib_transition_relation(
+                i, eq=False, tr=(self.path_proof is not None))
 
         smt_input += "; Formula to check the satisfiability\n"
         smt_input += self.formula.R.smtlib(k + 1, assertion=True)
@@ -207,14 +211,17 @@ class BMC(AbstractChecker):
         smt_input += self.ptnet_reduced.smtlib_initial_marking(0)
 
         for i in range(k):
-            smt_input += "; Declaration of the places from the reduced Petri net (order: {})\n".format(1)
+            smt_input += "; Declaration of the places from the reduced Petri net (order: {})\n".format(
+                1)
             smt_input += self.ptnet_reduced.smtlib_declare_places(i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet_reduced.smtlib_transition_relation(i, eq=False, tr=(self.path_proof is not None))
+            smt_input += self.ptnet_reduced.smtlib_transition_relation(
+                i, eq=False, tr=(self.path_proof is not None))
 
         smt_input += "; Reduction equations\n"
-        smt_input += self.system.smtlib_equations_with_places_from_reduced_net(k)
+        smt_input += self.system.smtlib_equations_with_places_from_reduced_net(
+            k)
 
         smt_input += "; Link initial and reduced Petri nets\n"
         smt_input += self.system.smtlib_link_nets(k)
@@ -301,16 +308,19 @@ class BMC(AbstractChecker):
             k += 1
             log.info("[BMC] > k = {}".format(k))
 
-            log.info("[BMC] > Declaration of the places from the Petri net (order: {})".format(k))
+            log.info(
+                "[BMC] > Declaration of the places from the Petri net (order: {})".format(k))
             self.solver.write(self.ptnet.smtlib_declare_places(k))
 
             log.info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
-            self.solver.write(self.ptnet.smtlib_transition_relation(k - 1, eq=False, tr=(self.path_proof is not None)))
+            self.solver.write(self.ptnet.smtlib_transition_relation(
+                k - 1, eq=False, tr=(self.path_proof is not None)))
 
             log.info("[BMC] > Push")
             self.solver.push()
 
-            log.info("[BMC] > Formula to check the satisfiability (order: {})".format(k))
+            log.info(
+                "[BMC] > Formula to check the satisfiability (order: {})".format(k))
             self.solver.write(self.formula.R.smtlib(k, assertion=True))
 
         # Write trace if export proof option enabled
@@ -339,10 +349,13 @@ class BMC(AbstractChecker):
         log.info("[BMC] > Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
 
-        log.info("[BMC] > Reduction equations (not involving places from the reduced Petri net)")
-        self.solver.write(self.system.smtlib_equations_without_places_from_reduced_net())
+        log.info(
+            "[BMC] > Reduction equations (not involving places from the reduced Petri net)")
+        self.solver.write(
+            self.system.smtlib_equations_without_places_from_reduced_net())
 
-        log.info("[BMC] > Declaration of the places from the reduced Petri net (order: 0)")
+        log.info(
+            "[BMC] > Declaration of the places from the reduced Petri net (order: 0)")
         self.solver.write(self.ptnet_reduced.smtlib_declare_places(0))
 
         log.info("[BMC] > Initial marking of the reduced Petri net")
@@ -352,7 +365,8 @@ class BMC(AbstractChecker):
         self.solver.push()
 
         log.info("[BMC] > Reduction equations")
-        self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(0))
+        self.solver.write(
+            self.system.smtlib_equations_with_places_from_reduced_net(0))
 
         log.info("[BMC] > Link initial and reduced Petri nets")
         self.solver.write(self.system.smtlib_link_nets(0))
@@ -376,17 +390,20 @@ class BMC(AbstractChecker):
             k += 1
             log.info("[BMC] > k = {}".format(k))
 
-            log.info("[BMC] > Declaration of the places from the reduced Petri net (order: {})".format(k))
+            log.info(
+                "[BMC] > Declaration of the places from the reduced Petri net (order: {})".format(k))
             self.solver.write(self.ptnet_reduced.smtlib_declare_places(k))
 
             log.info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
-            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k - 1, eq=False, tr=(self.path_proof is not None)))
+            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(
+                k - 1, eq=False, tr=(self.path_proof is not None)))
 
             log.info("[BMC] > Push")
             self.solver.push()
 
             log.info("[BMC] > Reduction equations")
-            self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(k))
+            self.solver.write(
+                self.system.smtlib_equations_with_places_from_reduced_net(k))
 
             log.info("[BMC] > Link initial and reduced Petri nets")
             self.solver.write(self.system.smtlib_link_nets(k))
@@ -394,7 +411,7 @@ class BMC(AbstractChecker):
         # Write trace if export proof option enabled
         if self.path_proof:
             with open(self.path_proof, 'w') as fp_proof:
-                fp_proof.write(' '.join(self.solver.get_trace(self.ptnet_reduced, k)))
+                fp_proof.write(
+                    ' '.join(self.solver.get_trace(self.ptnet_reduced, k)))
 
         return k
-

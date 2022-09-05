@@ -1,5 +1,5 @@
 """
-State Equation
+State Equation Method
 
 This file is part of SMPT.
 
@@ -25,49 +25,80 @@ __version__ = "4.0.0"
 
 import logging as log
 import sys
+from multiprocessing import Queue
+from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.z3 import Z3
+from smpt.ptio.formula import Formula
+from smpt.ptio.ptnet import PetriNet
+from smpt.ptio.system import System
 from smpt.ptio.verdict import Verdict
 
 MAX_NUMBER_UNITS = 500
 
 
 class StateEquation(AbstractChecker):
-    """
-    State equation method.
+    """ State equation method.
+    
+    Note
+    ----
     Check that the set of potentially reachable markings does not intersect any feared state. 
+   
+    Attributes
+    ----------
+    ptnet : PetriNet
+        Initial Petri net.
+    ptnet_reduced : PetriNet, optional
+        Reduced Petri net.
+    system : System, optional
+        System of reduction equations.
+    formula : Formula
+        Reachability formula.
+    mcc : bool
+        MCC mode.
+    solver : Z3
+        SMT solver (Z3).
+    debug : bool
+        Debugging flag.
+    solver_pids : Queue of int, optional
+        Queue to share the current PID.
+    additional_techniques : Queue of str, optional
+        Queue to add some additional technique.
+    traps : TrapConstraints, optional
+        Engine to compute some trap constraints.
     """
 
     def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, mcc=False, debug=False, solver_pids=None, additional_techniques=None):
         """ Initializer.
         """
         # Initial Petri net
-        self.ptnet = ptnet
+        self.ptnet: PetriNet = ptnet
 
         # Reduced Petri net
-        self.ptnet_reduced = ptnet_reduced
+        self.ptnet_reduced: Optional[PetriNet] = ptnet_reduced
 
         # System of linear equations
-        self.system = system
+        self.system: Optional[System] = system
 
         # Formula to study
-        self.formula = formula
+        self.formula: Formula = formula
 
         # MCC mode
-        self.mcc = mcc
+        self.mcc: bool = mcc
 
         # SMT solver
-        self.solver = Z3(debug=debug, solver_pids=solver_pids)
-        self.debug = debug
-        self.solver_pids = solver_pids
+        self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
+        self.debug: bool = debug
+        self.solver_pids: Optional[Queue[int]] = solver_pids
 
         # Additional techniques queue
-        self.additional_techniques = additional_techniques
+        self.additional_techniques: Optional[Queue[str]
+                                             ] = additional_techniques
 
         # Trap constraints
-        self.traps = None
+        self.traps: Optional[TrapConstraints] = None
 
     def smtlib(self):
         """ SMT-LIB format for understanding.
