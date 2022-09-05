@@ -27,9 +27,9 @@ __version__ = "4.0.0"
 
 import logging as log
 import sys
+import tempfile
 from multiprocessing import Queue
 from subprocess import DEVNULL, PIPE, Popen
-import tempfile
 from typing import Optional
 
 from smpt.exec.utils import STOP, send_signal_pids
@@ -40,29 +40,43 @@ from smpt.ptio.ptnet import Marking, PetriNet, Place
 class MiniZinc(Solver):
     """ MiniZinc interface.
 
+    Note
+    ----
+    Dependency: https://www.minizinc.org/software.html
+
     Attributes
     ----------
-    file : _TemporaryFileWrapper
+    file : tempfile._TemporaryFileWrapper
         Query file (.mzn format).
     solver : Popen; optional
         A MiniZinc process.
-    solver_pids : Queue
+    solver_pids : Queue of int
         Queue of solver pids.
     aborted : bool
         Aborted flag.
     debug : bool
         Debugging flag.
     timeout : int
-        Time limit.
+        Timeout of miniZinc.
     first_line : str
         First line read from the solver.
     """
 
     def __init__(self, debug: bool = False, timeout: int = 0, solver_pids: Queue[int] = None) -> None:
         """ Initializer.
+
+        Parameters
+        ----------
+        debug : bool, optional
+            Debugging flag.
+        timeout : int, optional
+            Timeout of the solver.
+        solver_pids : Queue of int, optional
+            Queue of solver pids.
         """
         # File to write formula
-        self.file: tempfile._TemporaryFileWrapper[str] = tempfile.NamedTemporaryFile('w', suffix='.mzn')
+        self.file: tempfile._TemporaryFileWrapper[str] = tempfile.NamedTemporaryFile(
+            'w', suffix='.mzn')
 
         # Solver
         self.solver: Optional[Popen] = None

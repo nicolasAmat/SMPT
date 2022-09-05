@@ -40,7 +40,6 @@ class Z3(Solver):
 
     Note
     ----
-
     Uses SMT-LIB v2 format
     Standard: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2017-07-18.pdf
 
@@ -64,11 +63,11 @@ class Z3(Solver):
 
         Parameters
         ----------
-        debug: bool
+        debug : bool, optional
             Debugging flag.
-        timeout: int
+        timeout : int, optional
             Timeout of the solver.
-        solver_pids : Queue
+        solver_pids : Queue of int, optional
             Queue of solver pids.
         """
         # Solver
@@ -186,8 +185,7 @@ class Z3(Solver):
         Returns
         -------
         bool, optional
-                Satisfiability of the current stack.
-
+            Satisfiability of the current stack.
         """
         self.write("(check-sat)\n")
         self.flush()
@@ -249,6 +247,18 @@ class Z3(Solver):
 
     def get_trace(self, ptnet: PetriNet, length: int) -> list[str]:
         """ Get the trace from the current SAT stack.
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Current Petri net.
+        length : int
+            Length of the trace.
+
+        Returns
+        -------
+        list of str
+            Trace (ordered list of transition ids)
         """
         # Solver instruction
         self.write("(get-model)\n")
@@ -259,7 +269,7 @@ class Z3(Solver):
 
         # Parse the model
         trace = ["" for _ in range(length)]
-        
+
         while True:
             content = self.readline().split(' ')
 
@@ -273,14 +283,24 @@ class Z3(Solver):
             content = content[1].rsplit('@', 1)
 
             if content[0] == "TRACE" and id != "(-1":
-                trace[int(content[1])] = list(ptnet.transitions.keys())[int(id)]
+                trace[int(content[1])] = list(
+                    ptnet.transitions.keys())[int(id)]
 
         return trace
-
 
     def get_step(self, ptnet: PetriNet) -> tuple[Marking, Marking]:
         """ Get a step from the current SAT stack,
             meaning a pair of markings (m, m') s.t. m -> m'
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Current Petri net.
+        
+        Returns
+        -------
+        tuple of Marking, Marking
+            m and m' from the current stack.
         """
         # Solver instruction
         self.write("(get-model)\n")
@@ -315,6 +335,16 @@ class Z3(Solver):
 
     def get_trap(self, ptnet: PetriNet) -> set[Place]:
         """ Get trap from the current SAT stack.
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Current Petri net.
+
+        Returns
+        -------
+        set of Place
+            Trap from the current stack.
         """
         # Solver instruction
         self.write("(get-model)\n")
