@@ -31,10 +31,11 @@ __version__ = "4.0.0"
 
 import logging as log
 
+from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.interfaces.z3 import Z3
 
 
-class KInduction:
+class KInduction(AbstractChecker):
     """
     K-Induction method.
     """

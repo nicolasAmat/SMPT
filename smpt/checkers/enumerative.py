@@ -33,6 +33,7 @@ import sys
 from multiprocessing import Queue
 from typing import Optional
 
+from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.z3 import Z3
 from smpt.ptio.formula import Formula
@@ -41,7 +42,7 @@ from smpt.ptio.system import System
 from smpt.ptio.verdict import Verdict
 
 
-class Enumerative:
+class Enumerative(AbstractChecker):
     """ Enumerative markings method.
 
     Attributes

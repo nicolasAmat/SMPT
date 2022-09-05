@@ -42,6 +42,7 @@ import logging as log
 import platform
 import resource
 
+from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.z3 import Z3
 from smpt.ptio.formula import (ArithmeticOperation, Atom, FreeVariable,
@@ -323,7 +324,7 @@ class States:
         return clause
 
 
-class PDR:
+class PDR(AbstractChecker):
     """ 
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """

@@ -27,6 +27,7 @@ __version__ = "4.0.0"
 import logging as log
 from multiprocessing import Queue
 
+from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.minizinc import MiniZinc
 from smpt.interfaces.solver import Solver
@@ -37,7 +38,7 @@ from smpt.ptio.system import System
 from smpt.ptio.verdict import Verdict
 
 
-class CP:
+class CP(AbstractChecker):
     """ Constraint Programming method.
 
     Attributes
