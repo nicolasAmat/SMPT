@@ -24,8 +24,9 @@ __version__ = "4.0.0"
 
 import time
 from multiprocessing import Process, Queue
-from typing import Any
+from typing import Any, Optional
 
+from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.checkers.bmc import BMC
 from smpt.checkers.cp import CP
 from smpt.checkers.enumerative import Enumerative
@@ -35,25 +36,87 @@ from smpt.checkers.pdr import PDR
 from smpt.checkers.randomwalk import RandomWalk
 from smpt.checkers.statequation import StateEquation
 from smpt.exec.utils import KILL, send_signal_group_pid, send_signal_pids
+from smpt.ptio.formula import Formula
+from smpt.ptio.ptnet import Marking, PetriNet
+from smpt.ptio.system import System
+from smpt.ptio.verdict import Verdict
 
 PRE_TIMEOUT = 120
 
 
 class Parallelizer:
-    """ Analysis methods parallelizer.
+    """ Helper to manage methods in parallel.
+
+    Attributes
+    ----------
+    property_id : str
+        Id of the property.
+    formula : Formula
+        Reachability formula.
+    show_techniques : bool
+        Show techniques flag.
+    show_time : bool
+        Show time flag.
+    show_model : bool
+        Show model flag.
+    additional_techniques : Queue of str
+        Queue of additional techniques involved during the computation ('TOPOLOGICAL', 'NUPN_NUPN', ...).
+    methods : list of AbstractChecker
+        List of methods to be run in parallel.
+    processes : list of Process
+        List of processes corresponding to the methods.
+    techniques : list of list of str
+        List of techniques corresponding to the methods.
+    computation_time : float
+        Computation time.
+    results : list of Queue of tuple of Verdict, Marking
+        List of Queue to store the verdicts corresponding to the methods.
+    solver_pids : Queue of int
+        Queue of solver pids.
     """
 
-    def __init__(self, property_id, ptnet, formula, methods, ptnet_reduced=None, system=None, show_techniques=False, show_time=False, show_model=False, debug=False, path_markings=None, check_proof=False, path_proof=None, mcc=False):
+    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False):
         """ Initializer.
+
+        Parameters
+        ----------
+        property_id : str
+            Id of the property.
+        ptnet : PetriNet
+            Initial Petri net.
+        formula : Formula
+            Reachability formula.
+        methods : list of str
+            List of methods to be run in parallel.
+        ptnet_reduced : PetriNet, optional
+            Reduced Petri net.
+        system : System, optional
+            System of reduction equations.
+        show_techniques : bool, optional 
+            Show techniques flag.
+        show_time : bool, optional
+            Show time flag.
+        show_model : bool, optional
+            Show model flag.
+        debug : bool, optional
+            Debugging flag.
+        path_markings : str, optional
+            Path to the list of markings (.aut format).
+        check_proof : bool, optional
+            Check proof flag.
+        path_proof : str, optional
+            Path to proof.
+        mcc : bool, optional
+            MCC mode.
         """
         # Property id and corresponding formula
-        self.property_id = property_id
-        self.formula = formula
+        self.property_id: str = property_id
+        self.formula: Formula = formula
 
         # Output flags
-        self.show_techniques = show_techniques
-        self.show_time = show_time
-        self.show_model = show_model
+        self.show_techniques: bool = show_techniques
+        self.show_time: bool = show_time
+        self.show_model: bool = show_model
 
         # Common techniques
         collateral_processing, unfolding_to_pt, structural_reduction = [], [], []
@@ -63,23 +126,25 @@ class Parallelizer:
             unfolding_to_pt = ['UNFOLDING_TO_PT']
         if ptnet_reduced is not None:
             structural_reduction = ['STRUCTURAL_REDUCTION']
-        self.additional_techniques = Queue()
+        self.additional_techniques: Queue[str] = Queue()
 
         # Process information
-        self.methods, self.processes, self.techniques = [], [], []
-        self.computation_time = 0
+        self.methods: list[AbstractChecker] = []
+        self.processes: list[Process] = []
+        self.techniques: list[list[str]] = []
+        self.computation_time: float = 0
 
         # Create queues to store the results
-        self.results = [Queue() for _ in methods]
+        self.results: list[Queue[tuple[Verdict, Marking]]] = [Queue()
+                                                              for _ in methods]
 
         # Create queue to store solver pids
-        self.solver_pids = Queue()
+        self.solver_pids: Queue[int] = Queue()
 
         # If K-Induction enabled create a queue to store the current iteration of BMC
+        induction_queue: Optional[Queue[int]] = None
         if 'K-INDUCTION' in methods:
             induction_queue = Queue()
-        else:
-            induction_queue = None
 
         # Initialize methods
         for method in methods:
@@ -150,17 +215,25 @@ class Parallelizer:
                 self.techniques.append(
                     collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT-SMT'])
 
-    def run(self, timeout=225):
+    def run(self, timeout=225) -> Optional[str]:
         """ Run analysis in parrallel.
 
-            Return `True` if computation is done, `False` otherwise.
+        Parameters
+        ----------
+        timeout : int, optional
+            Time limit.
+
+        Returns
+        -------
+        str, optional
+            Property id if the computation is completed, None otherwise.
         """
         # Exit if no methods to run
         if not self.methods:
-            return True
+            return None
 
         # Create a queue to share the pids of the concurrent methods
-        concurrent_pids = Queue()
+        concurrent_pids: Queue[list[int]] = Queue()
 
         # Create processes
         self.processes = [Process(target=method.prove, args=(
@@ -175,8 +248,18 @@ class Parallelizer:
 
         return self.handle(timeout)
 
-    def handle(self, timeout):
+    def handle(self, timeout: int) -> Optional[str]:
         """ Handle the methods.
+
+        Parameters
+        ----------
+        timeout : int
+            Time limit.
+
+        Returns
+        -------
+        str, optional
+            Property id if the computation is completed, None if the time limit is reached.
         """
         # Get the starting time
         start_time = time.time()
@@ -225,7 +308,7 @@ class Parallelizer:
 
         return None
 
-    def stop(self):
+    def stop(self) -> None:
         """ Stop the methods.
         """
         # Kill methods
@@ -237,7 +320,17 @@ class Parallelizer:
             send_signal_group_pid(self.solver_pids.get(), KILL)
 
 
-def worker(parallelizer: Parallelizer) -> Any:
+def worker(parallelizer: Parallelizer) -> Optional[str]:
     """ Call run method n parallelizer object.
+
+    Parameters
+    ----------
+    parallelizer : Parallelizer
+        Parallelizer object to run.
+
+    Returns
+    -------
+    str, optional
+        Property id if the computation is completed, None otherwise.
     """
     return parallelizer.run(PRE_TIMEOUT)
