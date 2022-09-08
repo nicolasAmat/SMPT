@@ -28,14 +28,19 @@ __version__ = "4.0.0"
 
 import argparse
 import logging as log
+import os
 import queue
 import subprocess
 import sys
 import tempfile
 import time
+from multiprocessing import Process
 from multiprocessing.pool import ThreadPool
 
 from smpt.exec.parallelizer import Parallelizer, worker
+from smpt.interfaces.convert import convert
+from smpt.interfaces.reduce import reduce
+from smpt.interfaces.unfold import unfold
 from smpt.ptio.formula import Formula, Properties
 from smpt.ptio.ptnet import PetriNet
 from smpt.ptio.system import System
@@ -48,7 +53,8 @@ def main():
     start_time = time.time()
 
     # Arguments parser
-    parser = argparse.ArgumentParser(description='SMPT: Satisfiability Modulo Petri Net')
+    parser = argparse.ArgumentParser(
+        description='SMPT: Satisfiability Modulo Petri Net')
 
     parser.add_argument('--version',
                         action='version',
@@ -115,7 +121,8 @@ def main():
 
     group_methods = parser.add_mutually_exclusive_group(required=True)
 
-    methods = ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP']
+    methods = ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION',
+               'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP', 'TIPX']
 
     group_methods.add_argument('--methods',
                                default=methods,
@@ -132,6 +139,10 @@ def main():
                                dest='path_markings',
                                type=str,
                                help='path to the state-space (.aut format)')
+
+    parser.add_argument('--project',
+                        action='store_true',
+                        help='Use TFG projection for WALK, TIPX, K-INDUCTION')
 
     group_timeout = parser.add_mutually_exclusive_group()
 
@@ -190,54 +201,66 @@ def main():
     else:
         log.basicConfig(format="%(message)s")
 
-    colored, path_pnml = False, None
-    state_equation = results.mcc or 'STATE-EQUATION' in results.methods
-    original_net = results.net
+    # Path to Petri net (can evolved if some file conversion are necessary)
+    path_net = results.net
+    # Path to .pnml Petri net (do no include colored nets)
+    path_pnml = None
+
+    # Use .pnml for reduction (if ndrio failed)
+    use_pnml_reduce = False
 
     # Check if colored net
     if results.colored:
-        colored = True
-        net = tempfile.NamedTemporaryFile().name
-        subprocess.run(["mcc", "smpt", "-i", results.net, '-o', net])
-        results.net = net + '.net'
-        original_net = results.net
+        path_net = unfold(path_net)
 
     # Check if extension is `.pnml`
-    elif results.net.lower().endswith('.pnml'):
-        path_pnml = results.net
-        ptnet_file = tempfile.NamedTemporaryFile(suffix='.net')
-        results.net = ptnet_file.name
-        original_net = results.net
+    elif path_net.lower().endswith('.pnml'):
+        path_pnml = path_net
+        path_net, use_pnml_reduce = convert(path_pnml)
 
-        if subprocess.run(["ndrio", path_pnml, results.net], stderr=subprocess.DEVNULL).returncode:
-            tina_output = subprocess.run(["tina", "-p", path_pnml], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines()
-            ptnet_file.writelines("{}\n".format(line).encode() for line in tina_output[10:-5])
-            ptnet_file.flush()
-            original_net = path_pnml
+    # State equation method enabled
+    state_equation = results.mcc or 'STATE-EQUATION' in results.methods
 
     # Read the input Petri net
-    ptnet = PetriNet(results.net, path_pnml, colored, state_equation)
+    ptnet = PetriNet(path_net, path_pnml, results.colored, state_equation)
 
     # By default no reduction
     ptnet_reduced = None
     system = None
 
-    # Reduce the Petri net if '--auto-reduce' enabled
-    if results.auto_reduce:
-        if results.save_reduced_net:
-            fp_ptnet_reduced = open(results.net.replace('.net', '_reduced.net'), 'w+')
-        else:
-            fp_ptnet_reduced = tempfile.NamedTemporaryFile(suffix='.net')
-        reduce_start_time = time.time()
-        subprocess.run(
-            ["reduce", "-rg,redundant,compact+,mg,4ti2", "-redundant-limit", "650", "-redundant-time", "10", "-inv-limit", "1000", "-inv-time", "10", original_net, fp_ptnet_reduced.name])
-        reduce_time = time.time() - reduce_start_time
-        results.path_ptnet_reduced = fp_ptnet_reduced.name
+    # List of reduce processes
+    reduce_processes = []
 
+    # Reduce source
+    reduce_source = path_pnml if use_pnml_reduce else path_net
+
+    # Reduce the Petri net if '--auto-reduce' enabled
+    if results.auto_reduce and results.path_ptnet_reduced is None:
+        fp_ptnet_reduced = open(path_net.replace('.net', '_reduced.net'),
+                                'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net')
+        results.path_ptnet_reduced = fp_ptnet_reduced.name
+        reduce_processes.append(Process(target=reduce, args=(
+            reduce_source, results.path_ptnet_reduced, False, results.show_time,)))
+        reduce_processes[-1].start()
+
+    # Reduce the Petri net using TFG reductions if `--project` enabled
+    if results.project:
+        fp_ptnet_tfg = tempfile.NamedTemporaryFile(suffix='.net')
+        path_ptnet_tfg = fp_ptnet_tfg.name
+        reduce_processes.append(Process(target=reduce, args=(
+            results.net, path_ptnet_tfg, True, results.show_time,)))
+        reduce_processes[-1].start()
+
+    # Join reduce processes
+    for proc in reduce_processes:
+        proc.join()
+    
     # Read the reduced Petri net and the system of reduction equations
     if results.path_ptnet_reduced is not None:
-        ptnet_reduced = PetriNet(results.path_ptnet_reduced, state_equation=state_equation)
-        system = System(results.path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
+        ptnet_reduced = PetriNet(
+            results.path_ptnet_reduced, state_equation=state_equation)
+        system = System(results.path_ptnet_reduced,
+                        ptnet.places.keys(), ptnet_reduced.places.keys())
 
     # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
@@ -261,8 +284,10 @@ def main():
 
     # Generate a quasi-liveness property if '--quasi-liveness' enabled
     if results.quasi_live_transitions is not None:
-        property_id = "Quasi-liveness-{}".format(results.quasi_live_transitions)
-        transitions = results.quasi_live_transitions.replace('#', '.').replace('{', '').replace('}', '').split(',')
+        property_id = "Quasi-liveness-{}".format(
+            results.quasi_live_transitions)
+        transitions = results.quasi_live_transitions.replace(
+            '#', '.').replace('{', '').replace('}', '').split(',')
         formula = Formula(ptnet)
         formula.generate_quasi_liveness(transitions)
         properties.add_formula(formula, property_id)
@@ -270,24 +295,25 @@ def main():
     # Generate a reachability property if '--reachability' enabled
     if results.reachable_places is not None:
         property_id = "Reachability:-{}".format(results.reachable_places)
-        places = results.reachable_places.replace('#', '.').replace('{', '').replace('}', '').split(',')
+        places = results.reachable_places.replace(
+            '#', '.').replace('{', '').replace('}', '').split(',')
         marking = {ptnet.places[pl]: 1 for pl in places}
         formula = Formula(ptnet)
         formula.generate_reachability(marking)
         properties.add_formula(formula, property_id)
 
     # Show net informations
-    ptnet_info = '#' + ptnet.id
     if results.show_reduction_ratio and ptnet_reduced is not None:
-        ptnet_info += " RR~{}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100))
-    if results.show_time and results.auto_reduce:
-        ptnet_info += " t~{}s".format(reduce_time)
-    if results.show_reduction_ratio or results.show_time:
-        print(ptnet_info)
+        print("# Reduction Ratio ~ {}%".format(
+            int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100)))
 
-    # Generate Walk files if Walk or mcc mode enabled
-    if 'WALK' in results.methods or results.mcc:
+    # Generate Walk files if mcc mode, projection or Walk methods enabled
+    if results.mcc or results.project or 'WALK' in results.methods:
         properties.generate_walk_files()
+
+    # Project formulas if enabled
+    if results.project:
+        properties.project(path_ptnet_tfg)
 
     # Disable reduction is the Petri net is not reducible
     if system is not None and not system.equations:
@@ -307,7 +333,8 @@ def main():
     if results.mcc and (ptnet_reduced is None or ptnet_reduced.places):
         try:
             pool = ThreadPool(processes=2)
-            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True) for property_id, formula in properties.formulas.items()]
+            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], show_techniques=results.show_techniques, show_time=results.show_time,
+                                          show_model=results.show_model, debug=results.debug, mcc=True) for property_id, formula in properties.formulas.items()]
             pre_results = pool.map(worker, ((obj) for obj in parallelizers))
         finally:
             pool.close()
@@ -327,7 +354,8 @@ def main():
         # Update the number of properties and the timeout for the next passes
         if counter > nb_properties:
             counter, nb_properties = 0, computations.qsize()
-            timeout = (global_timeout - (time.time() - start_time)) / nb_properties
+            timeout = (global_timeout - (time.time() -
+                       start_time)) / nb_properties
 
         property_id, formula = computations.get()
 
@@ -344,7 +372,8 @@ def main():
 
             if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
                 # Use BMC and PDR methods in parallel
-                methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
+                methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION',
+                            'PDR-REACH', 'PDR-REACH-SATURATED', 'TIPX', 'TIPX-WALK']
 
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')
@@ -363,7 +392,8 @@ def main():
             methods += ["WALK" for _ in range(3)]
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof, path_proof=results.path_proof)
+        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, show_techniques=results.show_techniques, show_time=results.show_time,
+                                    show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof, path_proof=results.path_proof)
 
         # If computation is uncomplete add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:
@@ -373,14 +403,22 @@ def main():
         counter += 1
 
     # Close temporary files
+    if results.net.endswith('.pnml'):
+        os.remove(path_net)
     if results.auto_reduce:
         fp_ptnet_reduced.close()
+    if results.project:
+        fp_ptnet_tfg.close()
     if results.auto_enumerative:
         fp_markings.close()
 
     # Remove Walk files if Walk or mcc mode enabled
     if 'WALK' in results.methods or results.mcc:
         properties.remove_walk_files()
+
+    # Remove projection formulas
+    if results.project:
+        properties.remove_projection_files()
 
 
 if __name__ == '__main__':

@@ -77,7 +77,7 @@ class Parallelizer:
         Queue of solver pids.
     """
 
-    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False):
+    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False):
         """ Initializer.
 
         Parameters
@@ -94,6 +94,8 @@ class Parallelizer:
             Reduced Petri net.
         system : System, optional
             System of reduction equations.
+        ptnet_tfg : PetriNet, optional
+            Reduced Petri net (TFG).
         show_techniques : bool, optional 
             Show techniques flag.
         show_time : bool, optional
@@ -148,12 +150,16 @@ class Parallelizer:
         if 'K-INDUCTION' in methods:
             induction_queue = Queue()
 
+        # Shadow projection management
+        shadow_projection = ptnet_tfg is not None
+        ptnet_walker_kinduction = ptnet_tfg if shadow_projection else ptnet
+
         # Initialize methods
         for method in methods:
 
             if method == 'WALK':
                 self.methods.append(RandomWalk(
-                    ptnet, formula, debug=debug, solver_pids=self.solver_pids))
+                    ptnet_walker_kinduction, formula, shadow_projection=shadow_projection, tipx=False, debug=debug, solver_pids=self.solver_pids))
                 self.techniques.append(
                     collateral_processing + unfolding_to_pt + ['WALK'])
 
@@ -210,6 +216,12 @@ class Parallelizer:
                                     debug=debug, minizinc=True, solver_pids=self.solver_pids))
                 self.techniques.append(collateral_processing + unfolding_to_pt +
                                        structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
+
+            if method == 'TIPX':
+                self.methods.append(RandomWalk(ptnet_walker_kinduction, formula,
+                                    shadow_projection=shadow_projection, tipx=True, debug=debug, solver_pids=self.solver_pids))
+                self.techniques.append(
+                    collateral_processing + unfolding_to_pt + ['TIPX'])
 
             if method == 'ENUM':
                 self.methods.append(Enumerative(

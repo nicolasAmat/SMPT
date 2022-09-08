@@ -1,6 +1,6 @@
 
 """
-Walk Interface
+TiPX Interface
 
 This file is part of SMPT.
 
@@ -36,19 +36,19 @@ from smpt.interfaces.solver import Solver
 from smpt.ptio.ptnet import Marking, PetriNet
 
 
-class Walk(Solver):
-    """ Walk interface.
+class Tipx(Solver):
+    """ TiPX interface.
 
     Note
     ----
-    Dependency: https://projects.laas.fr/tina/index.php 
+    Dependency: https://github.com/nicolasAmat/tipx 
 
     Attributes
     ----------
     ptnet_filename : str
         A Petri net filename.
     solver : Popen, optional
-        A walk process.
+        A TiPX process.
     timeout : int
         Timeout of walk.
     solver_pids : Queue of int
@@ -65,7 +65,7 @@ class Walk(Solver):
         Parameters
         ----------
         ptnet_filename : str
-            A Petri net filename.
+            A Petri net filename
         debug: bool, optional
             Debugging flag.
         timeout: int, optional
@@ -82,8 +82,8 @@ class Walk(Solver):
         self.solver_pids: Queue[int] = solver_pids
 
         # Flags
-        self.aborted: bool = False
         self.debug: bool = debug
+        self.aborted = False
 
     def kill(self) -> None:
         """" Kill the process.
@@ -122,13 +122,13 @@ class Walk(Solver):
 
         return output
 
-    def check_sat(self, walk_filename: str = None) -> bool:
+    def check_sat(self, formula_filename: str = None) -> bool:
         """ Check if a state violates the formula.
 
         Parameters
         ----------
-        walk_filename : str, optional
-            Path to the formula (.ltl formula).
+        formula_filename : str, optional
+            Path to the formula (.ltl format).
 
         Returns
         -------
@@ -140,19 +140,68 @@ class Walk(Solver):
         ValueError
             No filename.
         """
-        if walk_filename is None:
-            raise ValueError("Walk: no filename")
+        if formula_filename is None:
+            raise ValueError("TiPX: no filename")
 
-        process = ['walk', '-R', '-loop', '-seed',
-                   self.ptnet_filename, '-ff', walk_filename]
+        process = ['tipx.exe', 'load', self.ptnet_filename,
+                   'load-forms', formula_filename]
         if self.timeout:
-            process += ['-t', str(self.timeout)]
+            process += ['twalk', str(self.timeout)]
+        else:
+            process.append('walk')
+
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)
 
         if self.solver_pids is not None:
             self.solver_pids.put(self.solver.pid)
 
-        return not (self.readline() != 'FALSE')
+        line = self.readline()
+        while '<+>' not in line:
+            line = self.readline()
+
+        return 'Bingo' in line
+
+    def project(self, formulas: list[str], show_time: bool = False) -> list[tuple[str, bool]]:
+        """ Project a list of formulas.
+        
+        Parameters
+        ----------
+        formulas : list of str
+            List of formula files to project.
+        show_time : bool, optional
+            Show time flag.
+        
+        Returns
+        -------
+        list of tuple of str, bool
+            List of projected formulas and their corresponding shadow-completeness flag.
+        """
+        process = ['tipx.exe', 'load', self.ptnet_filename]
+
+        for formula in formulas:
+            if show_time:
+                process += ['load-forms', formula,
+                            'time', 'project', 'time', 'fprint']
+            else:
+                process += ['load-forms', formula, 'project', 'fprint']
+
+        self.solver = Popen(process, stdout=PIPE, start_new_session=True)
+
+        if self.solver_pids is not None:
+            self.solver_pids.put(self.solver.pid)
+
+        projected_formulas = []
+        line = self.readline()
+        while line:
+            if show_time and '# Time:' in line:
+                print('# Time projection:', line.split()[-2])
+            else:
+                projected_formula, completeness = line.split(' # ')
+                projected_formulas.append(
+                    (projected_formula, completeness == 'complete'))
+            line = self.readline()
+
+        return projected_formulas
 
     def write(self, input: str, debug: Optional[bool] = None) -> None:
         """ Write instructions.

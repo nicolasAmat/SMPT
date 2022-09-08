@@ -34,6 +34,7 @@ from collections import Counter
 from tempfile import NamedTemporaryFile
 from typing import Any, Optional, Sequence
 
+from smpt.interfaces.tipx import Tipx
 from smpt.ptio.ptnet import Marking, PetriNet, Place
 from smpt.ptio.verdict import Verdict
 
@@ -242,7 +243,37 @@ class Properties:
         """ Delete temporary files.
         """
         for formula in self.formulas.values():
-            formula.delete_walk_file()
+            formula.remove_walk_file()
+
+    def project(self, path_ptnet_tfg: str, show_time: bool = False) -> None:
+        """ Generate projection formulas (.ltl format).
+
+        Parameters
+        ----------
+        path_ptnet_tfg : str
+            Path to TFG (.net format).
+        show_time : bool, optional
+            Show time flag.
+        """
+        tipx = Tipx(path_ptnet_tfg)
+        projections = tipx.project(
+            [formula.walk_filename for formula in self.formulas.values()], show_time=show_time)
+
+        for (projection, completeness), formula in zip(projections, self.formulas.values()):
+            formula.shadow_complete = completeness
+            fp_projected_formula = NamedTemporaryFile(
+                'w', suffix='.ltl', delete=False)
+            formula.projection_filename = fp_projected_formula.name
+            fp_projected_formula.write(projection)
+            fp_projected_formula.flush()
+            os.fsync(fp_projected_formula.fileno())
+            fp_projected_formula.close()
+
+    def remove_projection_files(self) -> None:
+        """ Delete temporary files.
+        """
+        for formula in self.formulas.values():
+            formula.remove_projection_file()
 
 
 class Formula:
@@ -260,6 +291,10 @@ class Formula:
         Monotonicity flag.
     walk_filename : str, optional
         Path to .ltl file.
+    projection_filename : str, optional
+        Path to the projected formula (.ltl format).
+    show_complete : bool
+        Shadow-completeness of the projected formula.
     """
 
     def __init__(self, ptnet: PetriNet, formula_xml: Optional[ET.Element] = None) -> None:
@@ -281,6 +316,9 @@ class Formula:
         self.non_monotonic: bool = False
 
         self.walk_filename: Optional[str] = None
+
+        self.projection_filename: Optional[str] = None
+        self.shadow_complete: bool = False
 
         if formula_xml is not None:
             _, _, node = formula_xml.tag.rpartition('}')
@@ -513,7 +551,7 @@ class Formula:
         os.fsync(walk_file.fileno())
         walk_file.close()
 
-    def delete_walk_file(self) -> None:
+    def remove_walk_file(self) -> None:
         """ Delete temporary file in .ltl format.
         """
         if self.walk_filename is None:
@@ -521,6 +559,17 @@ class Formula:
 
         try:
             os.remove(self.walk_filename)
+        except OSError:
+            pass
+
+    def remove_projection_file(self) -> None:
+        """ Delete temporary file in .ltl format.
+        """
+        if self.projection_filename is None:
+            return
+
+        try:
+            os.remove(self.projection_filename)
         except OSError:
             pass
 
@@ -655,7 +704,7 @@ class Formula:
 
 
 class SimpleExpression(ABC):
-    """ Simple Expresison.
+    """ Simple Expression.
 
     Note
     ----
@@ -664,7 +713,7 @@ class SimpleExpression(ABC):
 
     @abstractmethod
     def __str__(self) -> str:
-        """ SimleExpression to textual format.
+        """ SimpleExpression to textual format.
 
         Returns
         -------
@@ -1666,7 +1715,7 @@ class BooleanConstant(Expression):
         return str(self.value)
 
     def __eq__(self, other: Any) -> bool:
-        """ Compare the BoleanConstant for equality.
+        """ Compare the BooleanConstant for equality.
 
         Parameters
         ----------
