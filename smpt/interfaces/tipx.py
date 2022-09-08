@@ -178,10 +178,12 @@ class Tipx(Solver):
         """
         process = ['tipx.exe', 'load', self.ptnet_filename]
 
+        if show_time:
+            process.append('time')
+
         for formula in formulas:
             if show_time:
-                process += ['load-forms', formula,
-                            'time', 'project', 'time', 'fprint']
+                process += ['load-forms', formula, 'project', 'time', 'fprint']
             else:
                 process += ['load-forms', formula, 'project', 'fprint']
 
