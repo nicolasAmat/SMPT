@@ -325,7 +325,7 @@ class States:
 
 
 class PDR(AbstractChecker):
-    """ 
+    """
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
