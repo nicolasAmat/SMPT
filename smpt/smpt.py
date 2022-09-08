@@ -303,9 +303,10 @@ def main():
         properties.add_formula(formula, property_id)
 
     # Show net informations
-    if results.show_reduction_ratio and ptnet_reduced is not None:
-        print("# Reduction Ratio ~ {}%".format(
-            int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100)))
+    if results.show_reduction_ratio:
+        if ptnet_reduced is not None:
+            print("# Reduction Ratio ~ {}%".format(
+                int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100)))
 
     # Generate Walk files if mcc mode, projection or Walk methods enabled
     if results.mcc or results.project or 'WALK' in results.methods:
@@ -313,7 +314,7 @@ def main():
 
     # Project formulas if enabled
     if results.project:
-        properties.project(path_ptnet_tfg)
+        properties.project(path_ptnet_tfg, results.show_time)
 
     # Disable reduction is the Petri net is not reducible
     if system is not None and not system.equations:
