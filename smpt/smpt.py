@@ -227,6 +227,7 @@ def main():
     # By default no reduction
     ptnet_reduced = None
     system = None
+    ptnet_tfg = None
 
     # List of reduce processes
     reduce_processes = []
@@ -254,13 +255,17 @@ def main():
     # Join reduce processes
     for proc in reduce_processes:
         proc.join()
-    
+
     # Read the reduced Petri net and the system of reduction equations
     if results.path_ptnet_reduced is not None:
         ptnet_reduced = PetriNet(
             results.path_ptnet_reduced, state_equation=state_equation)
         system = System(results.path_ptnet_reduced,
                         ptnet.places.keys(), ptnet_reduced.places.keys())
+
+    # Read the reduced Petri net using TFG reductions
+    if results.project:
+        ptnet_tfg = PetriNet(path_ptnet_tfg)
 
     # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
@@ -305,8 +310,11 @@ def main():
     # Show net informations
     if results.show_reduction_ratio:
         if ptnet_reduced is not None:
-            print("# Reduction Ratio ~ {}%".format(
+            print("# Reduction Ratio (Full) ~ {}%".format(
                 int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100)))
+        if ptnet_tfg is not None:
+            print("# Reduction Ratio (TFG) ~ {}%".format(
+                int((len(ptnet.places) - len(ptnet_tfg.places)) / len(ptnet.places) * 100)))
 
     # Generate Walk files if mcc mode, projection or Walk methods enabled
     if results.mcc or results.project or 'WALK' in results.methods:
@@ -314,7 +322,7 @@ def main():
 
     # Project formulas if enabled
     if results.project:
-        properties.project(path_ptnet_tfg, results.show_time)
+        properties.project(ptnet_tfg, results.show_time)
 
     # Disable reduction is the Petri net is not reducible
     if system is not None and not system.equations:
@@ -393,8 +401,8 @@ def main():
             methods += ["WALK" for _ in range(3)]
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, show_techniques=results.show_techniques, show_time=results.show_time,
-                                    show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof, path_proof=results.path_proof)
+        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, show_techniques=results.show_techniques,
+                                    show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof, path_proof=results.path_proof)
 
         # If computation is uncomplete add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:

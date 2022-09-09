@@ -245,17 +245,17 @@ class Properties:
         for formula in self.formulas.values():
             formula.remove_walk_file()
 
-    def project(self, path_ptnet_tfg: str, show_time: bool = False) -> None:
+    def project(self, ptnet_tfg: PetriNet, show_time: bool = False) -> None:
         """ Generate projection formulas (.ltl format).
 
         Parameters
         ----------
-        path_ptnet_tfg : str
-            Path to TFG (.net format).
+        ptnet_tfg : Petri Net
+            Petri Net TFG.
         show_time : bool, optional
             Show time flag.
         """
-        tipx = Tipx(path_ptnet_tfg)
+        tipx = Tipx(ptnet_tfg.filename)
         projections = tipx.project(
             [formula.walk_filename for formula in self.formulas.values()], show_time=show_time)
 

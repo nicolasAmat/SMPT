@@ -64,7 +64,7 @@ class RandomWalk(AbstractChecker):
         log.info("[RANDOM-WALK] RUNNING")
 
         log.info("[RANDOM-WALK] Walk")
-        formula_filename = self.formula.projected_filename if self.shadow_projection else self.formula.walk_filename
+        formula_filename = self.formula.projection_filename if self.shadow_projection else self.formula.walk_filename
         sat = self.solver.check_sat(formula_filename)
 
         # Kill the solver
