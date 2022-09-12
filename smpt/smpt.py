@@ -246,7 +246,7 @@ def main():
 
     # Reduce the Petri net using TFG reductions if `--project` enabled
     if results.project:
-        fp_ptnet_tfg = tempfile.NamedTemporaryFile(suffix='.net')
+        fp_ptnet_tfg = tempfile.NamedTemporaryFile(suffix='.net', delete=False)
         path_ptnet_tfg = fp_ptnet_tfg.name
         reduce_processes.append(Process(target=reduce, args=(
             results.net, path_ptnet_tfg, True, results.show_time,)))
@@ -418,6 +418,7 @@ def main():
         fp_ptnet_reduced.close()
     if results.project:
         fp_ptnet_tfg.close()
+        os.remove(fp_ptnet_tfg.name)
     if results.auto_enumerative:
         fp_markings.close()
 
