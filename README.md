@@ -9,9 +9,9 @@
 
 ## About
 
-SMPT is an SMT-based model checker for Petri nets mainly focused on
-*reachability* problems that takes advantage of *net reductions* (polyhedral
-reductions). 
+SMPT is a SMT-based model checker for Petri nets mainly focused on
+*reachability* problems that takes advantage of net reductions (*polyhedral
+reductions*). 
 
 ## Installation
 
@@ -22,11 +22,12 @@ reductions).
   + (Optional) [mypy](http://mypy-lang.org/) - static type checker
   + (Optional) [sphinx](https://www.sphinx-doc.org/en/master/index.html) - Python documentation generator
 * [z3](https://github.com/Z3Prover/z3) - SMT solver
-* (Optional) [ndrio](http://projects.laas.fr/tina/) - Petri net converter (`.pnml` to `.net`)
-* (Optional) [reduce](http://projects.laas.fr/tina/) - Petri net reducer
-* (Optional) [walk](http://projects.laas.fr/tina/) - Random state space explorer
-* (Optional) [tina](http://projects.laas.fr/tina/) - State space generator
-* (Optional) [mcc](https://github.com/dalzilio/mcc) - Petri net unfolder
+* [Tina toolbox](http://projects.laas.fr/tina/) - Friend tools
+  + (Optional) [ndrio](https://projects.laas.fr/tina/manuals/ndrio.html) - Petri net converter (`.pnml` to `.net`)
+  + (Optional) [reduce](https://projects.laas.fr/tina/manuals/reduce.html) - Petri net reducer
+  + (Optional) [walk](https://projects.laas.fr/tina/manuals/walk.html) - Random state space explorer
+  + (Optional) [tina](https://projects.laas.fr/tina/manuals/tina.html) - State space generator
++ (Optional) [mcc](https://github.com/dalzilio/mcc) - Petri net unfolder
   + [struct](http://projects.laas.fr/tina/)
   + [4ti2](https://github.com/4ti2/4ti2) or [LattE integrale](https://github.com/latte-int/latte-distro)
 * (Optional) [MiniZinc](https://www.minizinc.org/) - Constraint programming solver
@@ -78,8 +79,9 @@ $ make html
 The tool takes as input descriptions in `.pnml` ([Petri Net Markup
 Language](https://www.pnml.org/)) and `.net` format (textual format for Petri
 nets described in [the
-Tinamanpages](http://projects.laas.fr/tina/manuals/formats.html)). The path to
-the input Petri net is specified using the `-n <path>` option.  
+Tinamanpages](http://projects.laas.fr/tina/manuals/formats.html)).  
+
+The path to the input Petri net must be specified using the `-n <path>` option.  
 
 SMPT supports the verification of several kind of reachability properties on Petri nets.  
 For instance, the following call can be used to check for the existence of
@@ -113,7 +115,7 @@ At this time, the support is restricted to:
 + `--xml ReachabilityCardinality.xml`
 + `--xml ReachabilityFireability.xml`
 
-## Polyhedral reductions
+### Polyhedral reductions
 
 For methods that relies on polyhedral reductions, it is possible to
 automatically compute the reduction (`--auto-reduce`) or to provide a
@@ -148,7 +150,7 @@ Some options permits to obtain more information:
 
 The tool is composed of different methods:
 + `INDUCTION`: a basic method that checks if a property is an inductive
-invariant. This property is ``easy'' to check, even though interesting
+invariant. This property is *easy* to check, even though interesting
 properties are seldom inductive.
 + `BMC`: Bounded Model Checking is an iterative method to explore the state
 space of systems by unrolling their transitions. This method is only useful for
@@ -160,20 +162,21 @@ not inductive, into an inductive one. This method can return a verdict
 certificate. We provide three different methods of increasing complexity (cf.
 \[TACAS2022\]) (one for coverability and two for general reachability).
 + `STATE-EQUATION`: is a method for checking that a property is true for all
-``potentially reachable markings'' (solution of the state equation). We
+*potentially reachable markings* (solution of the state equation). We
 implement a refined version that can over-approximate the result with the help
 of trap constraints and other structural information, such as NUPN
 specifications.
 + `WALK`:  relies on simulation tools to quickly find counterexamples. We
 currently use `walk`, distributed with the [Tina
 toolbox](http://projects.laas.fr/tina/).
-+ `SMT` and `CP`:  are method specifics to in the case where nets are ``fully
-markings are exactly the solution of the reduction equation and verdicts are
-reducible'' (the reduce net has only one marking). In this case, reachable
-computed by solving linear system of equations.
++ `SMT` and `CP`:  are method specifics to in the case where nets are *fully
+reducible* markings are exactly the solution of the reduction equation and
+verdicts are reducible'' (the reduce net has only one marking). In this case,
+reachable computed by solving linear system of equations.
 
 Depending on the input net, SMPT runs a subset of these methods in parallel.  
-You cna restrict the choice of the verification methods with  `--methods <method_1> ... <methods_n>`.
+You can restrict the choice of the verification methods with  `--methods
+<method_1> ... <methods_n>`.
 
 ### Tweaking options
 
