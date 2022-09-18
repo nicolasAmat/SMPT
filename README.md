@@ -3,136 +3,232 @@
 <br />
 <p align="center">
   <a href="https://github.com/nicolasAmat/SMPT">
-    <img src="logo.png" alt="Logo" width="512" height="305">
+    <img src="pics/logo.png" alt="Logo" width="512" height="305">
   </a>
 </p>
 
 ## About
 
-SMPT is an SMT-based model-checker for Petri nets mainly focused on *reachability* problems that takes advantage of *net reductions*. 
+SMPT is an SMT-based model checker for Petri nets mainly focused on
+*reachability* problems that takes advantage of *net reductions* (polyhedral
+reductions). 
 
-## Requirements
+## Installation
 
-* Python >= 3.5
-  + [psutil](https://pypi.org/project/psutil/) package
-  + (optional) [cx_Freeze](https://pypi.org/project/psutil/) package
-* [z3](https://github.com/Z3Prover/z3)
-* (optional) [mcc](https://github.com/dalzilio/mcc)
-* (optional) [reduce](http://projects.laas.fr/tina/) (not released yet)
+### Requirements
+
+* Python >= 3.7 (we highly recommend version 3.7.12)
+  + (Optional) [cx_Freeze](https://pypi.org/project/psutil/) - standalone executables generator
+  + (Optional) [mypy](http://mypy-lang.org/) - static type checker
+  + (Optional) [sphinx](https://www.sphinx-doc.org/en/master/index.html) - Python documentation generator
+* [z3](https://github.com/Z3Prover/z3) - SMT solver
+* (Optional) [ndrio](http://projects.laas.fr/tina/) - Petri net converter (`.pnml` to `.net`)
+* (Optional) [reduce](http://projects.laas.fr/tina/) - Petri net reducer
+* (Optional) [walk](http://projects.laas.fr/tina/) - Random state space explorer
+* (Optional) [tina](http://projects.laas.fr/tina/) - State space generator
+* (Optional) [mcc](https://github.com/dalzilio/mcc) - Petri net unfolder
   + [struct](http://projects.laas.fr/tina/)
   + [4ti2](https://github.com/4ti2/4ti2) or [LattE integrale](https://github.com/latte-int/latte-distro)
-* (optional) [MiniZinc](https://www.minizinc.org/)
+* (Optional) [MiniZinc](https://www.minizinc.org/) - Constraint programming solver
 
-## Running the model-checker
+### Installation script
 
-### Freezeing
+To automatically install dependencies (except Python packages and MiniZinc) you
+can run the `install_dependencies.sh` script.
 
-(Optional) The tool can be freezed into executables using [cx_Freeze](https://cx-freeze.readthedocs.io/en/latest/) by running:
-```
-python3 setup.py build
-```
+### Python setup
 
-### Input Formats and Properties
+It is highly recommended to use the Python 3.7.12 version. You can use
+[pyenv](https://github.com/pyenv/pyenv), a Python version management tool:
 
-The tool takes as input descriptions in `.pnml` format and `.net` format (textual format for Petri nets described in [the Tina man pages](http://projects.laas.fr/tina/manuals/formats.html)).
-SMPT supports the verification of several kind of reachability properties on Petri net.
-For instance, the following call can be used to check for the existence of deadlocked states on model `Kanban-00002.net`.
-
-```
-$> smpt --deadlock nets/Kanban/Kanban-00002.net
+```bash
+$ pyenv install 3.7.12
+$ pyenv local 3.7.12
+$ pyenv rehash 
 ```
 
-The tools also supports colored Petri nets. In this case, use the option `--colored` and install the [mcc](https://github.com/dalzilio/mcc) tool.  
+### Freezing
+
+The tool can be freezed into standalone executables using
+[cx_Freeze](https://cx-freeze.readthedocs.io/en/latest/) by running:
+```bash
+$ python3 setup.py build
+```
+
+### Type checking
+
+The typing of the code can be checked using [mypy](http://mypy-lang.org/) by
+running:
+```bash
+$ mypy smpt --no-strict-optional
+```
+
+### Documentation generation
+
+The html documentation can be generated using the sphinx generator by running:
+```bash
+$ cd docs
+$ make html
+```
+
+## Running the model checker
+
+### Input formats
+
+The tool takes as input descriptions in `.pnml` ([Petri Net Markup
+Language](https://www.pnml.org/)) and `.net` format (textual format for Petri
+nets described in [the
+Tinamanpages](http://projects.laas.fr/tina/manuals/formats.html)). The path to
+the input Petri net is specified using the `-n <path>` option.  
+
+SMPT supports the verification of several kind of reachability properties on Petri nets.  
+For instance, the following call can be used to check for the existence of
+deadlocked states on model `Kanban-00002.net`.
+
+```
+$ python3 -m smpt -n nets/Kanban/Kanban-00002.net --deadlock --methods BMC
+```
+
+The tools also supports colored Petri nets. In this case, use the option
+`--colored` and install the [mcc](https://github.com/dalzilio/mcc) tool.  
 
 The tool supports three main kinds of properties:
 
-* Detection of deadlocks, `--deadlock`: is there a reachable marking with no outgoing transitions.
-* Quasi-liveness, `--quasi-liveness t`: is there a reachable marking where transition `t` can fire.
-You can check the quasi-liveness of several transitions at the same time by passing a comma-separated list of transition names: `--liveness t1,...,tn`.
-* Reachability: `--reachability p`: is there a reachable marking where place `p` is marked (it has at least one token).
-You can check the reachability of several places at once by passing a comma-separated list of place names: `--reachability p1,...,pn`.
+* Detection of deadlocks, `--deadlock`: is there a reachable marking with no
+  outgoing transitions.
+* Quasi-liveness, `--quasi-liveness t`: is there a reachable marking where
+transition `t` can fire. You can check the quasi-liveness of several transitions
+at the same time by passing a comma-separated list of transition names:
+`--liveness t1,...,tn`.
+* Reachability: `--reachability p`: is there a reachable marking where place `p`
+is marked (it has at least one token). You can check the reachability of several
+places at once by passing a comma-separated list of place names: `--reachability
+p1,...,pn`.
 
-The tool also supports properties from the [MCC properties format](https://mcc.lip6.fr/pdf/MCC2020-formula_manual.pdf) by using the option `--xml` and indicating the path to the `.xml` properties file.
+The tool also supports properties from the [MCC properties
+format](https://mcc.lip6.fr/pdf/MCC2020-formula_manual.pdf) by using the option
+`--xml` and indicating the path to the `.xml` properties file.  
 At this time, the support is restricted to:
 + `--xml GlobalProperties.xml`
 + `--xml ReachabilityCardinality.xml`
 + `--xml ReachabilityFireability.xml`
 
-### Output Format
+## Polyhedral reductions
 
-The tool is compliant with the MCC output format. Some options permits to obtain more information:
+For methods that relies on polyhedral reductions, it is possible to
+automatically compute the reduction (`--auto-reduce`) or to provide a
+pre-computed version with option `--reduce <path>`. It is also possible to save
+a copy of the reduced net with the option `--save-reduced-net <path>`.  
+
+Some examples of nets with their corresponding reductions are available in
+`nets/E-Abstraction/`.
+
+### Output format
+
+Results are printed in the text format required by the Model Checking Contest
+(MCC) which is of the form:
+```
+FORMULA <id> (TRUE/FALSE)
+```
+
+Some options permits to obtain more information:
 + `--verbose` or `-v`: evolution of the methods
 + `--debug`: input/output SMT-LIB exchanged with the SMT solver
-+ `--show-techniques`: method returning the result
-+ `--show-time`: execution time
-+ `--show-reduction-ratio`: reduction ratio
-+ `--show-model`: counterexample if there is one
-+ `--check-proof`: certificate of invariance if there is one
++ `--show-techniques`: returns the methods that successfully computed a verdict
++ `--show-time`: print the execution time per property
++ `--show-reduction-ratio`: get the reduction ratio
++ `--show-model`: print the counterexample if it exists
++ `--check-proof`: check the certificate of invariance (if we have one)
++ `--export-proof`: export verdict certificates (inductive invariants (SMT-LIB),
+  trace leading to counterexamples
+  ([`.scn`](https://projects.laas.fr/tina/manuals/formats.html#14) format),
+  etc.)
 
-
-### Methods
+### Verification methods
 
 The tool is composed of different methods:
-+ `BMC`: Bounded Model Checking
-+ `K-INDUCTION`: k-Induction
-+ `PDR-COV`: Property Directed Reachability with state-based generalization
-+ `PDR-REACH`: Property Directed Reachability with transition-based generalization
-+ `PDR-REACH-SATURATED`: Property Directed Reachability with saturated transition-based generalization
-+ `SMT`: SMT solver computation for fully reducible nets
-+ `CP`: Constraint programming computation for fully reducible nets
++ `INDUCTION`: a basic method that checks if a property is an inductive
+invariant. This property is ``easy'' to check, even though interesting
+properties are seldom inductive.
++ `BMC`: Bounded Model Checking is an iterative method to explore the state
+space of systems by unrolling their transitions. This method is only useful for
+finding counterexamples.
++ `K-INDUCTION`:is an extension of BMC that can also prove invariants.
++ `PDR-COV`, `PDR-REACH` and `PDR-REACH-SATURATED`: Property Directed
+Reachability, also known as IC3, is a method to strengthen a property that is
+not inductive, into an inductive one. This method can return a verdict
+certificate. We provide three different methods of increasing complexity (cf.
+\[TACAS2022\]) (one for coverability and two for general reachability).
++ `STATE-EQUATION`: is a method for checking that a property is true for all
+``potentially reachable markings'' (solution of the state equation). We
+implement a refined version that can over-approximate the result with the help
+of trap constraints and other structural information, such as NUPN
+specifications.
++ `WALK`:  relies on simulation tools to quickly find counterexamples. We
+currently use `walk`, distributed with the [Tina
+toolbox](http://projects.laas.fr/tina/).
++ `SMT` and `CP`:  are method specifics to in the case where nets are ``fully
+markings are exactly the solution of the reduction equation and verdicts are
+reducible'' (the reduce net has only one marking). In this case, reachable
+computed by solving linear system of equations.
 
 Depending on the input net, SMPT runs a subset of these methods in parallel.  
-Use `--methods <method_1> ... <methods_n>` to restrict the methods to be run.
+You cna restrict the choice of the verification methods with  `--methods <method_1> ... <methods_n>`.
 
-### Polyhedral abstractions
+### Tweaking options
 
-To take advantage of possible reductions in the Petri net, you can use option `--reduce <path_to_reduced_net>`.  
-For example:
-
-```
-$> smpt Kanban-00002.net --reduced Kanban-00002_reduced.net --deadlock
-```
-Some exemples of nets with their corresponding reductions are available in `nets/E-Abstraction/`.
-Option `--auto-reduce` requires the installation of the `reduce` tool, that is currently developped by the Vertics team at LAAS-CNRS.
-The regular distribution of [TINA](http://projects.laas.fr/tina/) does not contain this tool yet.
+We provide a set of options to control the behavior of our verification jobs scheduler such as:
++ `--global-timeout <int>`: add a timeout
++ `--timeout <int>`: add a timeout per property
++ `--mcc`: puts the tool in ``competition mode''
 
 ### Usage
 
 You can list all the options by using the *help* option:
 ```
-$> smpt --help
-usage: smpt.py [-h] [--version] [-v] [--debug] [--colored] [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES] [--auto-reduce | --reduced PATH_PTNET_REDUCED] [--save-reduced-net]
-               [--methods [{BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP} [{BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP} ...]] | --auto-enumerative | --enumerative PATH_MARKINGS]
-               [--timeout TIMEOUT | --global-timeout GLOBAL_TIMEOUT] [--skip-non-monotonic] [--show-techniques] [--show-time] [--show-reduction-ratio] [--show-model] [--check-proof]
-               ptnet
+$ smpt --help
+usage: __main__.py [-h] [--version] [-v] [--debug] -n ptnet [--colored]
+                   [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
+                   [--auto-reduce | --reduced PATH_PTNET_REDUCED]
+                   [--save-reduced-net]
+                   (--methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX} ...]] | --auto-enumerative | --enumerative PATH_MARKINGS)
+                   [--project]
+                   [--timeout TIMEOUT | --global-timeout GLOBAL_TIMEOUT]
+                   [--skip-non-monotonic] [--show-techniques] [--show-time]
+                   [--show-reduction-ratio] [--show-model] [--check-proof]
+                   [--export-proof PATH_PROOF] [--mcc]
 
 SMPT: Satisfiability Modulo Petri Net
-
-positional arguments:
-  ptnet                 path to Petri Net (.net or .pnml format)
 
 optional arguments:
   -h, --help            show this help message and exit
   --version             show the version number and exit
   -v, --verbose         increase output verbosity
   --debug               print the SMT-LIB input/ouput
+  -n ptnet, --net ptnet
+                        path to Petri Net (.net or .pnml format)
   --colored             colored input Petri net
   --xml PATH_PROPERTIES
                         use XML format for properties
   --deadlock            deadlock analysis
   --quasi-liveness QUASI_LIVE_TRANSITIONS
-                        liveness analysis (comma separated list of transition names)
+                        liveness analysis (comma separated list of transition
+                        names)
   --reachability REACHABLE_PLACES
-                        reachibility analysis (comma separated list of place names)
+                        reachibility analysis (comma separated list of place
+                        names)
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PTNET_REDUCED
                         path to reduced Petri Net (.net format)
   --save-reduced-net    save the reduced net
-  --methods [{BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP} [{BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP} ...]]
-                        enable methods among BMC K-INDUCTION PDR-COV PDR-REACH PDR-REACH-SATURATED SMT CP
+  --methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX} ...]]
+                        enable methods among WALK STATE-EQUATION INDUCTION BMC
+                        K-INDUCTION PDR-COV PDR-REACH PDR-REACH-SATURATED SMT
+                        CP TIPX
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
+  --project             Use TFG projection for WALK, TIPX, K-INDUCTION
   --timeout TIMEOUT     a limit per property on execution time
   --global-timeout GLOBAL_TIMEOUT
                         a limit on execution time
@@ -142,8 +238,25 @@ optional arguments:
   --show-reduction-ratio
                         show the reduction ratio
   --show-model          show a counterexample if there is one
-  --check-proof         check and show the certificate of invariance if there is one
+  --check-proof         check and show the certificate of invariance if there
+                        is one
+  --export-proof PATH_PROOF
+                        export the proof of invariance if there is one
+  --mcc                 Model Checking Contest mode
 ```
+
+## Awards
+
+SMPT, won a bronze medal in the “reachability” category of the Model Checking
+Contest 2022, an international competition of model checking tools for the
+verification of concurrent systems. It also obtain the 100% confidence award.
+
+<br />
+<p align="center">
+  <a href="https://mcc.lip6.fr/">
+    <img src="pics/mcc_2022.png" alt="Logo" width="512" height="305">
+  </a>
+</p>
 
 ## References
 
@@ -152,9 +265,14 @@ optional arguments:
   Algorithms for the Construction and Analysis of Systems. (TACAS 2022)*, Apr
   2022, Munich, Germany.  
 + Nicolas Amat, Bernard Berthomieu, Silvano Dal Zilio. On the Combination of
-Polyhedral Abstraction and SMT-based Model Checking for Petri nets. *42rd
-International Conference on Application and 
-Theory of Petri Nets and Concurrency (Petri Nets 2021)*, Jun 2021, Paris (virtual), France. 
+  Polyhedral Abstraction and SMT-based Model Checking for Petri nets. *42rd
+  International Conference on Application and 
+  Theory of Petri Nets and Concurrency (Petri Nets 2021)*, Jun 2021, Paris (virtual), France. 
++ F. Kordon and P. Bouvier and H. Garavel and F. Hulin-Hubard and N. Amat. and
+  E. Amparore and B. Berthomieu and D. Donatelli and S. Dal Zilio and P. G.
+  Jensen and L. Jezequel and  C. He and S. Li and E. Paviot-Adet and J. Srba and
+  Y. Thierry-Mieg, Complete Results for the 2022 Edition of the Model Checking
+  Contest, June 2022
 + F. Kordon and P. Bouvier and H. Garavel and L. M. Hillah and F. Hulin-Hubard
 	and N. Amat. and E. Amparore and B. Berthomieu and S. Biswal and D. Donatelli
 	and F. Galla and and S. Dal Zilio and P. G. Jensen and  C. He and D. Le Botlan
@@ -165,7 +283,7 @@ Theory of Petri Nets and Concurrency (Petri Nets 2021)*, Jun 2021, Paris (virtua
 ## Dependencies
 
 The code repository includes copies of models taken from the [MCC Petri Nets
-Repository](https://pnrepository.lip6.fr/) located inside folder  ```./nets```.
+Repository](https://pnrepository.lip6.fr/) located inside folder  `nets/`.
 
 ## License
 
@@ -180,5 +298,7 @@ A copy of the license agreement is found in the [LICENSE](./LICENSE) file.
 * **Silvano DAL ZILIO** - [LAAS/CNRS](https://www.laas.fr/)
 * **Didier LE BOTLAN** - [LAAS/CNRS](https://www.laas.fr/)
 
-We are grateful to Yann THIERRY-MIEG for making [MCC'2020 oracles](https://github.com/yanntm/pnmcc-models-2020) available.
+We are grateful to Yann THIERRY-MIEG for making [MCC'2021
+oracles](https://github.com/yanntm/pnmcc-models-2021) available, and to the
+members of the Model Checking Contest committees.
 
