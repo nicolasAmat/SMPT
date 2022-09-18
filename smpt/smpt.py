@@ -322,7 +322,7 @@ def main():
 
     # Project formulas if enabled
     if results.project:
-        properties.project(ptnet_tfg, results.show_time)
+        properties.project(ptnet_tfg, show_time=results.show_time, debug=results.debug)
 
     # Disable reduction is the Petri net is not reducible
     if system is not None and not system.equations:

@@ -27,10 +27,11 @@ __version__ = "4.0.0"
 import itertools
 import operator
 import os
+import re
 import uuid
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
-from collections import Counter
+from collections import Counter, deque
 from tempfile import NamedTemporaryFile
 from typing import Any, Optional, Sequence
 
@@ -99,6 +100,17 @@ XML_TO_BOOLEAN_OPERATORS = {
     'negation': 'not',
     'conjunction': 'and',
     'disjunction': 'or'
+}
+
+LTL_TO_BOOLEAN_OPERATORS = {
+    '-': 'not',
+    '/\\': 'and',
+    '\\/': 'or'
+}
+
+XML_TO_BOOLEAN_CONSTANTS = {
+    'T': True,
+    'F': False
 }
 
 
@@ -201,6 +213,85 @@ class Properties:
 
             self.add_formula(Formula(self.ptnet, formula_xml), property_id)
 
+    def parse_ltl(self, formula: str) -> None:
+        """ Properties parser.
+
+        Parameters
+        ----------
+        str
+            Formula (.ltl format).
+        """
+        formula = "- (a <= 1 \\/  (b >= 3 /\\ c >= 4) \\/ d >= 3)"
+
+        def tokenize(s):
+            return filter(None, re.compile(r'\s*([()-])|(/\\)|(\\/)\s*').split(s))
+
+        # Number of opened parenthesis (not close)
+        open_parenthesis = 0
+
+        # Stacks: operators and operands
+        stack_operator = deque()
+        stack_operands = deque([[]])
+
+        # Current operator
+        current_operator = None
+
+        for token in tokenize(formula):
+            
+            if token in ['', ' ']:
+                continue
+
+            if token in ['-', '/\\', '\\/']:
+                # Get the current operator
+                token_operator = LTL_TO_BOOLEAN_OPERATORS[token]
+
+                if current_operator:
+                    # If the current operator is different from the previous one, construct the previous sub-formula
+                    if current_operator != token_operator:
+                        operands = stack_operands.pop()
+                        stack_operands[-1] = [StateFormula(operands, stack_operator.pop())]
+                else:
+                    # Add the current operator to the stack
+                    stack_operator.append(token_operator)
+                    current_operator = token_operator
+
+            elif token == '(':
+                # Increment the number of parenthesis
+                open_parenthesis += 1
+
+                # Add new current operands list
+                stack_operands.append([])
+
+                # Reset the last operator
+                current_operator = None
+
+            elif token == ')':
+                # Fail if no open parenthesis previously
+                if not open_parenthesis:
+                    raise ValueError("Unbalanced parentheses")
+
+                # Decrease the number of open parenthesis
+                open_parenthesis -= 1
+
+                if current_operator:
+                    operands = stack_operands.pop()
+                    stack_operands[-1].append(StateFormula(operands, stack_operator.pop()))
+                else:
+                    stack_operands[-1].append(stack_operands.pop()[0])
+
+                current_operator = stack_operator[-1] if stack_operator else None
+
+            elif token in ['T', 'F']:
+                stack_operands[-1].append(XML_TO_BOOLEAN_CONSTANTS[token])
+
+            else:
+                stack_operands[-1].append(token)
+
+        if open_parenthesis:
+            raise ValueError("Unbalances parentheses")
+
+        result = StateFormula(stack_operands.pop(), stack_operator.pop()) if stack_operator else stack_operands.pop()[0]
+
     def add_formula(self, formula: Formula, property_id: Optional[str] = None) -> None:
         """ Add a formula.
 
@@ -245,7 +336,7 @@ class Properties:
         for formula in self.formulas.values():
             formula.remove_walk_file()
 
-    def project(self, ptnet_tfg: PetriNet, show_time: bool = False) -> None:
+    def project(self, ptnet_tfg: PetriNet, show_time: bool = False, debug: bool = False) -> None:
         """ Generate projection formulas (.ltl format).
 
         Parameters
@@ -254,8 +345,11 @@ class Properties:
             Petri Net TFG.
         show_time : bool, optional
             Show time flag.
+        debug : bool, optional
+            Debugging flag.
         """
-        tipx = Tipx(ptnet_tfg.filename)
+        tipx = Tipx(ptnet_tfg.filename, debug=debug)
+
         projections = tipx.project(
             [formula.walk_filename for formula in self.formulas.values()], show_time=show_time)
 
