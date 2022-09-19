@@ -42,7 +42,7 @@ can run the `install_dependencies.sh` script.
 It is highly recommended to use the Python 3.7.12 version. You can use
 [pyenv](https://github.com/pyenv/pyenv), a Python version management tool:
 
-```bash
+```
 $ pyenv install 3.7.12
 $ pyenv local 3.7.12
 $ pyenv rehash 
@@ -52,7 +52,7 @@ $ pyenv rehash
 
 The tool can be freezed into standalone executables using
 [cx_Freeze](https://cx-freeze.readthedocs.io/en/latest/) by running:
-```bash
+```
 $ python3 setup.py build
 ```
 
@@ -60,14 +60,14 @@ $ python3 setup.py build
 
 The typing of the code can be checked using [mypy](http://mypy-lang.org/) by
 running:
-```bash
+```
 $ mypy smpt --no-strict-optional
 ```
 
 ### Documentation generation
 
 The html documentation can be generated using the sphinx generator by running:
-```bash
+```
 $ cd docs
 $ make html
 ```
@@ -191,7 +191,7 @@ We provide a set of options to control the behavior of our verification jobs sch
 ### Usage
 
 You can list all the options by using the *help* option:
-```bash
+```
 $ smpt --help
 usage: __main__.py [-h] [--version] [-v] [--debug] -n ptnet [--colored]
                    [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
@@ -254,8 +254,8 @@ optional arguments:
 ## Disk images
 
 Complete installations of SMPT can be found in the MCC disk images (see the [Tool Submission Kit](https://mcc.lip6.fr/archives/SubmissionKit-2022.tar.gz) for more information):
-+ [smpt-2022.tar.gz](https://mcc.lip6.fr/archives/smpt-2022.tar.gz)
-+ [smpt-2021.vmdk.tar.gz](https://mcc.lip6.fr/2021/archives/smpt-2021.vmdk.tar.bz2)
++ MCC'2022: [smpt-2022.tar.gz](https://mcc.lip6.fr/archives/smpt-2022.tar.gz)
++ MCC'2021: [smpt-2021.vmdk.tar.gz](https://mcc.lip6.fr/2021/archives/smpt-2021.vmdk.tar.bz2)
 
 You can also download the artifact of our [TACAS2022] paper that contains all
 the material to install the tool and reproduce the experiments:
