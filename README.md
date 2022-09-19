@@ -169,26 +169,30 @@ specifications.
 + `WALK`:  relies on simulation tools to quickly find counterexamples. We
 currently use `walk`, distributed with the [Tina
 toolbox](http://projects.laas.fr/tina/).
-+ `SMT` and `CP`:  are method specifics to in the case where nets are *fully
-reducible* markings are exactly the solution of the reduction equation and
-verdicts are reducible'' (the reduce net has only one marking). In this case,
-reachable computed by solving linear system of equations.
++ `SMT` and `CP`:  are methods specific to SMPT in the case where nets are
+*fully reducible* (the reduced net has only one marking). In this case,
+reachable markings are exactly the solution of the reduction equation and
+verdicts are computed by solving linear system of equations.
 
 Depending on the input net, SMPT runs a subset of these methods in parallel.  
 You can restrict the choice of the verification methods with  `--methods
 <method_1> ... <methods_n>`.
+
+The `--auto-enumerative` and `--enumerative <path>` (where the path leads to the
+list of markings into the [.aut format](https://projects.laas.fr/tina/manuals/formats.html)) perform an
+exhaustive exploration of the state space. It can be used as a fail-safe.
 
 ### Tweaking options
 
 We provide a set of options to control the behavior of our verification jobs scheduler such as:
 + `--global-timeout <int>`: add a timeout
 + `--timeout <int>`: add a timeout per property
-+ `--mcc`: puts the tool in ``competition mode''
++ `--mcc`: puts the tool in *competition mode*
 
 ### Usage
 
 You can list all the options by using the *help* option:
-```
+```bash
 $ smpt --help
 usage: __main__.py [-h] [--version] [-v] [--debug] -n ptnet [--colored]
                    [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
