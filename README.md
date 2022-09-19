@@ -25,11 +25,11 @@ reductions*).
 * [Tina toolbox](http://projects.laas.fr/tina/) - Friend tools
   + (Optional) [ndrio](https://projects.laas.fr/tina/manuals/ndrio.html) - Petri net converter (`.pnml` to `.net`)
   + (Optional) [reduce](https://projects.laas.fr/tina/manuals/reduce.html) - Petri net reducer
+    + [struct](http://projects.laas.fr/tina/)
+    + [4ti2](https://github.com/4ti2/4ti2) or [LattE integrale](https://github.com/latte-int/latte-distro)
   + (Optional) [walk](https://projects.laas.fr/tina/manuals/walk.html) - Random state space explorer
   + (Optional) [tina](https://projects.laas.fr/tina/manuals/tina.html) - State space generator
-+ (Optional) [mcc](https://github.com/dalzilio/mcc) - Petri net unfolder
-  + [struct](http://projects.laas.fr/tina/)
-  + [4ti2](https://github.com/4ti2/4ti2) or [LattE integrale](https://github.com/latte-int/latte-distro)
+  + (Optional) [mcc](https://github.com/dalzilio/mcc) - Petri net unfolder
 * (Optional) [MiniZinc](https://www.minizinc.org/) - Constraint programming solver
 
 ### Installation script
@@ -79,7 +79,7 @@ $ make html
 The tool takes as input descriptions in `.pnml` ([Petri Net Markup
 Language](https://www.pnml.org/)) and `.net` format (textual format for Petri
 nets described in [the
-Tinamanpages](http://projects.laas.fr/tina/manuals/formats.html)).  
+Tina man pages](http://projects.laas.fr/tina/manuals/formats.html)).  
 
 The path to the input Petri net must be specified using the `-n <path>` option.  
 
@@ -101,15 +101,14 @@ The tool supports three main kinds of properties:
 * Quasi-liveness, `--quasi-liveness t`: is there a reachable marking where
 transition `t` can fire. You can check the quasi-liveness of several transitions
 at the same time by passing a comma-separated list of transition names:
-`--liveness t1,...,tn`.
+`--quasi-liveness t1,...,tn`.
 * Reachability: `--reachability p`: is there a reachable marking where place `p`
 is marked (it has at least one token). You can check the reachability of several
 places at once by passing a comma-separated list of place names: `--reachability
 p1,...,pn`.
 
-The tool also supports properties from the [MCC properties
-format](https://mcc.lip6.fr/pdf/MCC2020-formula_manual.pdf) by using the option
-`--xml` and indicating the path to the `.xml` properties file.  
+The tool also supports properties from the [MCC properties format](https://mcc.lip6.fr/pdf/MCC2020-formula_manual.pdf)
+by using the option `--xml` and indicating the path to the `.xml` properties file.
 At this time, the support is restricted to:
 + `--xml GlobalProperties.xml`
 + `--xml ReachabilityCardinality.xml`
@@ -155,7 +154,7 @@ properties are seldom inductive.
 + `BMC`: Bounded Model Checking is an iterative method to explore the state
 space of systems by unrolling their transitions. This method is only useful for
 finding counterexamples.
-+ `K-INDUCTION`:is an extension of BMC that can also prove invariants.
++ `K-INDUCTION`: is an extension of BMC that can also prove invariants.
 + `PDR-COV`, `PDR-REACH` and `PDR-REACH-SATURATED`: Property Directed
 Reachability, also known as IC3, is a method to strengthen a property that is
 not inductive, into an inductive one. This method can return a verdict
@@ -167,11 +166,11 @@ implement a refined version that can over-approximate the result with the help
 of trap constraints and other structural information, such as NUPN
 specifications.
 + `WALK`:  relies on simulation tools to quickly find counterexamples. We
-currently use `walk`, distributed with the [Tina
+currently use `walk` that is distributed with the [Tina
 toolbox](http://projects.laas.fr/tina/).
 + `SMT` and `CP`:  are methods specific to SMPT in the case where nets are
 *fully reducible* (the reduced net has only one marking). In this case,
-reachable markings are exactly the solution of the reduction equation and
+reachable markings are exactly the solution of the reduction equations and
 verdicts are computed by solving linear system of equations.
 
 Depending on the input net, SMPT runs a subset of these methods in parallel.  
@@ -180,7 +179,7 @@ You can restrict the choice of the verification methods with  `--methods
 
 The `--auto-enumerative` and `--enumerative <path>` (where the path leads to the
 list of markings into the [.aut format](https://projects.laas.fr/tina/manuals/formats.html)) perform an
-exhaustive exploration of the state space. It can be used as a fail-safe.
+exhaustive exploration of the state space.
 
 ### Tweaking options
 
@@ -252,11 +251,21 @@ optional arguments:
   --mcc                 Model Checking Contest mode
 ```
 
+## Disk images
+
+Complete installations of SMPT can be found in the MCC disk images (see the [Tool Submission Kit](https://mcc.lip6.fr/archives/SubmissionKit-2022.tar.gz) for more information):
++ [smpt-2022.tar.gz](https://mcc.lip6.fr/archives/smpt-2022.tar.gz)
++ [smpt-2021.vmdk.tar.gz](https://mcc.lip6.fr/2021/archives/smpt-2021.vmdk.tar.bz2)
+
+You can also download the artifact of our [TACAS2022] paper that contains all
+the material to install the tool and reproduce the experiments:
++ [SMPT_TACAS_2022.zip](https://zenodo.org/record/5863379/files/SMPT_TACAS_2022.zip?download=1)
+
 ## Awards
 
 SMPT, won a bronze medal in the “reachability” category of the Model Checking
 Contest 2022, an international competition of model checking tools for the
-verification of concurrent systems. It also obtain the 100% confidence award.
+verification of concurrent systems. It also obtains the 100% confidence award.
 
 <br />
 <p align="center">
