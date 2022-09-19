@@ -9,9 +9,8 @@
 
 ## About
 
-SMPT is a SMT-based model checker for Petri nets mainly focused on
-*reachability* problems that takes advantage of net reductions (*polyhedral
-reductions*). 
+SMPT is a SMT-based model checker for Petri nets focused on *reachability*
+problems that takes advantage of net reductions (*polyhedral reductions*). 
 
 ## Installation
 
