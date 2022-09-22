@@ -814,7 +814,7 @@ class PDR(AbstractChecker):
     def proof_exporting(self, i):
         """ Export the certificate of invariance.
         """
-        with open(self.path_proof, 'w') as fp_proof:        
+        with open(self.path_proof + '.smt2', 'w') as fp_proof:        
             fp_proof.write(self.declare_places(0))
             fp_proof.write(self.assert_negation_formula(i))
 
