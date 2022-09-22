@@ -26,11 +26,14 @@ __version__ = "4.0.0"
 
 
 import logging as log
+import os
+import tempfile
 from multiprocessing import Queue
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
+from smpt.interfaces.play import play
 from smpt.interfaces.z3 import Z3
 from smpt.ptio.formula import Formula
 from smpt.ptio.ptnet import Marking, PetriNet
@@ -51,6 +54,10 @@ class BMC(AbstractChecker):
         System of reduction equations.
     formula : Formula
         Reachability formula.
+    debug : bool
+        Debugging flag.
+    check_proof : bool
+        Check proof flag.
     path_proof : str, optional
         Path to proof (.scn format).
     induction_queue : Queue of int, optional
@@ -63,7 +70,7 @@ class BMC(AbstractChecker):
         SMT solver (Z3).
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, path_proof: Optional[str] = None, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None) -> None:
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, check_proof: bool = False, path_proof: Optional[str] = None, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -80,6 +87,10 @@ class BMC(AbstractChecker):
             Show model flag.
         debug : bool, optional
             Debugging flag.
+        proof_enabled : bool
+            Proof flag.
+        check_proof : bool, optional
+            Check proof flag.
         path_proof : str, optional
             Path to proof (.scn format).
         induction_queue : Queue of int, optional
@@ -103,8 +114,13 @@ class BMC(AbstractChecker):
         # Formula to study
         self.formula: Formula = formula
 
-        # Path proof
-        self.path_proof = path_proof
+        # Debugging flag
+        self.debug: bool = debug
+
+        # Proof checking options
+        self.proof_enabled: bool = check_proof or path_proof is not None
+        self.check_proof: bool = check_proof
+        self.path_proof: Optional[str] = path_proof
 
         # Queue shared with K-Induction
         self.induction_queue: Optional[Queue[int]] = induction_queue
@@ -170,7 +186,7 @@ class BMC(AbstractChecker):
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
             smt_input += self.ptnet.smtlib_transition_relation(
-                i, eq=False, tr=(self.path_proof is not None))
+                i, eq=False, tr=self.proof_enabled)
 
         smt_input += "; Formula to check the satisfiability\n"
         smt_input += self.formula.R.smtlib(k + 1, assertion=True)
@@ -217,7 +233,7 @@ class BMC(AbstractChecker):
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
             smt_input += self.ptnet_reduced.smtlib_transition_relation(
-                i, eq=False, tr=(self.path_proof is not None))
+                i, eq=False, tr=self.proof_enabled)
 
         smt_input += "; Reduction equations\n"
         smt_input += self.system.smtlib_equations_with_places_from_reduced_net(
@@ -314,7 +330,7 @@ class BMC(AbstractChecker):
 
             log.info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
             self.solver.write(self.ptnet.smtlib_transition_relation(
-                k - 1, eq=False, tr=(self.path_proof is not None)))
+                k - 1, eq=False, tr=self.proof_enabled))
 
             log.info("[BMC] > Push")
             self.solver.push()
@@ -323,10 +339,9 @@ class BMC(AbstractChecker):
                 "[BMC] > Formula to check the satisfiability (order: {})".format(k))
             self.solver.write(self.formula.R.smtlib(k, assertion=True))
 
-        # Write trace if export proof option enabled
-        if self.path_proof:
-            with open(self.path_proof, 'w') as fp_proof:
-                fp_proof.write(' '.join(self.solver.get_trace(self.ptnet, k)))
+        # Proof management
+        if self.check_proof or self.path_proof:
+            self.proof(self.ptnet, k)
 
         return k
 
@@ -396,7 +411,7 @@ class BMC(AbstractChecker):
 
             log.info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
             self.solver.write(self.ptnet_reduced.smtlib_transition_relation(
-                k - 1, eq=False, tr=(self.path_proof is not None)))
+                k - 1, eq=False, tr=self.proof_enabled))
 
             log.info("[BMC] > Push")
             self.solver.push()
@@ -408,10 +423,40 @@ class BMC(AbstractChecker):
             log.info("[BMC] > Link initial and reduced Petri nets")
             self.solver.write(self.system.smtlib_link_nets(k))
 
-        # Write trace if export proof option enabled
-        if self.path_proof:
-            with open(self.path_proof, 'w') as fp_proof:
-                fp_proof.write(
-                    ' '.join(self.solver.get_trace(self.ptnet_reduced, k)))
+        # Proof management
+        if self.check_proof or self.path_proof:
+            self.proof(self.ptnet_reduced, k)
 
         return k
+
+    def proof(self, ptnet: PetriNet, trace_length: int) -> None:
+        """ Proof management.
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Current Petri net.
+        trace_length : int
+            Trace length.
+        """
+        trace = ' '.join(self.solver.get_trace(ptnet, trace_length))
+
+        filename = self.path_proof + '.scn' if self.path_proof else tempfile.NamedTemporaryFile(
+            suffix='.scn', delete=False).name
+
+        with open(filename, 'w') as fp_proof:
+            fp_proof.write(trace)
+
+        if self.check_proof:
+            print("####################")
+            print("[BMC] Trace")
+            print(trace)
+            print("####################")
+
+            print("[PDR] Trace checking")
+            print("Trace fireable form the initial marking:",
+                  play(ptnet.filename, filename, self.debug))
+            print("####################")
+
+        if not self.path_proof:
+            os.remove(filename)

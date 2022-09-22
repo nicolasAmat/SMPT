@@ -368,7 +368,7 @@ class PDR(AbstractChecker):
         else:
             self.sub_clause_finder = self.sub_clause_finder_mic
 
-        # Proof checking option
+        # Proof checking options
         self.check_proof = check_proof
         self.path_proof = path_proof
 
