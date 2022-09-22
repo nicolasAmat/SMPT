@@ -28,6 +28,7 @@ problems that takes advantage of net reductions (*polyhedral reductions*).
     + [4ti2](https://github.com/4ti2/4ti2) or [LattE integrale](https://github.com/latte-int/latte-distro)
   + (Optional) [walk](https://projects.laas.fr/tina/manuals/walk.html) - Random state space explorer
   + (Optional) [tina](https://projects.laas.fr/tina/manuals/tina.html) - State space generator
+  + (Optional) [play](https://projects.laas.fr/tina/manuals/play.html) - Stepper simulator
   + (Optional) [mcc](https://github.com/dalzilio/mcc) - Petri net unfolder
 * (Optional) [MiniZinc](https://www.minizinc.org/) - Constraint programming solver
 
