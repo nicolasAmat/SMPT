@@ -213,31 +213,47 @@ class Properties:
 
             self.add_formula(Formula(self.ptnet, formula_xml), property_id)
 
-    def parse_ltl(self, formula: str) -> None:
+    def parse_ltl(self, formula: str) -> Expression:
         """ Properties parser.
 
         Parameters
         ----------
         str
             Formula (.ltl format).
-        """
-        formula = "- (a <= 1 \\/  (b >= 3 /\\ c >= 4) \\/ d >= 3)"
 
-        def tokenize(s):
+        Returns
+        -------
+        Expression
+            Parsed formula.
+        """
+        def _tokenize(s):
             return filter(None, re.compile(r'\s*([()-])|(/\\)|(\\/)\s*').split(s))
+
+        def _member_constructor(member):
+            places, integer_constant = [], 0
+            for element in member.replace(' ', '').split('+'):
+                if element.isnumeric():
+                    integer_constant += int(element)
+                else:
+                    places.append(self.ptnet.places[element])
+
+            if places:
+                return TokenCount(places, delta=integer_constant)
+            else:
+                return IntegerConstant(integer_constant)
 
         # Number of opened parenthesis (not close)
         open_parenthesis = 0
 
         # Stacks: operators and operands
-        stack_operator = deque()
-        stack_operands = deque([[]])
+        stack_operator: deque[str] = deque()
+        stack_operands: deque[list[Expression]] = deque([[]])
 
         # Current operator
         current_operator = None
 
-        for token in tokenize(formula):
-            
+        for token in _tokenize(formula):
+
             if token in ['', ' ']:
                 continue
 
@@ -249,7 +265,8 @@ class Properties:
                     # If the current operator is different from the previous one, construct the previous sub-formula
                     if current_operator != token_operator:
                         operands = stack_operands.pop()
-                        stack_operands[-1] = [StateFormula(operands, stack_operator.pop())]
+                        stack_operands[-1] = [StateFormula(
+                            operands, stack_operator.pop())]
                 else:
                     # Add the current operator to the stack
                     stack_operator.append(token_operator)
@@ -273,24 +290,31 @@ class Properties:
                 # Decrease the number of open parenthesis
                 open_parenthesis -= 1
 
+                # Add to the previous list
                 if current_operator:
                     operands = stack_operands.pop()
-                    stack_operands[-1].append(StateFormula(operands, stack_operator.pop()))
+                    stack_operands[-1].append(StateFormula(operands,
+                                              stack_operator.pop()))
                 else:
                     stack_operands[-1].append(stack_operands.pop()[0])
 
                 current_operator = stack_operator[-1] if stack_operator else None
 
             elif token in ['T', 'F']:
-                stack_operands[-1].append(XML_TO_BOOLEAN_CONSTANTS[token])
+                # Construct BooleanConstant
+                stack_operands[-1].append(BooleanConstant(
+                    XML_TO_BOOLEAN_CONSTANTS[token]))
 
             else:
-                stack_operands[-1].append(token)
+                # Construct Atom
+                left, operator, right = re.split("(<=|>=|<|>|=)", token)
+                stack_operands[-1].append(Atom(_member_constructor(left),
+                                          _member_constructor(right), operator))
 
         if open_parenthesis:
             raise ValueError("Unbalances parentheses")
 
-        result = StateFormula(stack_operands.pop(), stack_operator.pop()) if stack_operator else stack_operands.pop()[0]
+        return StateFormula(stack_operands.pop(), stack_operator.pop()) if stack_operator else stack_operands.pop()[0]
 
     def add_formula(self, formula: Formula, property_id: Optional[str] = None) -> None:
         """ Add a formula.
