@@ -192,17 +192,18 @@ We provide a set of options to control the behavior of our verification jobs sch
 
 You can list all the options by using the *help* option:
 ```
-$ smpt --help
+$ python3 -m smpt --help
 usage: __main__.py [-h] [--version] [-v] [--debug] -n ptnet [--colored]
-                   [--xml PATH_PROPERTIES | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
+                   [--xml PATH_PROPERTIES | --ltl-file PATH_LTL_FORMULA | --ltl LTL_FORMULA | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
                    [--auto-reduce | --reduced PATH_PTNET_REDUCED]
                    [--save-reduced-net]
-                   (--methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX} ...]] | --auto-enumerative | --enumerative PATH_MARKINGS)
+                   (--methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX,DUMMY} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX,DUMMY} ...]] | --auto-enumerative | --enumerative PATH_MARKINGS)
                    [--project]
                    [--timeout TIMEOUT | --global-timeout GLOBAL_TIMEOUT]
                    [--skip-non-monotonic] [--show-techniques] [--show-time]
-                   [--show-reduction-ratio] [--show-model] [--check-proof]
-                   [--export-proof PATH_PROOF] [--mcc]
+                   [--show-reduction-ratio] [--show-shadow-completeness]
+                   [--show-model] [--check-proof] [--export-proof PATH_PROOF]
+                   [--mcc]
 
 SMPT: Satisfiability Modulo Petri Net
 
@@ -215,26 +216,29 @@ optional arguments:
                         path to Petri Net (.net or .pnml format)
   --colored             colored input Petri net
   --xml PATH_PROPERTIES
-                        use XML format for properties
+                        path to reachability formulas (.xml format)
+  --ltl-file PATH_LTL_FORMULA
+                        path to reachability formula (.ltl format)
+  --ltl LTL_FORMULA     reachability formula (.ltl format)
   --deadlock            deadlock analysis
   --quasi-liveness QUASI_LIVE_TRANSITIONS
                         liveness analysis (comma separated list of transition
                         names)
   --reachability REACHABLE_PLACES
-                        reachibility analysis (comma separated list of place
+                        reachability analysis (comma separated list of place
                         names)
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PTNET_REDUCED
                         path to reduced Petri Net (.net format)
   --save-reduced-net    save the reduced net
-  --methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX} ...]]
+  --methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX,DUMMY} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX,DUMMY} ...]]
                         enable methods among WALK STATE-EQUATION INDUCTION BMC
                         K-INDUCTION PDR-COV PDR-REACH PDR-REACH-SATURATED SMT
-                        CP TIPX
+                        CP TIPX DUMMY
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
-  --project             Use TFG projection for WALK, TIPX, K-INDUCTION
+  --project             Use TFG projection for WALK, TIPX, BMC, K-INDUCTION
   --timeout TIMEOUT     a limit per property on execution time
   --global-timeout GLOBAL_TIMEOUT
                         a limit on execution time
@@ -243,6 +247,8 @@ optional arguments:
   --show-time           show the execution time
   --show-reduction-ratio
                         show the reduction ratio
+  --show-shadow-completeness
+                        show the shadow completeness
   --show-model          show a counterexample if there is one
   --check-proof         check and show the certificate of invariance if there
                         is one

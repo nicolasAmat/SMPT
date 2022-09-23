@@ -154,7 +154,7 @@ def main():
 
     parser.add_argument('--project',
                         action='store_true',
-                        help='Use TFG projection for WALK, TIPX, K-INDUCTION')
+                        help='Use TFG projection for WALK, TIPX, BMC, K-INDUCTION')
 
     group_timeout = parser.add_mutually_exclusive_group()
 
