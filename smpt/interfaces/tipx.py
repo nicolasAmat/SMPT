@@ -200,6 +200,7 @@ class Tipx(Solver):
             self.solver_pids.put(self.solver.pid)
 
         projected_formulas = []
+        time_information, completeness_information = "", ""
         counter = 0
 
         line = self.readline()
@@ -220,6 +221,7 @@ class Tipx(Solver):
                 if show_time or show_shadow_completeness:
                     print(
                         "# Projection of " + formulas[counter].identifier + time_information + completeness_information)
+                    time_information, completeness_information = "", ""
                     counter += 1
 
             line = self.readline()
