@@ -220,7 +220,8 @@ class Properties:
             property_id = property_xml[0].text
             formula_xml = property_xml[2]
 
-            self.add_formula(Formula(self.ptnet, formula_xml=formula_xml), property_id)
+            self.add_formula(
+                Formula(self.ptnet, formula_xml=formula_xml), property_id)
 
     def add_formula(self, formula: Formula, property_id: Optional[str] = None) -> None:
         """ Add a formula.
@@ -272,7 +273,8 @@ class Properties:
             Comma separated list of transition names.
         """
         property_id = "Quasi-liveness-{}".format(quasi_live_transitions)
-        transitions = quasi_live_transitions.replace('#', '.').replace('{', '').replace('}', '').split(',')
+        transitions = quasi_live_transitions.replace(
+            '#', '.').replace('{', '').replace('}', '').split(',')
         formula = Formula(self.ptnet, identifier=property_id)
         formula.generate_quasi_liveness(transitions)
         self.add_formula(formula, property_id)
@@ -286,7 +288,8 @@ class Properties:
             Comma separated list of place names.
         """
         property_id = "Reachability:-{}".format(reachable_places)
-        places = reachable_places.replace('#', '.').replace('{', '').replace('}', '').split(',')
+        places = reachable_places.replace('#', '.').replace(
+            '{', '').replace('}', '').split(',')
         marking = {self.ptnet.places[pl]: 1 for pl in places}
         formula = Formula(self.ptnet, identifier=property_id)
         formula.generate_reachability(marking)
@@ -337,13 +340,14 @@ class Properties:
         tipx = Tipx(ptnet_tfg.filename, debug=debug)
 
         # Run projections
-        projections = tipx.project(list(self.formulas.values()), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
+        projections = tipx.project(list(self.formulas.values(
+        )), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
 
         # Iterate over projections
         for (projection, completeness), (property_id, formula) in zip(projections, self.formulas.items()):
             # Create new formula
             projected_formula = Formula(ptnet_tfg, property_id)
-            
+
             # Set shadow-completeness
             projected_formula.shadow_complete = completeness
 
@@ -596,15 +600,20 @@ class Formula:
             return filter(None, re.compile(r'\s*([()-])|(/\\)|(\\/)\s*').split(s))
 
         def _member_constructor(member):
-            places, integer_constant = [], 0
+            places, integer_constant, multipliers = [], 0, {}
             for element in member.replace(' ', '').split('+'):
                 if element.isnumeric():
                     integer_constant += int(element)
                 else:
-                    places.append(self.ptnet.places[element])
+                    split_element = element.split('*')
+                    place = self.ptnet.places[split_element[-1]]
+                    places.append(place)
+
+                    if len(split_element) > 1:
+                        multipliers[place] = int(split_element[0])
 
             if places:
-                return TokenCount(places, delta=integer_constant)
+                return TokenCount(places, delta=integer_constant, multipliers=multipliers)
             else:
                 return IntegerConstant(integer_constant)
 
@@ -612,7 +621,7 @@ class Formula:
         open_parenthesis = 0
 
         # Stacks: operators and operands
-        stack_operator: deque[str] = deque()
+        stack_operator: deque[tuple[str, int]] = deque()
         stack_operands: deque[list[Expression]] = deque([[]])
 
         # Current operator
@@ -629,7 +638,8 @@ class Formula:
                 if current_operator:
                     # If the current operator is different from the previous one, construct the previous sub-formula
                     if current_operator != token_operator:
-                        stack_operands[-1] = [StateFormula(stack_operands[-1], stack_operator.pop()[0])]
+                        stack_operands[-1] = [StateFormula(
+                            stack_operands[-1], stack_operator.pop()[0])]
                 else:
                     # Add the current operator to the stack
                     stack_operator.append((token_operator, open_parenthesis))
@@ -656,11 +666,12 @@ class Formula:
                 # Add to the previous list
                 operands = stack_operands.pop()
                 if current_operator:
-                    stack_operands[-1].append(StateFormula(operands, stack_operator.pop()[0]))
+                    stack_operands[-1].append(StateFormula(operands,
+                                              stack_operator.pop()[0]))
                 else:
                     stack_operands[-1].append(operands[0])
 
-                current_operator = stack_operator[-1] if stack_operator and stack_operator[-1][-1] == open_parenthesis else None
+                current_operator = stack_operator[-1][0] if stack_operator and stack_operator[-1][-1] == open_parenthesis else None
 
             elif token in ['T', 'F']:
                 # Construct BooleanConstant
@@ -676,7 +687,8 @@ class Formula:
         if open_parenthesis:
             raise ValueError("Unbalances parentheses")
 
-        self.P = StateFormula(stack_operands.pop(), stack_operator.pop()[0]) if stack_operator else stack_operands.pop()[0]
+        self.P = StateFormula(stack_operands.pop(), stack_operator.pop()[
+                              0]) if stack_operator else stack_operands.pop()[0]
         self.R = StateFormula([self.P], 'not')
         self.property_def = 'globally'
 
@@ -2205,9 +2217,11 @@ class TokenCount(SimpleExpression):
         An offset to add.
     saturated_delta : list of Expression
         A saturated delta.
+    multipliers : dict of Place: int, optional
+        Place multipliers (missing if 1).
     """
 
-    def __init__(self, places: list[Place], delta: int = 0, saturated_delta: Optional[list[Expression]] = None):
+    def __init__(self, places: list[Place], delta: int = 0, saturated_delta: Optional[list[Expression]] = None, multipliers: Optional[dict[Place, int]] = None):
         """ Initializer.
 
         Parameters
@@ -2215,9 +2229,11 @@ class TokenCount(SimpleExpression):
         places : list of Places
             A list of places to sum.
         delta : int, optional
-            An offset to add.
+            An offset to add (only for projection).
         saturated_delta : list of Expression, optional
             A saturated delta.
+        multipliers : dict of Place: int, optional
+            Place multipliers (missing if 1).
         """
         self.places: list[Place] = places
 
@@ -2227,6 +2243,8 @@ class TokenCount(SimpleExpression):
             saturated_delta = []
         self.saturated_delta: list[Expression] = saturated_delta
 
+        self.multipliers: dict[Place, int] = multipliers
+
     def __str__(self) -> str:
         """ TokenCount to textual format.
 
@@ -2235,7 +2253,8 @@ class TokenCount(SimpleExpression):
         str
             Debugging format.
         """
-        text = ' + '.join(map(lambda pl: pl.id, self.places))
+        text = ' + '.join(map(lambda pl: pl.id if self.multipliers is None or pl not in self.multipliers else "({}.{})".format(
+            self.multipliers[pl], pl.id), self.places))
 
         if self.delta:
             text += " {} {}".format(self.sign(), abs(self.delta))
@@ -2293,14 +2312,18 @@ class TokenCount(SimpleExpression):
         str
             SMT-LIB format.
         """
+        def place_smtlib(pl, k):
+            return pl.smtlib(k) if self.multipliers is None or pl not in self.multipliers else "(* {} {})".format(pl.smtlib(k), self.multipliers[pl])
+
         if delta is not None:
-            smt_input = ' '.join(map(lambda pl: "(+ {} {})".format(pl.smtlib(k),
-                                 delta[pl]) if delta.get(pl, 0) != 0 else pl.smtlib(k), self.places))
+            smt_input = ' '.join(map(lambda pl: "(+ {} {})".format(place_smtlib(
+                pl, k), delta[pl]) if delta.get(pl, 0) != 0 else place_smtlib(pl, k), self.places))
         elif saturated_delta is not None:
-            smt_input = ' '.join(map(lambda pl: "(+ {} {})".format(pl.smtlib(k), ' '.join(map(
-                lambda delta: delta.smtlib(k), saturated_delta[pl]))) if pl in saturated_delta else pl.smtlib(k), self.places))
+            smt_input = ' '.join(map(lambda pl: "(+ {} {})".format(place_smtlib(pl, k), ' '.join(map(
+                lambda delta: delta.smtlib(k), saturated_delta[pl]))) if pl in saturated_delta else place_smtlib(pl, k), self.places))
         else:
-            smt_input = ' '.join(map(lambda pl: pl.smtlib(k), self.places))
+            smt_input = ' '.join(
+                map(lambda pl: place_smtlib(pl, k), self.places))
 
         if len(self.places) > 1:
             smt_input = "(+ {})".format(smt_input)
@@ -2323,7 +2346,8 @@ class TokenCount(SimpleExpression):
         str
             MiniZinc format.
         """
-        minizinc_input = ' + '.join(map(lambda pl: pl.id, self.places))
+        minizinc_input = ' + '.join(map(lambda pl: pl.id if self.multipliers is None or pl not in self.multipliers else "{} * {}".format(
+            pl.id, self.multipliers[pl]), self.places))
 
         if len(self.places) > 1:
             minizinc_input = "({})".format(minizinc_input)
@@ -2342,8 +2366,11 @@ class TokenCount(SimpleExpression):
         str
             .ltl format.
         """
-        smt_input = ' + '.join(map(lambda pl: "{{{}}}".format(
-            pl.id) if '-' in pl.id or '.' in pl.id else pl.id, self.places))
+        def place_id(pl):
+            return "{{{}}}".format(pl.id) if '-' in pl.id or '.' in pl.id else pl.id
+
+        smt_input = ' + '.join(map(lambda pl: place_id(pl) if self.multipliers is None or pl not in self.multipliers else "{}*{}".format(
+            self.multipliers[pl], place_id(pl)), self.places))
 
         if len(self.places) > 1:
             smt_input = "({})".format(smt_input)
@@ -2374,7 +2401,7 @@ class TokenCount(SimpleExpression):
         generalized_saturated_delta = self.saturated_delta + sum([saturated_delta.get(
             pl, []) for pl in self.places], []) if saturated_delta is not None else self.saturated_delta
 
-        return TokenCount(self.places, generalized_delta, generalized_saturated_delta)
+        return TokenCount(self.places, delta=generalized_delta, saturated_delta=generalized_saturated_delta)
 
     def dnf(self) -> SimpleExpression:
         """ Convert to Disjunctive Normal Form (DNF).
@@ -2416,7 +2443,7 @@ class TokenCount(SimpleExpression):
         int
             Satisfiability of the TokenCount at marking m.
         """
-        return sum([m.tokens[pl] for pl in self.places]) + self.delta
+        return sum([m.tokens[pl] if self.multipliers is None or pl not in self.multipliers else self.multipliers[pl] * m.tokens[pl] for pl in self.places]) + self.delta
 
 
 class IntegerConstant(SimpleExpression):
