@@ -41,7 +41,7 @@ from smpt.exec.parallelizer import Parallelizer, worker
 from smpt.interfaces.convert import convert
 from smpt.interfaces.reduce import reduce
 from smpt.interfaces.unfold import unfold
-from smpt.ptio.formula import Formula, Properties
+from smpt.ptio.formula import Properties
 from smpt.ptio.ptnet import PetriNet
 from smpt.ptio.system import System
 
@@ -85,7 +85,19 @@ def main():
                                   action='store',
                                   dest='path_properties',
                                   type=str,
-                                  help='use XML format for properties')
+                                  help='path to reachability formulas (.xml format)')
+
+    group_properties.add_argument('--ltl-file',
+                                  action='store',
+                                  dest='path_ltl_formula',
+                                  type=str,
+                                  help='path to reachability formula (.ltl format)')
+
+    group_properties.add_argument('--ltl',
+                                  action='store',
+                                  dest='ltl_formula',
+                                  type=str,
+                                  help='reachability formula (.ltl format)')
 
     group_properties.add_argument('--deadlock',
                                   action='store_true',
@@ -101,7 +113,7 @@ def main():
                                   action='store',
                                   dest='reachable_places',
                                   type=str,
-                                  help='reachibility analysis (comma separated list of place names)')
+                                  help='reachability analysis (comma separated list of place names)')
 
     group_reduce = parser.add_mutually_exclusive_group()
 
@@ -122,7 +134,7 @@ def main():
     group_methods = parser.add_mutually_exclusive_group(required=True)
 
     methods = ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION',
-               'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP', 'TIPX']
+               'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP', 'TIPX', 'DUMMY']
 
     group_methods.add_argument('--methods',
                                default=methods,
@@ -175,6 +187,10 @@ def main():
                         action='store_true',
                         help="show the reduction ratio")
 
+    parser.add_argument('--show-shadow-completeness',
+                        action='store_true',
+                        help="show the shadow completeness")
+
     parser.add_argument('--show-model',
                         action='store_true',
                         help="show a counterexample if there is one")
@@ -225,9 +241,7 @@ def main():
     ptnet = PetriNet(path_net, path_pnml, results.colored, state_equation)
 
     # By default no reduction
-    ptnet_reduced = None
-    system = None
-    ptnet_tfg = None
+    ptnet_reduced, system, ptnet_tfg = None, None, None
 
     # List of reduce processes
     reduce_processes = []
@@ -278,34 +292,29 @@ def main():
         results.path_markings = fp_markings.name
 
     # Read properties
-    properties = Properties(ptnet, results.path_properties)
+    properties = Properties(ptnet, ptnet_tfg=ptnet_tfg,
+                            xml_filename=results.path_properties)
+
+    # Parse .ltl file if there is one
+    if results.path_ltl_formula:
+        with open(results.path_ltl_formula, 'r') as fp_ltl:
+            properties.add_ltl_formula(fp_ltl.read().strip())
+
+    # Parse .ltl formula if there is one
+    if results.ltl_formula:
+        properties.add_ltl_formula(results.ltl_formulas)
 
     # Generate a deadlock property if '--deadlock' enabled
     if results.deadlock:
-        property_id = "ReachabilityDeadlock"
-        formula = Formula(ptnet)
-        formula.generate_deadlock()
-        properties.add_formula(formula, property_id)
+        properties.add_deadlock_formula()
 
     # Generate a quasi-liveness property if '--quasi-liveness' enabled
     if results.quasi_live_transitions is not None:
-        property_id = "Quasi-liveness-{}".format(
-            results.quasi_live_transitions)
-        transitions = results.quasi_live_transitions.replace(
-            '#', '.').replace('{', '').replace('}', '').split(',')
-        formula = Formula(ptnet)
-        formula.generate_quasi_liveness(transitions)
-        properties.add_formula(formula, property_id)
+       properties.add_quasi_live_formula(results.quasi_live_transitions)
 
     # Generate a reachability property if '--reachability' enabled
     if results.reachable_places is not None:
-        property_id = "Reachability:-{}".format(results.reachable_places)
-        places = results.reachable_places.replace(
-            '#', '.').replace('{', '').replace('}', '').split(',')
-        marking = {ptnet.places[pl]: 1 for pl in places}
-        formula = Formula(ptnet)
-        formula.generate_reachability(marking)
-        properties.add_formula(formula, property_id)
+        properties.add_reachability_formula(results.reachable_places)
 
     # Show net informations
     if results.show_reduction_ratio:
@@ -322,7 +331,8 @@ def main():
 
     # Project formulas if enabled
     if results.project:
-        properties.project(ptnet_tfg, show_time=results.show_time, debug=results.debug)
+        properties.project(ptnet_tfg, show_time=results.show_time,
+                           show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
 
     # Disable reduction is the Petri net is not reducible
     if system is not None and not system.equations:
@@ -366,10 +376,13 @@ def main():
             timeout = (global_timeout - (time.time() -
                        start_time)) / nb_properties
 
+        # Get property
         property_id, formula = computations.get()
 
+        # List of methods
         methods = []
 
+        # Add ENUM method if markings were generated
         if results.path_markings is not None:
             methods.append('ENUM')
 
@@ -396,13 +409,17 @@ def main():
         # Keep only enabled methods
         methods = list(set(methods) & set(results.methods))
 
+        # Add BMC if K-INDUCTION enabled
+        if 'K-INDUCTION' in methods and 'BMC' not in methods:
+            methods.append('BMC')
+
         # Add three walkers when fully reducible and mcc mode enabled
         if results.mcc and ptnet_reduced and not ptnet_reduced.places:
             methods += ["WALK" for _ in range(3)]
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, show_techniques=results.show_techniques,
-                                    show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof, path_proof=results.path_proof)
+        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(
+            property_id, None), show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof, path_proof=results.path_proof)
 
         # If computation is uncomplete add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:
@@ -423,12 +440,8 @@ def main():
         fp_markings.close()
 
     # Remove Walk files if Walk or mcc mode enabled
-    if 'WALK' in results.methods or results.mcc:
+    if 'WALK' in results.methods or results.project or results.mcc:
         properties.remove_walk_files()
-
-    # Remove projection formulas
-    if results.project:
-        properties.remove_projection_files()
 
 
 if __name__ == '__main__':

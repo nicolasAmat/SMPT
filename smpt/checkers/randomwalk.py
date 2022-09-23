@@ -42,7 +42,7 @@ class RandomWalk(AbstractChecker):
     """ Random walk method.
     """
 
-    def __init__(self, ptnet: PetriNet, formula, shadow_projection: bool = False, tipx: bool = False, debug: bool = False, solver_pids: Optional[Queue[int]] = None):
+    def __init__(self, ptnet: PetriNet, formula, tipx: bool = False, debug: bool = False, solver_pids: Optional[Queue[int]] = None):
         """ Initializer.
         """
         # Initial Petri net
@@ -50,9 +50,6 @@ class RandomWalk(AbstractChecker):
 
         # Formula to study
         self.formula = formula
-
-        # Shadow-projection
-        self.shadow_projection = shadow_projection
 
         # Walker
         self.solver = Tipx(ptnet.filename, debug=debug, solver_pids=solver_pids) if tipx else Walk(
@@ -64,8 +61,7 @@ class RandomWalk(AbstractChecker):
         log.info("[RANDOM-WALK] RUNNING")
 
         log.info("[RANDOM-WALK] Walk")
-        formula_filename = self.formula.projection_filename if self.shadow_projection else self.formula.walk_filename
-        sat = self.solver.check_sat(formula_filename)
+        sat = self.solver.check_sat(self.formula.walk_filename)
 
         # Kill the solver
         self.solver.kill()

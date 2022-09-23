@@ -77,7 +77,7 @@ class Parallelizer:
         Queue of solver pids.
     """
 
-    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False):
+    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False):
         """ Initializer.
 
         Parameters
@@ -96,6 +96,8 @@ class Parallelizer:
             System of reduction equations.
         ptnet_tfg : PetriNet, optional
             Reduced Petri net (TFG).
+        projected_formula : Formula, optional
+            Projected formula.
         show_techniques : bool, optional 
             Show techniques flag.
         show_time : bool, optional
@@ -150,16 +152,19 @@ class Parallelizer:
         if 'K-INDUCTION' in methods:
             induction_queue = Queue()
 
-        # Shadow projection management
-        shadow_projection = ptnet_tfg is not None
-        ptnet_walker_kinduction = ptnet_tfg if shadow_projection else ptnet
+        # Projection management
+        ptnet_walk = ptnet_tfg if ptnet_tfg is not None else ptnet
+        formula_walk = projected_formula if projected_formula is not None else formula
+        projection = projected_formula is not None and projected_formula.shadow_complete
+        ptnet_bmc = ptnet_tfg if projection else ptnet
+        formula_bmc = projected_formula if projection else formula
 
         # Initialize methods
         for method in methods:
 
             if method == 'WALK':
                 self.methods.append(RandomWalk(
-                    ptnet_walker_kinduction, formula, shadow_projection=shadow_projection, tipx=False, debug=debug, solver_pids=self.solver_pids))
+                    ptnet_walk, formula_walk, tipx=False, debug=debug, solver_pids=self.solver_pids))
                 self.techniques.append(
                     collateral_processing + unfolding_to_pt + ['WALK'])
 
@@ -176,14 +181,14 @@ class Parallelizer:
                                        structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
 
             if method == 'BMC':
-                self.methods.append(BMC(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, show_model=show_model, debug=debug, check_proof=check_proof, path_proof=path_proof,
-                                    induction_queue=induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
+                self.methods.append(BMC(ptnet_bmc, formula_bmc, ptnet_reduced=ptnet_reduced, system=system, projection=projection, show_model=show_model, debug=debug,
+                                    check_proof=check_proof, path_proof=path_proof, induction_queue=induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
                 self.techniques.append(collateral_processing + unfolding_to_pt +
                                        structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'K-INDUCTION':
-                self.methods.append(KInduction(
-                    ptnet, formula, debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
+                self.methods.append(KInduction(ptnet_bmc, formula_bmc, projection=projection,
+                                    debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
                 self.techniques.append(collateral_processing + unfolding_to_pt +
                                        structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
@@ -218,8 +223,8 @@ class Parallelizer:
                                        structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
 
             if method == 'TIPX':
-                self.methods.append(RandomWalk(ptnet_walker_kinduction, formula,
-                                    shadow_projection=shadow_projection, tipx=True, debug=debug, solver_pids=self.solver_pids))
+                self.methods.append(RandomWalk(
+                    ptnet_walk, formula_walk, tipx=True, debug=debug, solver_pids=self.solver_pids))
                 self.techniques.append(
                     collateral_processing + unfolding_to_pt + ['TIPX'])
 

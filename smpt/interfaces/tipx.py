@@ -29,7 +29,10 @@ import logging as log
 import sys
 from multiprocessing import Queue
 from subprocess import PIPE, Popen
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from smpt.ptio.formula import Formula
 
 from smpt.exec.utils import KILL, send_signal_pids
 from smpt.interfaces.solver import Solver
@@ -161,16 +164,18 @@ class Tipx(Solver):
 
         return 'Bingo' in line
 
-    def project(self, formulas: list[str], show_time: bool = False) -> list[tuple[str, bool]]:
+    def project(self, formulas: list[Formula], show_time: bool = False, show_shadow_completeness: bool = False) -> list[tuple[str, bool]]:
         """ Project a list of formulas.
         
         Parameters
         ----------
-        formulas : list of str
+        formulas : list of Formula
             List of formula files to project.
         show_time : bool, optional
             Show time flag.
-        
+        show_shadow_completeness: bool, optional
+            Show shadow-completeness flag.
+
         Returns
         -------
         list of tuple of str, bool
@@ -183,9 +188,11 @@ class Tipx(Solver):
 
         for formula in formulas:
             if show_time:
-                process += ['load-forms', formula, 'project', 'time', 'fprint']
+                process += ['load-forms', formula.walk_filename,
+                            'project', 'time', 'fprint']
             else:
-                process += ['load-forms', formula, 'project', 'fprint']
+                process += ['load-forms',
+                            formula.walk_filename, 'project', 'fprint']
 
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)
 
@@ -193,14 +200,28 @@ class Tipx(Solver):
             self.solver_pids.put(self.solver.pid)
 
         projected_formulas = []
+        counter = 0
+
         line = self.readline()
         while line:
+
             if show_time and '# Time:' in line:
-                print('# Time projection:', line.split()[-2])
+                time_information = ' | time: ' + line.split()[-2]
             else:
-                projected_formula, completeness = line.split(' # ')
-                projected_formulas.append(
-                    (projected_formula, completeness == 'complete'))
+                projected_formula, str_completeness = line.split(' # ')
+                completeness = str_completeness == 'complete'
+
+                if show_shadow_completeness:
+                    completeness_information = ' | shadow-completeness: ' + \
+                        str(completeness)
+
+                projected_formulas.append((projected_formula, completeness))
+
+                if show_time or show_shadow_completeness:
+                    print(
+                        "# Projection of " + formulas[counter].identifier + time_information + completeness_information)
+                    counter += 1
+
             line = self.readline()
 
         return projected_formulas

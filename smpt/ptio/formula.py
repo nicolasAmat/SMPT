@@ -121,22 +121,31 @@ class Properties:
     ----------
     ptnet : PetriNet
         Associated Petri net.
+    ptnet_tfg : PetriNet, optional
+        Associated reduced Petri net (TFG).
     formulas : dict of str: Formula
         Set of formulas.
+    projected_formulas : dict of str: Formula
+        Set of projected formulas.
     """
 
-    def __init__(self, ptnet: PetriNet, xml_filename: Optional[str] = None) -> None:
+    def __init__(self, ptnet: PetriNet, ptnet_tfg: Optional[PetriNet], xml_filename: Optional[str] = None) -> None:
         """ Initializer.
 
         Parameters
         ----------
         ptnet : PetriNet
             Associated Petri net.
+        ptnet_tfg : PetriNet, optional
+            Associated reduced Petri net (TFG).
         xml_filename : str, optional
             Path to formula file (.xml format).
         """
         self.ptnet: PetriNet = ptnet
+        self.ptnet_tfg: PetriNet = ptnet_tfg
+
         self.formulas: dict[str, Formula] = {}
+        self.projected_formulas: dict[str, Formula] = {}
 
         if xml_filename is not None:
             self.parse_xml(xml_filename)
@@ -211,110 +220,7 @@ class Properties:
             property_id = property_xml[0].text
             formula_xml = property_xml[2]
 
-            self.add_formula(Formula(self.ptnet, formula_xml), property_id)
-
-    def parse_ltl(self, formula: str) -> Expression:
-        """ Properties parser.
-
-        Parameters
-        ----------
-        str
-            Formula (.ltl format).
-
-        Returns
-        -------
-        Expression
-            Parsed formula.
-        """
-        def _tokenize(s):
-            return filter(None, re.compile(r'\s*([()-])|(/\\)|(\\/)\s*').split(s))
-
-        def _member_constructor(member):
-            places, integer_constant = [], 0
-            for element in member.replace(' ', '').split('+'):
-                if element.isnumeric():
-                    integer_constant += int(element)
-                else:
-                    places.append(self.ptnet.places[element])
-
-            if places:
-                return TokenCount(places, delta=integer_constant)
-            else:
-                return IntegerConstant(integer_constant)
-
-        # Number of opened parenthesis (not close)
-        open_parenthesis = 0
-
-        # Stacks: operators and operands
-        stack_operator: deque[str] = deque()
-        stack_operands: deque[list[Expression]] = deque([[]])
-
-        # Current operator
-        current_operator = None
-
-        for token in _tokenize(formula):
-
-            if token in ['', ' ']:
-                continue
-
-            if token in ['-', '/\\', '\\/']:
-                # Get the current operator
-                token_operator = LTL_TO_BOOLEAN_OPERATORS[token]
-
-                if current_operator:
-                    # If the current operator is different from the previous one, construct the previous sub-formula
-                    if current_operator != token_operator:
-                        operands = stack_operands.pop()
-                        stack_operands[-1] = [StateFormula(
-                            operands, stack_operator.pop())]
-                else:
-                    # Add the current operator to the stack
-                    stack_operator.append(token_operator)
-                    current_operator = token_operator
-
-            elif token == '(':
-                # Increment the number of parenthesis
-                open_parenthesis += 1
-
-                # Add new current operands list
-                stack_operands.append([])
-
-                # Reset the last operator
-                current_operator = None
-
-            elif token == ')':
-                # Fail if no open parenthesis previously
-                if not open_parenthesis:
-                    raise ValueError("Unbalanced parentheses")
-
-                # Decrease the number of open parenthesis
-                open_parenthesis -= 1
-
-                # Add to the previous list
-                if current_operator:
-                    operands = stack_operands.pop()
-                    stack_operands[-1].append(StateFormula(operands,
-                                              stack_operator.pop()))
-                else:
-                    stack_operands[-1].append(stack_operands.pop()[0])
-
-                current_operator = stack_operator[-1] if stack_operator else None
-
-            elif token in ['T', 'F']:
-                # Construct BooleanConstant
-                stack_operands[-1].append(BooleanConstant(
-                    XML_TO_BOOLEAN_CONSTANTS[token]))
-
-            else:
-                # Construct Atom
-                left, operator, right = re.split("(<=|>=|<|>|=)", token)
-                stack_operands[-1].append(Atom(_member_constructor(left),
-                                          _member_constructor(right), operator))
-
-        if open_parenthesis:
-            raise ValueError("Unbalances parentheses")
-
-        return StateFormula(stack_operands.pop(), stack_operator.pop()) if stack_operator else stack_operands.pop()[0]
+            self.add_formula(Formula(self.ptnet, formula_xml=formula_xml), property_id)
 
     def add_formula(self, formula: Formula, property_id: Optional[str] = None) -> None:
         """ Add a formula.
@@ -333,7 +239,58 @@ class Properties:
         if property_id is None:
             property_id = str(uuid.uuid4())
 
+        formula.identifier = property_id
         self.formulas[property_id] = formula
+
+    def add_ltl_formula(self, ltl_formulas: str) -> None:
+        """ Parse and add reachability formula (.ltl format).
+
+        Parameters
+        ----------
+        ltl_formulas : str
+            Reachability formula (.ltl format)
+        """
+        property_id = "LTLFormula"
+        formula = Formula(self.ptnet, identifier=property_id)
+        formula.parse_ltl(ltl_formulas)
+        self.add_formula(formula, property_id)
+
+    def add_deadlock_formula(self) -> None:
+        """ Add deadlock formula.
+        """
+        property_id = "ReachabilityDeadlock"
+        formula = Formula(self.ptnet, identifier=property_id)
+        formula.generate_deadlock()
+        self.add_formula(formula, property_id)
+
+    def add_quasi_live_formula(self, quasi_live_transitions: str) -> None:
+        """ Add quasi-liveness formula.
+
+        Parameters
+        ----------
+        quasi_live_transitions : str
+            Comma separated list of transition names.
+        """
+        property_id = "Quasi-liveness-{}".format(quasi_live_transitions)
+        transitions = quasi_live_transitions.replace('#', '.').replace('{', '').replace('}', '').split(',')
+        formula = Formula(self.ptnet, identifier=property_id)
+        formula.generate_quasi_liveness(transitions)
+        self.add_formula(formula, property_id)
+
+    def add_reachability_formula(self, reachable_places: str) -> None:
+        """ Add reachability formula.
+
+        Parameters
+        ----------
+        reachable_places : str
+            Comma separated list of place names.
+        """
+        property_id = "Reachability:-{}".format(reachable_places)
+        places = reachable_places.replace('#', '.').replace('{', '').replace('}', '').split(',')
+        marking = {self.ptnet.places[pl]: 1 for pl in places}
+        formula = Formula(self.ptnet, identifier=property_id)
+        formula.generate_reachability(marking)
+        self.add_formula(formula, property_id)
 
     def dnf(self) -> Properties:
         """ Convert all formulas to Disjunctive Normal Form (DNF).
@@ -359,8 +316,10 @@ class Properties:
         """
         for formula in self.formulas.values():
             formula.remove_walk_file()
+        for formula in self.projected_formulas.values():
+            formula.remove_walk_file()
 
-    def project(self, ptnet_tfg: PetriNet, show_time: bool = False, debug: bool = False) -> None:
+    def project(self, ptnet_tfg: PetriNet, show_time: bool = False, show_shadow_completeness: bool = False, debug: bool = False) -> None:
         """ Generate projection formulas (.ltl format).
 
         Parameters
@@ -369,29 +328,38 @@ class Properties:
             Petri Net TFG.
         show_time : bool, optional
             Show time flag.
+        show_shadow_completeness : bool, optional
+            Show shadow-completeness flag. 
         debug : bool, optional
             Debugging flag.
         """
+        # Create TiPX instance
         tipx = Tipx(ptnet_tfg.filename, debug=debug)
 
-        projections = tipx.project(
-            [formula.walk_filename for formula in self.formulas.values()], show_time=show_time)
+        # Run projections
+        projections = tipx.project(list(self.formulas.values()), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
 
-        for (projection, completeness), formula in zip(projections, self.formulas.values()):
-            formula.shadow_complete = completeness
+        # Iterate over projections
+        for (projection, completeness), (property_id, formula) in zip(projections, self.formulas.items()):
+            # Create new formula
+            projected_formula = Formula(ptnet_tfg, property_id)
+            
+            # Set shadow-completeness
+            projected_formula.shadow_complete = completeness
+
+            # Write the projected formula into a temporary file
             fp_projected_formula = NamedTemporaryFile(
                 'w', suffix='.ltl', delete=False)
-            formula.projection_filename = fp_projected_formula.name
+            projected_formula.walk_filename = fp_projected_formula.name
             fp_projected_formula.write(projection)
             fp_projected_formula.flush()
             os.fsync(fp_projected_formula.fileno())
             fp_projected_formula.close()
 
-    def remove_projection_files(self) -> None:
-        """ Delete temporary files.
-        """
-        for formula in self.formulas.values():
-            formula.remove_projection_file()
+            # Parse and add the projected formula
+            projected_formula.identifier = formula.identifier
+            projected_formula.parse_ltl(projection)
+            self.projected_formulas[property_id] = projected_formula
 
 
 class Formula:
@@ -399,33 +367,39 @@ class Formula:
 
     Attributes
     ----------
-    R : formula, optional
+    ptnet : PetriNet
+        Associated Petri net.
+    identifier : str
+        Associated identifier.
+    R : Expression, optional
         Feared events.
-    P: formula, optional
-        Invariant.
+    P: Expression, optional
+        Unfeared events.
     property_def : str
         Property definition (exists-paths finally, all-paths globally).
     non_monotonic : bool
         Monotonicity flag.
     walk_filename : str, optional
         Path to .ltl file.
-    projection_filename : str, optional
-        Path to the projected formula (.ltl format).
     show_complete : bool
         Shadow-completeness of the projected formula.
     """
 
-    def __init__(self, ptnet: PetriNet, formula_xml: Optional[ET.Element] = None) -> None:
+    def __init__(self, ptnet: PetriNet, identifier: str = "", formula_xml: Optional[ET.Element] = None) -> None:
         """ Initializer.
 
         Parameters
         ----------
         ptnet : PetriNet
             Associated Petri net.
+        identifier : str
+            Associated identifier.
         formula_xml : ET.Element, optional
             Formula node (.xml format).
         """
         self.ptnet: PetriNet = ptnet
+
+        self.identifier: str = identifier
 
         self.R: Optional[Expression] = None
         self.P: Optional[Expression] = None
@@ -435,7 +409,6 @@ class Formula:
 
         self.walk_filename: Optional[str] = None
 
-        self.projection_filename: Optional[str] = None
         self.shadow_complete: bool = False
 
         if formula_xml is not None:
@@ -606,6 +579,107 @@ class Formula:
         else:
             raise ValueError("Invalid .xml node")
 
+    def parse_ltl(self, formula: str) -> None:
+        """ Properties parser.
+
+        Parameters
+        ----------
+        formula : str
+            Formula (.ltl format).
+
+        Returns
+        -------
+        Expression
+            Parsed formula.
+        """
+        def _tokenize(s):
+            return filter(None, re.compile(r'\s*([()-])|(/\\)|(\\/)\s*').split(s))
+
+        def _member_constructor(member):
+            places, integer_constant = [], 0
+            for element in member.replace(' ', '').split('+'):
+                if element.isnumeric():
+                    integer_constant += int(element)
+                else:
+                    places.append(self.ptnet.places[element])
+
+            if places:
+                return TokenCount(places, delta=integer_constant)
+            else:
+                return IntegerConstant(integer_constant)
+
+        # Number of opened parenthesis (not close)
+        open_parenthesis = 0
+
+        # Stacks: operators and operands
+        stack_operator: deque[str] = deque()
+        stack_operands: deque[list[Expression]] = deque([[]])
+
+        # Current operator
+        current_operator = None
+
+        for token in _tokenize(formula):
+            if token in ['', ' ']:
+                continue
+
+            if token in ['-', '/\\', '\\/']:
+                # Get the current operator
+                token_operator = LTL_TO_BOOLEAN_OPERATORS[token]
+
+                if current_operator:
+                    # If the current operator is different from the previous one, construct the previous sub-formula
+                    if current_operator != token_operator:
+                        stack_operands[-1] = [StateFormula(stack_operands[-1], stack_operator.pop()[0])]
+                else:
+                    # Add the current operator to the stack
+                    stack_operator.append((token_operator, open_parenthesis))
+                    current_operator = token_operator
+
+            elif token == '(':
+                # Increment the number of parenthesis
+                open_parenthesis += 1
+
+                # Add new current operands list
+                stack_operands.append([])
+
+                # Reset the last operator
+                current_operator = None
+
+            elif token == ')':
+                # Fail if no open parenthesis previously
+                if not open_parenthesis:
+                    raise ValueError("Unbalanced parentheses")
+
+                # Decrease the number of open parenthesis
+                open_parenthesis -= 1
+
+                # Add to the previous list
+                operands = stack_operands.pop()
+                if current_operator:
+                    stack_operands[-1].append(StateFormula(operands, stack_operator.pop()[0]))
+                else:
+                    stack_operands[-1].append(operands[0])
+
+                current_operator = stack_operator[-1] if stack_operator and stack_operator[-1][-1] == open_parenthesis else None
+
+            elif token in ['T', 'F']:
+                # Construct BooleanConstant
+                stack_operands[-1].append(BooleanConstant(
+                    XML_TO_BOOLEAN_CONSTANTS[token]))
+
+            else:
+                # Construct Atom
+                left, operator, right = re.split("(<=|>=|<|>|=)", token)
+                stack_operands[-1].append(Atom(_member_constructor(left),
+                                          _member_constructor(right), operator))
+
+        if open_parenthesis:
+            raise ValueError("Unbalances parentheses")
+
+        self.P = StateFormula(stack_operands.pop(), stack_operator.pop()[0]) if stack_operator else stack_operands.pop()[0]
+        self.R = StateFormula([self.P], 'not')
+        self.property_def = 'globally'
+
     def __str__(self) -> str:
         """ Formula to textual format.
 
@@ -677,17 +751,6 @@ class Formula:
 
         try:
             os.remove(self.walk_filename)
-        except OSError:
-            pass
-
-    def remove_projection_file(self) -> None:
-        """ Delete temporary file in .ltl format.
-        """
-        if self.projection_filename is None:
-            return
-
-        try:
-            os.remove(self.projection_filename)
         except OSError:
             pass
 
@@ -788,7 +851,7 @@ class Formula:
         Formula
             DNF of the Formula.
         """
-        formula = Formula(self.ptnet)
+        formula = Formula(self.ptnet, self.identifier)
         formula.non_monotonic, formula.property_def = self.non_monotonic, self.property_def
         formula.P, formula.R = self.P.dnf(), self.R.dnf()
         return formula
