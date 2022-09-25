@@ -597,11 +597,39 @@ class Formula:
             Parsed formula.
         """
         def _tokenize(s):
-            return filter(None, re.compile(r'\s*([()-])|(/\\)|(\\/)\s*').split(s))
+            tokens = []
+            buffer, last = "", ""
+            open_brace = False
+
+            for c in s:
+                if c == ' ':
+                    continue
+
+                elif (c == '/' and last == '\\') or (c == '\\' and last == '/'):
+                    tokens.append(last + c)
+                    buffer, last = "", ""
+
+                elif(c == '-' and not open_brace) or c in ['(', ')']:
+                    if last:
+                        tokens.append(buffer + last)
+                    tokens.append(c)
+                    buffer, last = "", ""
+
+                elif c == '{':
+                    open_brace = True
+
+                elif c == '}':
+                    open_brace = False
+
+                else:
+                    buffer += last
+                    last = c
+
+            return tokens
 
         def _member_constructor(member):
             places, integer_constant, multipliers = [], 0, {}
-            for element in member.replace(' ', '').split('+'):
+            for element in member.split('+'):
                 if element.isnumeric():
                     integer_constant += int(element)
                 else:
