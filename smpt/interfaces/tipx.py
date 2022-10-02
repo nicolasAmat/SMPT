@@ -151,7 +151,7 @@ class Tipx(Solver):
         if self.timeout:
             process += ['loop', str(self.timeout), str(self.timeout)]
         else:
-            process.append('walk')
+            process += ['loop', "3600", "3600"]
 
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)
 
