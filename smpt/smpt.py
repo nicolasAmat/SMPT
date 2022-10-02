@@ -326,7 +326,7 @@ def main():
                 int((len(ptnet.places) - len(ptnet_tfg.places)) / len(ptnet.places) * 100)))
 
     # Generate Walk files if mcc mode, projection or Walk methods enabled
-    if results.mcc or results.project or 'WALK' in results.methods:
+    if results.mcc or results.project or 'WALK' in results.methods or 'TIPX' in results.methods:
         properties.generate_walk_files()
 
     # Project formulas if enabled
