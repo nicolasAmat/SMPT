@@ -149,7 +149,7 @@ class Tipx(Solver):
         process = ['tipx.exe', 'load', self.ptnet_filename,
                    'load-forms', formula_filename]
         if self.timeout:
-            process += ['twalk', str(self.timeout)]
+            process += ['loop', str(self.timeout), str(self.timeout)]
         else:
             process.append('walk')
 
