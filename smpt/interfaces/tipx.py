@@ -146,7 +146,7 @@ class Tipx(Solver):
         if formula_filename is None:
             raise ValueError("TiPX: no filename")
 
-        process = ['tipx.exe', 'load', self.ptnet_filename,
+        process = ['tipx.exe', 'quiet', 'load', self.ptnet_filename,
                    'load-forms', formula_filename]
         if self.timeout:
             process += ['loop', str(self.timeout), str(self.timeout)]
@@ -209,12 +209,16 @@ class Tipx(Solver):
             if show_time and '# Time:' in line:
                 time_information = ' | time: ' + line.split()[-2]
             else:
-                projected_formula, str_completeness = line.split(' # ')
+                projected_formula, complementary_data = line.split(' # ')
+
+                str_completeness, str_ratio_cubes = complementary_data.split(
+                    ' ', 1)
+
                 completeness = str_completeness == 'complete'
 
                 if show_shadow_completeness:
-                    completeness_information = ' | shadow-completeness: ' + \
-                        str(completeness)
+                    completeness_information = ' | shadow-complete: ' + \
+                        str(completeness) + ' | ratio: ' + str_ratio_cubes
 
                 projected_formulas.append((projected_formula, completeness))
 
