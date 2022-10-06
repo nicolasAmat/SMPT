@@ -58,7 +58,7 @@ class System:
         places_initial : list of str, optional
             A list of place identifiers from the initial Petri net.
         places_reduced : list of str, optional
-            A list of place indentifiers from the reduced Petri net.
+            A list of place identifiers from the reduced Petri net.
         """
         if places_initial is None:
             places_initial = []
@@ -133,6 +133,17 @@ class System:
                                   self.equations))
 
         return minizinc_input
+
+    def barvinok(self) -> str:
+        """ Assert the equations (quite similar than MiniZinc).
+
+        Returns
+        -------
+        str
+            Barvinok format.
+        """
+        return ' and '.join(map(lambda eq: eq.minizinc(),
+                                  self.equations))
 
     def smtlib_declare_additional_variables(self, k_initial: Optional[int] = None) -> str:
         """ Declare the additional variables.

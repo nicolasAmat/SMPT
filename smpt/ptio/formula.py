@@ -1002,6 +1002,17 @@ class SimpleExpression(ABC):
         pass
 
     @abstractmethod
+    def barvinok(self) -> str:
+        """ Assert the SimpleExpression.
+
+        Returns
+        -------
+        str
+            Barvinok format.
+        """
+        pass
+
+    @abstractmethod
     def walk(self) -> str:
         """ Assert the SimpleExpression.
 
@@ -1370,6 +1381,25 @@ class StateFormula(Expression):
             minizinc_input = "constraint {};\n".format(minizinc_input)
 
         return minizinc_input
+
+    def barvinok(self) -> str:
+        """ Assert the StateFormula.
+
+        Returns
+        -------
+        str
+            Barvinok format.
+        """
+        barvinok_input = ' {} '.format(self.operator).join(
+            map(lambda operand: operand.barvinok(), self.operands))
+
+        if len(self.operands) > 1 or self.operator == 'not':
+            barvinok_input = "({})".format(barvinok_input)
+
+        if self.operator == 'not':
+            barvinok_input = "(not {})".format(barvinok_input)
+
+        return barvinok_input
 
     def walk(self) -> str:
         """ Assert the StateFormula.
@@ -1756,6 +1786,21 @@ class Atom(Expression):
 
         return minizinc_input
 
+    def barvinok(self) -> str:
+        """ Assert the Atom.
+
+        Parameters
+        ----------
+        assertion : bool
+            Assertion flag.
+
+        Returns
+        -------
+        str
+            Barvinok format.
+        """
+        return "({} {} {})".format(self.left_operand.barvinok(), self.operator, self.right_operand.barvinok())
+
     def walk(self) -> str:
         """ Assert the Atom.
 
@@ -2110,6 +2155,9 @@ class BooleanConstant(Expression):
         """
         return self.value
 
+    def barvinok(self) -> str:
+        raise NotImplementedError
+
 
 class UniversalQuantification(Expression):
     """ Universal Quantification.
@@ -2213,6 +2261,9 @@ class UniversalQuantification(Expression):
         return smt_input
 
     def minizinc(self, assertion: bool = False) -> str:
+        raise NotImplementedError
+    
+    def barvinok(self) -> str:
         raise NotImplementedError
 
     def walk(self) -> str:
@@ -2386,6 +2437,16 @@ class TokenCount(SimpleExpression):
 
         return minizinc_input
 
+    def barvinok(self) -> str:
+        """ Assert the TokenCount (similar than MinZinc format).
+
+        Returns
+        -------
+        str
+            Barvinok format.
+        """
+        return self.minizinc()
+
     def walk(self) -> str:
         """ Assert the TokenCount.
 
@@ -2555,6 +2616,16 @@ class IntegerConstant(SimpleExpression):
         """
         return str(self)
 
+    def barvinok(self) -> str:
+        """ Assert the IntegerConstant.
+
+        Returns
+        -------
+        str
+            Barvinok format.
+        """
+        return str(self)
+
     def walk(self) -> str:
         """ Assert the IntegerConstant.
 
@@ -2721,6 +2792,9 @@ class ArithmeticOperation(SimpleExpression):
     def minizinc(self) -> str:
         raise NotImplementedError
 
+    def barvinok(self) -> str:
+        raise NotImplementedError
+
     def walk(self) -> str:
         raise NotImplementedError
 
@@ -2838,6 +2912,9 @@ class FreeVariable(SimpleExpression):
             Generalization of the FreeVariable.
         """
         return self
+
+    def minizinc(self) -> str:
+        raise NotImplementedError
 
     def minizinc(self) -> str:
         raise NotImplementedError
