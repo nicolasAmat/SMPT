@@ -302,7 +302,7 @@ def main():
 
     # Parse .ltl formula if there is one
     if results.ltl_formula:
-        properties.add_ltl_formula(results.ltl_formulas)
+        properties.add_ltl_formula(results.ltl_formula)
 
     # Generate a deadlock property if '--deadlock' enabled
     if results.deadlock:
