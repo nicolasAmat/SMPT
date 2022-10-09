@@ -85,7 +85,7 @@ class System:
         return '\n'.join(map(str, self.equations))
 
     def smtlib(self, k: Optional[int] = None, k_initial: Optional[int] = None) -> str:
-        """ Decalare the additional variables and assert the equations.
+        """ Declare the additional variables and assert the equations.
 
         Parameters
         ----------
@@ -320,7 +320,7 @@ class Equation:
         k_initial : int, optional
             Order for the initial net (used by PDR).
         additional_vars : list of str
-            Identfifiers of additional variables.
+            Identifiers of additional variables.
 
         Returns
         -------
@@ -358,7 +358,7 @@ class Equation:
         k_initial : int, optional
             Order for the initial net (used by PDR).
         additional_vars : list of str, optional
-             Identfifiers of additional variables.
+             Identifiers of additional variables.
             
         Returns
         -------
@@ -408,7 +408,7 @@ class Equation:
         places_reduced : list of str, optional
             Identifiers of the reduced places.
         additional_vars : list of str, optional
-            Identfifiers of additional variables.
+            Identifiers of additional variables.
             
         Returns
         -------
@@ -440,12 +440,12 @@ class Equation:
         places_reduced : list of str
             Identifiers of the reduced places.
         additional_vars : list of str
-            Identfifiers of additional variables.
+            Identifiers of additional variables.
             
         Returns
         -------
         str
-            SMTLIB format.
+            SMT-LIB format.
         """
         if places_reduced is None:
             places_reduced = []
