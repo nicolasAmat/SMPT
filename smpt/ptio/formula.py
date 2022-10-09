@@ -361,8 +361,9 @@ class Properties:
             fp_projected_formula.close()
 
             # Parse and add the projected formula
-            projected_formula.identifier = formula.identifier
             projected_formula.parse_ltl(projection)
+            projected_formula.identifier = formula.identifier
+            projected_formula.property_def = formula.property_def
             self.projected_formulas[property_id] = projected_formula
 
 
@@ -715,9 +716,12 @@ class Formula:
         if open_parenthesis:
             raise ValueError("Unbalances parentheses")
 
-        self.P = StateFormula(stack_operands.pop(), stack_operator.pop()[
-                              0]) if stack_operator else stack_operands.pop()[0]
-        self.R = StateFormula([self.P], 'not')
+        P = StateFormula(stack_operands.pop(), stack_operator.pop()[0]) if stack_operator else stack_operands.pop()[0]
+        self.P = P
+        if P.operator == 'not':
+            self.R = self.P.operands[0]
+        else:
+            self.R = StateFormula([self.P], 'not')
         self.property_def = 'globally'
 
     def __str__(self) -> str:
