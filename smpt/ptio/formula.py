@@ -716,7 +716,8 @@ class Formula:
         if open_parenthesis:
             raise ValueError("Unbalances parentheses")
 
-        P = StateFormula(stack_operands.pop(), stack_operator.pop()[0]) if stack_operator else stack_operands.pop()[0]
+        P = StateFormula(stack_operands.pop(), stack_operator.pop()[
+                         0]) if stack_operator else stack_operands.pop()[0]
         self.P = P
         if P.operator == 'not':
             self.R = self.P.operands[0]
@@ -2266,7 +2267,7 @@ class UniversalQuantification(Expression):
 
     def minizinc(self, assertion: bool = False) -> str:
         raise NotImplementedError
-    
+
     def barvinok(self) -> str:
         raise NotImplementedError
 
