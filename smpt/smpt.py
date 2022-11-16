@@ -156,6 +156,16 @@ def main():
                         action='store_true',
                         help='Use TFG projection for WALK, TIPX, BMC, K-INDUCTION')
 
+    parser.add_argument('--show-projection',
+                        action='store_true',
+                        help='Show projected formulas')
+
+    parser.add_argument('--save-projection',
+                        action='store',
+                        dest='path_projection_directory',
+                        type=str,
+                        help='Save projected formulas')
+
     group_timeout = parser.add_mutually_exclusive_group()
 
     group_timeout.add_argument('--timeout',
@@ -331,8 +341,8 @@ def main():
 
     # Project formulas if enabled
     if results.project:
-        properties.project(ptnet_tfg, show_time=results.show_time,
-                           show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
+        properties.project(ptnet_tfg, show_projection=results.show_projection, save_projection=results.path_projection_directory,
+                           show_time=results.show_time, show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
 
     # Disable reduction is the Petri net is not reducible
     if system is not None and not system.equations:

@@ -322,13 +322,17 @@ class Properties:
         for formula in self.projected_formulas.values():
             formula.remove_walk_file()
 
-    def project(self, ptnet_tfg: PetriNet, show_time: bool = False, show_shadow_completeness: bool = False, debug: bool = False) -> None:
+    def project(self, ptnet_tfg: PetriNet, show_projection: bool = False, save_projection: Optional[str] = None, show_time: bool = False, show_shadow_completeness: bool = False, debug: bool = False) -> None:
         """ Generate projection formulas (.ltl format).
 
         Parameters
         ----------
         ptnet_tfg : Petri Net
             Petri Net TFG.
+        show_projection : bool, optional
+            Show projected formulas.
+        save_projection : str, optional
+            Save projected formulas.
         show_time : bool, optional
             Show time flag.
         show_shadow_completeness : bool, optional
@@ -365,6 +369,16 @@ class Properties:
             projected_formula.identifier = formula.identifier
             projected_formula.property_def = formula.property_def
             self.projected_formulas[property_id] = projected_formula
+
+            if show_projection or save_projection:
+                output_projection = "<> " + projected_formula.R.walk() if projected_formula.property_def == 'finally' else "[] " + projected_formula.P.walk()
+                # Show projected formula if option enabled
+                if show_projection:
+                    print("# Projection of {}:".format(property_id), output_projection)
+                # Save projected formula if option enabled
+                if save_projection:
+                    with open(save_projection + "/" + property_id + ".ltl", 'w') as fp:
+                        fp.write(output_projection)
 
 
 class Formula:
