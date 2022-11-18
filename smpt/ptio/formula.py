@@ -621,6 +621,8 @@ class Formula:
                     continue
 
                 elif (c == '/' and last == '\\') or (c == '\\' and last == '/'):
+                    if buffer:
+                        tokens.append(buffer)
                     tokens.append(last + c)
                     buffer, last = "", ""
 
@@ -639,6 +641,9 @@ class Formula:
                 else:
                     buffer += last
                     last = c
+
+            if buffer:
+                tokens.append(buffer + last)
 
             return tokens
 
@@ -670,7 +675,26 @@ class Formula:
         # Current operator
         current_operator = None
 
+        # Parse atom
+        parse_atom = False
+
+        # Read spaces at the beginning
+        for index, c in enumerate(formula):
+            if c != ' ':
+                break
+
+        # Parse potential LTL operator
+        witness = False
+        if index + 2 <= len(formula):
+            if formula[index:index+2] == '[]':
+                index = index + 2
+            if formula[index:index+2] == '<>':
+                index = index + 2
+                witness = True
+        formula = formula[index:]
+
         for token in _tokenize(formula):
+
             if token in ['', ' ']:
                 continue
 
@@ -723,9 +747,19 @@ class Formula:
 
             else:
                 # Construct Atom
-                left, operator, right = re.split("(<=|>=|<|>|=)", token)
-                stack_operands[-1].append(Atom(_member_constructor(left),
-                                          _member_constructor(right), operator))
+                if re.search("(<=|>=|<|>|=)", token):
+                    if parse_atom:
+                        left = stack_operands[-1].pop()
+                        _, operator, right = re.split("(<=|>=|<|>|=)", token)
+                        parse_atom = False
+
+                    else:
+                        left, operator, right = re.split("(<=|>=|<|>|=)", token)
+                    stack_operands[-1].append(Atom(_member_constructor(left),
+                                            _member_constructor(right), operator))
+                else:
+                    stack_operands[-1].append(token)
+                    parse_atom = True
 
         if open_parenthesis:
             raise ValueError("Unbalances parentheses")
@@ -738,6 +772,10 @@ class Formula:
         else:
             self.R = StateFormula([self.P], 'not')
         self.property_def = 'globally'
+
+        if witness:
+            self.P, self.R = self.R, self.P
+            self.property_def = 'finally'
 
     def __str__(self) -> str:
         """ Formula to textual format.
