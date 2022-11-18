@@ -261,8 +261,9 @@ def main():
 
     # Reduce the Petri net if '--auto-reduce' enabled
     if results.auto_reduce and results.path_ptnet_reduced is None:
-        fp_ptnet_reduced = open(path_net.replace('.net', '_reduced.net'),
-                                'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net')
+        extension = '.pnml' if path_pnml else '.net'
+        fp_ptnet_reduced = open(results.net.replace(
+            extension, '_tfg.net'), 'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net')
         results.path_ptnet_reduced = fp_ptnet_reduced.name
         reduce_processes.append(Process(target=reduce, args=(
             reduce_source, results.path_ptnet_reduced, False, results.show_time,)))
@@ -270,7 +271,9 @@ def main():
 
     # Reduce the Petri net using TFG reductions if `--project` enabled
     if results.project:
-        fp_ptnet_tfg = tempfile.NamedTemporaryFile(suffix='.net', delete=False)
+        extension = '.pnml' if path_pnml else '.net'
+        fp_ptnet_tfg = open(results.net.replace(extension, '_tfg.net'),
+                            'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net', delete=False)
         path_ptnet_tfg = fp_ptnet_tfg.name
         reduce_processes.append(Process(target=reduce, args=(
             results.net, path_ptnet_tfg, True, results.show_time,)))
