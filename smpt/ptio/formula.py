@@ -2973,7 +2973,7 @@ class FreeVariable(SimpleExpression):
     def minizinc(self) -> str:
         raise NotImplementedError
 
-    def minizinc(self) -> str:
+    def barvinok(self) -> str:
         raise NotImplementedError
 
     def walk(self) -> str:
