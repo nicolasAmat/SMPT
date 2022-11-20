@@ -263,7 +263,7 @@ def main():
     if results.auto_reduce and results.path_ptnet_reduced is None:
         extension = '.pnml' if path_pnml else '.net'
         fp_ptnet_reduced = open(results.net.replace(
-            extension, '_tfg.net'), 'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net')
+            extension, '_reduced.net'), 'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net')
         results.path_ptnet_reduced = fp_ptnet_reduced.name
         reduce_processes.append(Process(target=reduce, args=(
             reduce_source, results.path_ptnet_reduced, False, results.show_time,)))
