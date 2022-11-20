@@ -749,28 +749,33 @@ class Formula:
                 # Construct Atom
                 if re.search("(<=|>=|<|>|=)", token):
                     if parse_atom:
-                        left = stack_operands[-1].pop()
                         _, operator, right = re.split("(<=|>=|<|>|=)", token)
+                        stack_operands[-1].append(Atom(stack_operands[-1].pop(), _member_constructor(right), operator))
                         parse_atom = False
 
                     else:
                         left, operator, right = re.split("(<=|>=|<|>|=)", token)
-                    stack_operands[-1].append(Atom(_member_constructor(left),
-                                            _member_constructor(right), operator))
+                        stack_operands[-1].append(Atom(_member_constructor(left), _member_constructor(right), operator))
                 else:
-                    stack_operands[-1].append(token)
+                    stack_operands[-1].append(_member_constructor(token))
                     parse_atom = True
 
         if open_parenthesis:
             raise ValueError("Unbalances parentheses")
 
-        P = StateFormula(stack_operands.pop(), stack_operator.pop()[
-                         0]) if stack_operator else stack_operands.pop()[0]
-        self.P = P
-        if P.operator == 'not':
-            self.R = self.P.operands[0]
+        if stack_operator:
+            operands = stack_operands.pop()
+            operator = stack_operator.pop()[0]
+            self.P = StateFormula(operands, operator)
+        else:
+            operands, operator = None, None
+            self.P = stack_operands.pop()[0]
+
+        if operator == 'not':
+            self.R = operands[0]
         else:
             self.R = StateFormula([self.P], 'not')
+
         self.property_def = 'globally'
 
         if witness:
