@@ -3,13 +3,7 @@
 # Installation script for the FM2023 artifact.
 
 
-echo "Please make sure you have Python 3.7.12 (you may use pyenv)"
-echo ""
-
-echo "Please make sure the following packages are installed:"
-echo "- automake"
-echo "- libtool"
-
+echo "Please make sure the `automake` and `libtool` packages and Python 3.7.12 installed (you may use pyenv)"
 echo ""
 
 echo "Installing z3"
