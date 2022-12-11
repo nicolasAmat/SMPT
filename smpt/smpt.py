@@ -67,7 +67,7 @@ def main():
 
     parser.add_argument('--debug',
                         action='store_true',
-                        help="print the SMT-LIB input/ouput")
+                        help="print the SMT-LIB input/output")
 
     parser.add_argument('-n', '--net',
                         metavar='ptnet',
