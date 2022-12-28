@@ -371,10 +371,12 @@ class Properties:
             self.projected_formulas[property_id] = projected_formula
 
             if show_projection or save_projection:
-                output_projection = "<> " + projected_formula.R.walk() if projected_formula.property_def == 'finally' else "[] " + projected_formula.P.walk()
+                output_projection = "<> " + projected_formula.R.walk() if projected_formula.property_def == 'finally' else "[] " + \
+                    projected_formula.P.walk()
                 # Show projected formula if option enabled
                 if show_projection:
-                    print("# Projection of {}:".format(property_id), output_projection)
+                    print("# Projection of {}:".format(
+                        property_id), output_projection)
                 # Save projected formula if option enabled
                 if save_projection:
                     with open(save_projection + "/" + property_id + ".ltl", 'w') as fp:
@@ -626,7 +628,7 @@ class Formula:
                     tokens.append(last + c)
                     buffer, last = "", ""
 
-                elif(c == '-' and not open_brace) or c in ['(', ')']:
+                elif (c == '-' and not open_brace) or c in ['(', ')']:
                     if last:
                         tokens.append(buffer + last)
                     tokens.append(c)
@@ -750,12 +752,15 @@ class Formula:
                 if re.search("(<=|>=|<|>|=)", token):
                     if parse_atom:
                         _, operator, right = re.split("(<=|>=|<|>|=)", token)
-                        stack_operands[-1].append(Atom(stack_operands[-1].pop(), _member_constructor(right), operator))
+                        stack_operands[-1].append(
+                            Atom(stack_operands[-1].pop(), _member_constructor(right), operator))
                         parse_atom = False
 
                     else:
-                        left, operator, right = re.split("(<=|>=|<|>|=)", token)
-                        stack_operands[-1].append(Atom(_member_constructor(left), _member_constructor(right), operator))
+                        left, operator, right = re.split(
+                            "(<=|>=|<|>|=)", token)
+                        stack_operands[-1].append(Atom(_member_constructor(
+                            left), _member_constructor(right), operator))
                 else:
                     stack_operands[-1].append(_member_constructor(token))
                     parse_atom = True
@@ -966,7 +971,7 @@ class Formula:
         verdict : Verdict
             Verdict of the formula.
 
-        Retruns
+        Returns
         -------
         str
             "TRUE" or "FALSE".
@@ -1871,8 +1876,8 @@ class Atom(Expression):
         str
             .ltl format.
         """
-        walk_input = "({} {} {})".format(self.left_operand.walk(),
-                                         self.operator, self.right_operand.walk())
+        walk_input = "({} {} {})".format(self.left_operand.walk(
+        ), COMPARISON_OPERATORS_TO_WALK[self.operator], self.right_operand.walk())
 
         if self.operator == 'distinct':
             walk_input = "- {}".format(walk_input)
