@@ -28,7 +28,6 @@ import time
 from multiprocessing import Process, Queue
 from typing import Optional
 
-from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.checkers.bmc import BMC
 from smpt.checkers.cp import CP
 from smpt.checkers.enumerative import Enumerative
@@ -51,20 +50,40 @@ class Parallelizer:
 
     Attributes
     ----------
+    ptnet : PetriNet
+        Initial Petri net.
+    ptnet_reduced : PetriNet, optional
+        Reduced Petri net.
+    system : System, optional
+        System of reduction equations.
     property_id : str
         Id of the property.
     formula : Formula
         Reachability formula.
-    show_techniques : bool
-        Show techniques flag.
-    show_time : bool
-        Show time flag.
-    show_model : bool
-        Show model flag.
-    additional_techniques : Queue of str
-        Queue of additional techniques involved during the computation ('TOPOLOGICAL', 'NUPN_NUPN', ...).
-    methods : list of AbstractChecker
+    methods : list of str
         List of methods to be run in parallel.
+    show_techniques : bool, optional 
+        Show techniques flag.
+    show_time : bool, optional
+        Show time flag.
+    show_model : bool, optional
+        Show model flag.
+    debug : bool, optional
+        Debugging flag.
+    path_markings : str, optional
+        Path to the list of markings (.aut format).
+    check_proof : bool, optional
+        Check proof flag.
+    path_proof : str, optional
+        Path to proof.
+    mcc : bool, optional
+        MCC mode.
+    ptnet_tfg : PetriNet, optional
+        Reduced Petri net (TFG).
+    projected_formula : Formula, optional
+        Projected formula.
+    additional_techniques : Queue of str
+        Queue of additional techniques involved during the computation ('TOPOLOGICAL', 'USE_NUPN', ...).
     processes : list of Process
         List of processes corresponding to the methods.
     techniques : list of list of str
@@ -75,6 +94,18 @@ class Parallelizer:
         List of Queue to store the verdicts corresponding to the methods.
     solver_pids : Queue of int
         Queue of solver pids.
+    induction_queue : Queue of int, optional
+        Queue for the exchange with K-INDUCTION.
+    ptnet_walk : PetriNet
+        Net used for walking.
+    formula_walk : Formula
+        Formula used for walking.
+    projection : bool
+        Shadow-completeness of an eventual projection.
+    ptnet_bmc : PetriNet
+        Net used for BMC / K-INDUCTION.
+    formula_bmc : Formula
+        Formulas used for BMC / K-INDUCTION.
     """
 
     def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False):
@@ -115,14 +146,33 @@ class Parallelizer:
         mcc : bool, optional
             MCC mode.
         """
+        # Petri nets
+        self.ptnet: PetriNet = ptnet
+        self.ptnet_reduced: Optional[PetriNet] = ptnet_reduced
+        self.system: Optional[System] = system
+
         # Property id and corresponding formula
         self.property_id: str = property_id
         self.formula: Formula = formula
+
+        # Methods
+        self.methods: list[str] = methods
 
         # Output flags
         self.show_techniques: bool = show_techniques
         self.show_time: bool = show_time
         self.show_model: bool = show_model
+        self.debug: bool = debug
+
+        # Path to markings
+        self.path_markings = path_markings
+
+        # Proof
+        self.check_proof: bool = check_proof
+        self.path_proof: str = path_proof
+
+        # MCC mode
+        self.mcc: bool = mcc
 
         # Common techniques
         collateral_processing, unfolding_to_pt, structural_reduction = [], [], []
@@ -135,7 +185,6 @@ class Parallelizer:
         self.additional_techniques: Queue[str] = Queue()
 
         # Process information
-        self.methods: list[AbstractChecker] = []
         self.processes: list[Process] = []
         self.techniques: list[list[str]] = []
         self.computation_time: float = 0
@@ -148,94 +197,116 @@ class Parallelizer:
         self.solver_pids: Queue[int] = Queue()
 
         # If K-Induction enabled create a queue to store the current iteration of BMC
-        induction_queue: Optional[Queue[int]] = None
+        self.induction_queue: Optional[Queue[int]] = None
         if 'K-INDUCTION' in methods:
-            induction_queue = Queue()
+            self.induction_queue = Queue()
 
         # Projection management
-        ptnet_walk = ptnet_tfg if ptnet_tfg is not None else ptnet
-        formula_walk = projected_formula if projected_formula is not None else formula
-        projection = projected_formula is not None and projected_formula.shadow_complete
-        ptnet_bmc = ptnet_tfg if projection else ptnet
-        formula_bmc = projected_formula if projection else formula
+        # WALK
+        self.ptnet_walk: PetriNet = ptnet_tfg if ptnet_tfg is not None else ptnet
+        self.formula_walk: Formula = projected_formula if projected_formula is not None else formula
+        # BMC / K-INDUCTION
+        self.projection: bool = projected_formula is not None and projected_formula.shadow_complete
+        self.ptnet_bmc: PetriNet = ptnet_tfg if self.projection else ptnet
+        self.formula_bmc: Formula = projected_formula if self.projection else formula
 
         # Initialize methods
         for method in methods:
 
             if method == 'WALK':
-                self.methods.append(RandomWalk(
-                    ptnet_walk, formula_walk, tipx=False, debug=debug, solver_pids=self.solver_pids))
-                self.techniques.append(
-                    collateral_processing + unfolding_to_pt + ['WALK'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['WALK'])
 
             if method == 'STATE-EQUATION':
-                self.methods.append(StateEquation(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system, mcc=mcc,
-                                    debug=debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
-                self.techniques.append(collateral_processing + unfolding_to_pt +
-                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
 
             if method == 'INDUCTION':
-                self.methods.append(Induction(ptnet, formula, ptnet_reduced=ptnet_reduced,
-                                    system=system, show_model=show_model, debug=debug, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt +
-                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
 
             if method == 'BMC':
-                self.methods.append(BMC(ptnet_bmc, formula_bmc, ptnet_reduced=ptnet_reduced, system=system, projection=projection, show_model=show_model, debug=debug,
-                                    check_proof=check_proof, path_proof=path_proof, induction_queue=induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques))
-                self.techniques.append(collateral_processing + unfolding_to_pt +
-                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'K-INDUCTION':
-                self.methods.append(KInduction(ptnet_bmc, formula_bmc, projection=projection,
-                                    debug=debug, induction_queue=induction_queue, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt +
-                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             if method == 'PDR-COV':
-                self.methods.append(PDR(ptnet, formula, ptnet_reduced=ptnet_reduced, system=system,
-                                    debug=debug, check_proof=check_proof, path_proof=path_proof, method='COV', solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt +
-                                       structural_reduction + ['IMPLICIT', 'SAT-SMT', 'PDR-COV'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'PDR-COV'])
 
             if method == 'PDR-REACH':
-                self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof,
-                                    path_proof=path_proof, method='REACH', saturation=False, solver_pids=self.solver_pids))
-                self.techniques.append(
-                    collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
 
             if method == 'PDR-REACH-SATURATED':
-                self.methods.append(PDR(ptnet, formula, debug=debug, check_proof=check_proof,
-                                    path_proof=path_proof, method='REACH', saturation=True, solver_pids=self.solver_pids))
-                self.techniques.append(
-                    collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH-SATURATED'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH-SATURATED'])
 
             if method == 'SMT':
-                self.methods.append(CP(ptnet, formula, system, show_model=show_model,
-                                    debug=debug, minizinc=False, solver_pids=self.solver_pids))
-                self.techniques.append(
-                    collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
 
             if method == 'CP':
-                self.methods.append(CP(ptnet, formula, system, show_model=show_model,
-                                    debug=debug, minizinc=True, solver_pids=self.solver_pids))
-                self.techniques.append(collateral_processing + unfolding_to_pt +
-                                       structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
 
             if method == 'TIPX':
-                self.methods.append(RandomWalk(
-                    ptnet_walk, formula_walk, tipx=True, debug=debug, solver_pids=self.solver_pids))
-                self.techniques.append(
-                    collateral_processing + unfolding_to_pt + ['TIPX'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['TIPX'])
 
             if method == 'ENUM':
-                self.methods.append(Enumerative(
-                    path_markings, ptnet, formula, ptnet_reduced, system, debug, solver_pids=self.solver_pids))
-                self.techniques.append(
-                    collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT-SMT'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT-SMT'])
+
+    def __getstate__(self):
+        # Capture what is normally pickled
+        state = self.__dict__.copy()
+
+        # Remove unpicklable variable 
+        state['processes'] = None
+        return state
+
+    def prove(self, method: str, result, concurrent_pids: list[int]) -> None:
+        """ Prover method instantiator and runner.
+
+        Parameters
+        ----------
+        result : 
+        
+        concurrent_pids :
+
+        """
+        if method == 'WALK':
+            prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, debug=self.debug, solver_pids=self.solver_pids)
+
+        if method == 'STATE-EQUATION':
+            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, mcc=self.mcc, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+
+        if method == 'INDUCTION':
+            prover = Induction(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, show_model=self.show_model, debug=self.debug, solver_pids=self.solver_pids)
+
+        if method == 'BMC':
+            prover = BMC(self.ptnet_bmc, self.formula_bmc, ptnet_reduced=self.ptnet_reduced, system=self.system, projection=self.projection, show_model=self.show_model, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, induction_queue=self.induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+
+        if method == 'K-INDUCTION':
+            prover = KInduction(self.ptnet_bmc, self.formula_bmc, projection=self.projection, debug=self.debug, induction_queue=self.induction_queue, solver_pids=self.solver_pids)
+
+        if method == 'PDR-COV':
+            prover = PDR(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='COV', solver_pids=self.solver_pids)
+
+        if method == 'PDR-REACH':
+            prover = PDR(self.ptnet, self.formula, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=False, solver_pids=self.solver_pids)
+
+        if method == 'PDR-REACH-SATURATED':
+            prover = PDR(self.ptnet, self.formula, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=True, solver_pids=self.solver_pids)
+
+        if method == 'SMT':
+            prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=False, solver_pids=self.solver_pids)
+
+        if method == 'CP':
+            prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=True, solver_pids=self.solver_pids)
+
+        if method == 'TIPX':
+            prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=True, debug=self.debug, solver_pids=self.solver_pids)
+
+        if method == 'ENUM':
+            prover = Enumerative(self.path_markings, self.ptnet, self.formula, self.ptnet_reduced, self.system, self.debug, solver_pids=self.solver_pids)
+
+        prover.prove(result, concurrent_pids)
 
     def run(self, timeout=225) -> Optional[str]:
-        """ Run analysis in parrallel.
+        """ Run analysis in parallel.
 
         Parameters
         ----------
@@ -254,15 +325,13 @@ class Parallelizer:
         # Create a queue to share the pids of the concurrent methods
         concurrent_pids: Queue[list[int]] = Queue()
 
-        # Create processes
-        self.processes = [Process(target=method.prove, args=(
-            result, concurrent_pids,)) for method, result in zip(self.methods, self.results)]
-
-        # Start processes
+        # Create and start processes
         pids = []
-        for proc in self.processes:
+        for method, result in zip(self.methods, self.results):
+            proc = Process(target=self.prove, args=(method, result, concurrent_pids,))
             proc.start()
             pids.append(proc.pid)
+            self.processes.append(proc)
         concurrent_pids.put(pids)
 
         return self.handle(timeout)
