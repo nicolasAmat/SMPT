@@ -332,6 +332,14 @@ class KInduction(AbstractChecker):
                 "[K-INDUCTION] > Assert safe states (iteration: {})".format(k))
             self.solver.write(self.formula.P.smtlib(k, assertion=True))
 
+            if not k:
+                log.info("[K-INDUCTION] > Declaration of the transitions from the Petri net")
+                self.solver.write(self.ptnet_reduced.smtlib_declare_transitions())
+                log.info("[K-INDUCTION] > State Equation")
+                self.solver.write(self.ptnet_reduced.smtlib_state_equation(0))
+                log.info("[K-INDUCTION] > Add read arc constraints")
+                self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints(0))
+
             k += 1
             log.info("[K-INDUCTION] > k = {}".format(k))
 
