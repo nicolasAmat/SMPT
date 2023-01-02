@@ -62,7 +62,6 @@ class KInduction(AbstractChecker):
         Queue for the exchange with k-induction.
     solver : Z3
         SMT solver (Z3).
-
     """
 
     def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, projection: bool = False, debug: bool = False, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None) -> None:
@@ -263,6 +262,14 @@ class KInduction(AbstractChecker):
                 "[K-INDUCTION] > Assert states safe (iteration: {})".format(k))
             self.solver.write(self.formula.P.smtlib(k, assertion=True))
 
+            if not k:
+                log.info("[K-INDUCTION] > Declaration of the transitions from the Petri net")
+                self.solver.write(self.ptnet.smtlib_declare_transitions())
+                log.info("[K-INDUCTION] > State Equation")
+                self.solver.write(self.ptnet.smtlib_state_equation(0))
+                log.info("[K-INDUCTION] > Add read arc constraints")
+                self.solver.write(self.ptnet.smtlib_read_arc_constraints(0))
+
             k += 1
             log.info("[K-INDUCTION] > k = {}".format(k))
 
@@ -291,6 +298,11 @@ class KInduction(AbstractChecker):
         -------
         int
             Order of the counter-example.
+
+        Note
+        ----
+        Reduction can deteriorate the performances.
+        Sometimes the existential variable avoids termination. 
         """
         log.info("[K-INDUCTION] > Initialization")
 

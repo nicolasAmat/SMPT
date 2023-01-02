@@ -234,20 +234,24 @@ class PetriNet:
 
         return smt_input
 
-    def smtlib_state_equation(self) -> str:
-        """
-            Assert the state equation (potentially reachable markings).
-            
+    def smtlib_state_equation(self, k: Optional[int] = None) -> str:
+        """ Assert the state equation (potentially reachable markings).
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+        
         Returns
         -------
         str
             SMT-LIB format.
         """
-        return ''.join(map(lambda pl: pl.smtlib_state_equation(), self.places.values()))
+        return ''.join(map(lambda pl: pl.smtlib_state_equation(k), self.places.values()))
 
     def smtlib_read_arc_constraints(self) -> str:
         """ Assert read arc constraints.
-            
+
         Returns
         -------
             SMTT-LIB format.
@@ -653,6 +657,7 @@ class Place:
         Parameters
         ----------
         k : int, optional
+            Order.
 
         Returns
         -------
@@ -674,6 +679,11 @@ class Place:
     def smtlib_initial_marking(self, k: Optional[int] = None) -> str:
         """ Assert the initial marking.
 
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
         Returns
         -------
         str
@@ -681,8 +691,13 @@ class Place:
         """
         return "(assert (= {} {}))\n".format(self.smtlib(k), self.initial_marking)
 
-    def smtlib_state_equation(self) -> str:
+    def smtlib_state_equation(self, k: Optional[int] = None) -> str:
         """ Assert the state equation.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
 
         Returns
         -------
@@ -701,7 +716,7 @@ class Place:
         if not smt_input:
             smt_input = "0"
 
-        return "(assert (= {} {}))\n".format(self.smtlib(), smt_input)
+        return "(assert (= {} {}))\n".format(self.smtlib(k), smt_input)
 
     def smtlib_declare_trap(self) -> str:
         """ Declare trap Boolean variable.
