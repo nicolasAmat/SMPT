@@ -27,8 +27,10 @@ __version__ = "4.0.0"
 
 import logging as log
 import sys
+from itertools import repeat
 from multiprocessing import Queue
-from subprocess import PIPE, Popen
+from multiprocessing.pool import ThreadPool
+from subprocess import PIPE, Popen, TimeoutExpired, check_output
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -146,8 +148,8 @@ class Tipx(Solver):
         if formula_filename is None:
             raise ValueError("TiPX: no filename")
 
-        process = ['tipx.exe', 'quiet', 'load', self.ptnet_filename,
-                   'load-forms', formula_filename]
+        process = ['tipx.exe', 'quiet', 'load',
+                   self.ptnet_filename, 'load-forms', formula_filename]
         if self.timeout:
             process += ['loop', str(self.timeout), str(self.timeout)]
         else:
@@ -166,11 +168,11 @@ class Tipx(Solver):
 
     def project(self, formulas: list[Formula], show_time: bool = False, show_shadow_completeness: bool = False) -> list[tuple[str, bool]]:
         """ Project a list of formulas.
-        
+
         Parameters
         ----------
         formulas : list of Formula
-            List of formula files to project.
+            List of formula to project.
         show_time : bool, optional
             Show time flag.
         show_shadow_completeness: bool, optional
@@ -181,56 +183,66 @@ class Tipx(Solver):
         list of tuple of str, bool
             List of projected formulas and their corresponding shadow-completeness flag.
         """
+        pool = ThreadPool(processes=4)
+        return pool.starmap(self.project_helper, zip(formulas, repeat(show_time), repeat(show_shadow_completeness)))
+
+    def project_helper(self, formula: Formula, show_time: bool = False, show_shadow_completeness: bool = False) -> None:
+        """ Project a formula (helper).
+
+        Parameters
+        ----------
+        formulas : Formula
+            Formula to project.
+        show_time : bool, optional
+            Show time flag.
+        show_shadow_completeness: bool, optional
+            Show shadow-completeness flag.
+
+        Returns
+        -------
+        list of tuple of str, bool
+            Projected formula and its corresponding shadow-completeness flag.
+        """
         process = ['tipx.exe', 'load', self.ptnet_filename]
 
         if show_time:
             process.append('time')
 
-        for formula in formulas:
-            if show_time:
-                process += ['load-forms', formula.walk_filename,
-                            'project', 'time', 'fprint']
-            else:
-                process += ['load-forms',
-                            formula.walk_filename, 'project', 'fprint']
+        if show_time:
+            process += ['load-forms', formula.walk_filename,
+                        'project', 'time', 'fprint']
+        else:
+            process += ['load-forms',
+                        formula.walk_filename, 'project', 'fprint']
 
-        self.solver = Popen(process, stdout=PIPE, start_new_session=True)
+        try:
+            output = check_output(process, timeout=120).decode(
+                'utf-8').splitlines()
+        except TimeoutExpired:
+            return (None, False)
 
-        if self.solver_pids is not None:
-            self.solver_pids.put(self.solver.pid)
-
-        projected_formulas = []
         time_information, completeness_information = "", ""
-        counter = 0
 
-        line = self.readline()
-        while line:
+        for line in output:
 
             if show_time and '# Time:' in line:
                 time_information = ' | time: ' + line.split()[-2]
+
             else:
                 projected_formula, complementary_data = line.split(' # ')
-
-                str_completeness, str_ratio_cubes = complementary_data.split(
+                str_completeness, ratio_cubes = complementary_data.split(
                     ' ', 1)
-
                 completeness = str_completeness == 'complete'
 
                 if show_shadow_completeness:
                     completeness_information = ' | shadow-complete: ' + \
-                        str(completeness) + ' | ratio: ' + str_ratio_cubes
-
-                projected_formulas.append((projected_formula, completeness))
+                        str(completeness) + ' | ratio: ' + ratio_cubes
 
                 if show_time or show_shadow_completeness:
-                    print(
-                        "# Projection of " + formulas[counter].identifier + time_information + completeness_information)
-                    time_information, completeness_information = "", ""
-                    counter += 1
+                    print("# Projection of " + formula.identifier +
+                          time_information + completeness_information)
 
-            line = self.readline()
-
-        return projected_formulas
+                return (projected_formula, completeness)
 
     def write(self, input: str, debug: Optional[bool] = None) -> None:
         """ Write instructions.
