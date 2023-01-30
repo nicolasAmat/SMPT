@@ -268,7 +268,7 @@ class KInduction(AbstractChecker):
                 log.info("[K-INDUCTION] > State Equation")
                 self.solver.write(self.ptnet.smtlib_state_equation(0))
                 log.info("[K-INDUCTION] > Add read arc constraints")
-                self.solver.write(self.ptnet.smtlib_read_arc_constraints(0))
+                self.solver.write(self.ptnet.smtlib_read_arc_constraints())
 
             k += 1
             log.info("[K-INDUCTION] > k = {}".format(k))
@@ -338,7 +338,7 @@ class KInduction(AbstractChecker):
                 log.info("[K-INDUCTION] > State Equation")
                 self.solver.write(self.ptnet_reduced.smtlib_state_equation(0))
                 log.info("[K-INDUCTION] > Add read arc constraints")
-                self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints(0))
+                self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints())
 
             k += 1
             log.info("[K-INDUCTION] > k = {}".format(k))
