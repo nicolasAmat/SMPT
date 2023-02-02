@@ -378,16 +378,13 @@ def main():
         if pre_results is None or property_id not in pre_results:
             computations.put((property_id, formula))
 
-    # Counter, number of propeties to be runned for the first pass
-    counter, nb_properties = 0, computations.qsize()
+    # Number of properties to be run
+    nb_properties = computations.qsize()
 
     while not computations.empty() and time.time() - start_time < global_timeout:
 
-        # Update the number of properties and the timeout for the next passes
-        if counter > nb_properties:
-            counter, nb_properties = 0, computations.qsize()
-            timeout = (global_timeout - (time.time() -
-                       start_time)) / nb_properties
+        # Update the timeout
+        timeout = (global_timeout - (time.time() - start_time)) / nb_properties
 
         # Get property
         property_id, formula = computations.get()
@@ -437,9 +434,6 @@ def main():
         # If computation is uncomplete add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:
             computations.put((property_id, formula))
-
-        # Increment counter
-        counter += 1
 
     # Close temporary files
     if results.net.endswith('.pnml'):
