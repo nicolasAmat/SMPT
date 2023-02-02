@@ -32,7 +32,7 @@ from subprocess import PIPE, Popen
 from typing import Optional
 
 from smpt.interfaces.solver import Solver
-from smpt.ptio.ptnet import Marking, PetriNet, Place
+from smpt.ptio.ptnet import Marking, PetriNet, Place, Transition
 
 
 class Z3(Solver):
@@ -245,6 +245,45 @@ class Z3(Solver):
 
         return Marking(marking)
 
+    def get_parikh(self, ptnet: PetriNet) -> set[Transition]:
+        """ Get a parikh set (non a vector) from the current SAT stack.
+
+        Parameters
+        ----------
+        ptnet : PetriNet
+            Current Petri net.
+
+        Returns
+        -------
+        set of Transition : 
+            Set of transitions from the parikh vector
+        """
+        # Solver instruction
+        self.write("(get-model)\n")
+        self.flush()
+
+        # Read '( '
+        self.readline()
+
+        # Parse the model
+        parikh = set()
+        while True:
+            transition_content = self.readline().split(' ')
+
+            # Check if parsing done
+            if len(transition_content) < 2:
+                break
+
+            occurences = self.readline().replace(' ', '').replace(')', '')
+            transition = ""
+            transition_content = transition_content[1].rsplit('@', 1)
+            if len(transition_content) > 1 and transition_content[1] == "t":
+                transition = transition_content[0]
+                if int(occurences) > 0:
+                    parikh.add(ptnet.transitions[transition])
+
+        return parikh
+
     def get_trace(self, ptnet: PetriNet, length: int) -> list[str]:
         """ Get the trace from the current SAT stack.
 
@@ -386,7 +425,7 @@ class Z3(Solver):
         sat = self.check_sat(no_check=True)
 
         # Assert the result either `UNKNOWN` or `SAT`
-        assert(sat is None or not sat)
+        assert (sat is None or not sat)
 
         # If `UNKNOWN` consider that the solver is still alive and return "All" as the unsat core
         if sat is None:

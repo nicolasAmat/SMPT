@@ -165,15 +165,20 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.minizinc_declare(), self.places.values()))
 
-    def smtlib_declare_transitions(self) -> str:
+    def smtlib_declare_transitions(self, parikh: bool = False) -> str:
         """ Declare transitions.
         
+        Parameters
+        ----------
+        parikh : bool, optional
+            Computation of parikh vector enabled.
+
         Returns
         -------
         str
             SMT-LIB format.
         """
-        return ''.join(map(lambda tr: tr.smtlib_declare(), self.transitions.values()))
+        return ''.join(map(lambda tr: tr.smtlib_declare(parikh), self.transitions.values()))
 
     def smtlib_initial_marking(self, k: Optional[int] = None) -> str:
         """ Assert the initial marking.
@@ -704,8 +709,8 @@ class Place:
         str
             SMT-LIB format.
         """
-        smt_input = ' '.join(["(* {} {})".format(tr.id, weight) if weight !=
-                             1 else tr.id for tr, weight in self.delta.items()])
+        smt_input = ' '.join(["(* {} {})".format(tr.id + "@t", weight) if weight !=
+                             1 else tr.id + "@t" for tr, weight in self.delta.items()])
 
         if self.initial_marking != 0:
             smt_input += " " + str(self.initial_marking)
@@ -967,15 +972,21 @@ class Transition:
 
         return smt_input
 
-    def smtlib_declare(self) -> str:
+    def smtlib_declare(self, parikh: bool = False) -> str:
         """ Declare a transition.
+
+        Parameters
+        ----------
+        parikh : bool, optional
+            Computation of parikh vector enabled.
 
         Returns
         -------
         str
             SMT-LIB format.
         """
-        return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.id, self.id)
+        identifier = self.id + "@t" if parikh else self.id
+        return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(identifier, identifier)
 
     def smtlib_read_arc_constraints(self) -> str:
         """ Assert read arc constraints.
