@@ -28,6 +28,7 @@ import time
 from multiprocessing import Process, Queue
 from typing import Optional
 
+from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.checkers.bmc import BMC
 from smpt.checkers.cp import CP
 from smpt.checkers.enumerative import Enumerative
@@ -257,16 +258,18 @@ class Parallelizer:
         state['processes'] = None
         return state
 
-    def prove(self, method: str, result, concurrent_pids: list[int]) -> None:
+    def prove(self, method: str, result, concurrent_pids: Queue[list[int]]) -> None:
         """ Prover method instantiator and runner.
 
         Parameters
         ----------
-        result : 
-        
-        concurrent_pids :
-
+        method : str
+            Method used for proving. 
+        concurrent_pids : Queue of list of int
+            Queue to share the PIDs of the concurrent methods (to kill if solved).
         """
+        prover : Optional[AbstractChecker] = None
+
         if method == 'WALK':
             prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, debug=self.debug, solver_pids=self.solver_pids)
 
@@ -303,7 +306,8 @@ class Parallelizer:
         if method == 'ENUM':
             prover = Enumerative(self.path_markings, self.ptnet, self.formula, self.ptnet_reduced, self.system, self.debug, solver_pids=self.solver_pids)
 
-        prover.prove(result, concurrent_pids)
+        if prover:
+            prover.prove(result, concurrent_pids)
 
     def run(self, timeout=225) -> Optional[str]:
         """ Run analysis in parallel.

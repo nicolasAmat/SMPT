@@ -186,7 +186,7 @@ class Tipx(Solver):
         pool = ThreadPool(processes=4)
         return pool.starmap(self.project_helper, zip(formulas, repeat(show_time), repeat(show_shadow_completeness)))
 
-    def project_helper(self, formula: Formula, show_time: bool = False, show_shadow_completeness: bool = False) -> None:
+    def project_helper(self, formula: Formula, show_time: bool = False, show_shadow_completeness: bool = False) -> tuple[Optional[str], bool]:
         """ Project a formula (helper).
 
         Parameters
@@ -243,6 +243,7 @@ class Tipx(Solver):
                           time_information + completeness_information)
 
                 return (projected_formula, completeness)
+        return (None, False)
 
     def write(self, input: str, debug: Optional[bool] = None) -> None:
         """ Write instructions.
