@@ -295,6 +295,18 @@ class Properties:
         formula.generate_reachability(marking)
         self.add_formula(formula, property_id)
 
+    def select_queries(self, queries: str) -> None:
+        """ Select queries of a given comma-separated list.
+
+        Parameters
+        ----------
+        queries : str
+            List of queries.
+        """
+        indices = set(map(int, queries.split(',')))
+        self.formulas = {property_id: formula for index, (property_id, formula) in enumerate(
+            self.formulas.items()) if index in indices}
+
     def dnf(self) -> Properties:
         """ Convert all formulas to Disjunctive Normal Form (DNF).
 

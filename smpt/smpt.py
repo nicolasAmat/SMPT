@@ -115,6 +115,12 @@ def main():
                                   type=str,
                                   help='reachability analysis (comma separated list of place names)')
 
+    parser.add_argument('--select-queries',
+                                  action='store',
+                                  dest='queries',
+                                  type=str,
+                                  help='verify queries of a given comma-separated list')
+
     group_reduce = parser.add_mutually_exclusive_group()
 
     group_reduce.add_argument('--auto-reduce',
@@ -329,7 +335,11 @@ def main():
     if results.reachable_places is not None:
         properties.add_reachability_formula(results.reachable_places)
 
-    # Show net informations
+    # Filter queries if option enabled
+    if results.queries:
+        properties.select_queries(results.queries)
+
+    # Show net information
     if results.show_reduction_ratio:
         if ptnet_reduced is not None:
             print("# Reduction Ratio (Full) ~ {}%".format(
