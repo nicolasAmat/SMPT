@@ -18,12 +18,41 @@ You should have received a copy of the GNU General Public License
 along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
+
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
 import subprocess
+from multiprocessing import Process
+
+
+def unfold_and_skeleton(path_ptnet: str) -> tuple[str, str]:
+    """ Unfold and compute the skeleton of a colored Petri net.
+
+    Parameters
+    ----------
+    path_ptnet : str
+        Path to the original colored Petri net (.pnml format).
+    
+    Returns
+    -------
+    tuple of str
+        Path to the unfold and skeleton Petri nets (.net format).
+    """
+    processes = []
+    processes.append(Process(target=unfold, args=(path_ptnet,)))
+    processes.append(Process(target=skeleton, args=(path_ptnet,)))
+
+    for process in processes:
+        process.start()
+
+    for process in processes:
+        process.join()
+
+    return (path_ptnet.replace('.pnml', '_unfolded.net'), path_ptnet.replace('.pnml', '_skeleton.net'))
 
 
 def unfold(path_ptnet: str) -> str:
@@ -39,6 +68,24 @@ def unfold(path_ptnet: str) -> str:
     str
         Path to the unfold Petri net (.net format).
     """
-    subprocess.run(["mcc", "smpt", "-i", path_ptnet, '-o',
-                   path_ptnet.replace('.pnml', '_unfolded')])
-    return path_ptnet.replace('.pnml', '_unfolded.net')
+    new_filename = path_ptnet.replace('.pnml', '_unfolded')
+    subprocess.run(["mcc", "smpt", "-i", path_ptnet, '-o', new_filename])
+    return new_filename + '.net'
+
+
+def skeleton(path_ptnet: str) -> str:
+    """ Compute the skeleton of a colored Petri net.
+
+    Parameters
+    ----------
+    path_ptnet : str
+        Path to the original colored Petri net (.pnml format).
+    
+    Returns
+    -------
+    str
+        Path to the skeleton (.net format).
+    """
+    new_filename = path_ptnet.replace('.pnml', '_skeleton')
+    subprocess.run(["mcc", "skeleton", "-i", path_ptnet, '-o', new_filename])
+    return new_filename + '.net'
