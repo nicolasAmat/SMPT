@@ -509,7 +509,7 @@ class Equation:
 
             elif element.rfind('.') > element.rfind('}'):
                 index = element.rfind('.')
-                element, multiplier = element[:index], element[index+1:]
+                multiplier, element = element[:index], element[index+1:]
 
             variable = element.replace('{', '').replace('}', '')
             self.check_variable(variable, system)
