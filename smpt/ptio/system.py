@@ -101,10 +101,10 @@ class System:
         """
         if k is None:
             smt_input = ''.join(
-                map(lambda var: "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var, var), self.additional_vars))
+                map(lambda var: "(declare-const {} Int)\n".format(var), self.additional_vars))
         else:
             smt_input = ''.join(
-                map(lambda var: "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(var, k, var, k), self.additional_vars))
+                map(lambda var: "(declare-const {}@{} Int)\n".format(var, k), self.additional_vars))
 
         if k is None and k_initial is None:
             smt_input += '\n'.join(map(lambda eq: eq.smtlib(),
@@ -142,8 +142,7 @@ class System:
         str
             Barvinok format.
         """
-        return ' and '.join(map(lambda eq: eq.minizinc(),
-                                  self.equations))
+        return ' and '.join(map(lambda eq: eq.minizinc(), self.equations))
 
     def smtlib_declare_additional_variables(self, k_initial: Optional[int] = None) -> str:
         """ Declare the additional variables.
@@ -164,8 +163,7 @@ class System:
             if var not in self.places_reduced:
                 var_name = var if k_initial is None else "{}@{}".format(
                     var, k_initial)
-                smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(
-                    var_name, var_name)
+                smt_input += "(declare-const {} Int)\n".format(var_name)
 
         return smt_input
 
@@ -262,8 +260,7 @@ class System:
                 if content:
                     for line in re.split('\n+', content.group())[1:-1]:
                         if line.partition(' |- ')[0] not in ['. O', '. C']:
-                            self.equations.append(
-                                Equation(line, self))
+                            self.equations.append(Equation(line, self))
             fp.close()
         except FileNotFoundError as e:
             sys.exit(e)
