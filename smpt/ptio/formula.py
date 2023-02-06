@@ -656,7 +656,7 @@ class Formula:
                     buffer += last
                     last = c
 
-            if buffer:
+            if last + buffer:
                 tokens.append(buffer + last)
 
             return tokens
