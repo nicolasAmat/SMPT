@@ -481,6 +481,9 @@ class Equation:
 
         for element in elements:
 
+            if not element:
+                continue
+
             if element in ['=', '<=', '>=', '<', '>']:
                 self.operator = element
                 current, inversed = inversed, current
