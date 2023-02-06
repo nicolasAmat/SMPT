@@ -581,7 +581,7 @@ class PetriNet:
             # Inputs
             if m_1.tokens[place] > m_2.tokens[place]:
                 inputs[place] = m_1.tokens[place] - m_2.tokens[place]
-            # Outpus
+            # Outputs
             if m_1.tokens[place] < m_2.tokens[place]:
                 outputs[place] = m_2.tokens[place] - m_1.tokens[place]
 
