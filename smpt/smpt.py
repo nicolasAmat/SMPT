@@ -458,7 +458,9 @@ def main():
     if results.auto_enumerative:
         fp_markings.close()
 
-    # TODO: remove parikh files
+    # Remove Parikh files if enabled
+    if parikh:
+        properties.remove_parikh_files()
 
     # Remove Walk files if Walk or mcc mode enabled
     if 'WALK' in results.methods or results.project or results.mcc:

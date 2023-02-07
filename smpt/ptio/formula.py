@@ -335,6 +335,12 @@ class Properties:
         for formula in self.projected_formulas.values():
             formula.remove_walk_file()
 
+    def remove_parikh_files(self) -> None:
+        """ Delete temporary files.
+        """
+        for formula in self.formulas.values():
+            formula.remove_parikh_file()
+
     def project(self, ptnet_tfg: PetriNet, show_projection: bool = False, save_projection: Optional[str] = None, show_time: bool = False, show_shadow_completeness: bool = False, debug: bool = False) -> None:
         """ Generate projection formulas (.ltl format).
 
@@ -887,6 +893,17 @@ class Formula:
 
         try:
             os.remove(self.walk_filename)
+        except OSError:
+            pass
+
+    def remove_parikh_file(self) -> None:
+        """ Delete temporary file.
+        """
+        if self.parikh_filename is None:
+            return
+
+        try:
+            os.remove(self.parikh_filename)
         except OSError:
             pass
 
