@@ -259,6 +259,9 @@ def main():
     # State equation method enabled
     state_equation = results.mcc or 'STATE-EQUATION' in results.methods
 
+    # Parikh computation enabled
+    parikh = results.mcc or ('STATE-EQUATION' in results.methods and 'WALK' in results.methods)
+
     # Read the input Petri net
     ptnet = PetriNet(path_net, pnml_filename=path_pnml, colored=results.colored, state_equation=state_equation)
 
@@ -453,6 +456,8 @@ def main():
         os.remove(fp_ptnet_tfg.name)
     if results.auto_enumerative:
         fp_markings.close()
+
+    # TODO: remove parikh files
 
     # Remove Walk files if Walk or mcc mode enabled
     if 'WALK' in results.methods or results.project or results.mcc:

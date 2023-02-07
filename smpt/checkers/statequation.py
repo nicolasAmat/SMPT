@@ -36,7 +36,7 @@ from smpt.ptio.ptnet import PetriNet
 from smpt.ptio.system import System
 from smpt.ptio.verdict import Verdict
 
-MAX_NUMBER_UNITS = 500
+MAX_NUMBER_UNITS = 1000
 
 
 class StateEquation(AbstractChecker):
@@ -56,6 +56,12 @@ class StateEquation(AbstractChecker):
         System of reduction equations.
     formula : Formula
         Reachability formula.
+    ptnet_skeleton : PetriNet, optional
+        Skeleton of a colored Petri net.
+    formula_skeleton : Formula, optional
+        Formula for skeleton.
+    parikh : bool
+        Generate Parikh vector.
     mcc : bool
         MCC mode.
     solver : Z3
@@ -70,7 +76,7 @@ class StateEquation(AbstractChecker):
         Engine to compute some trap constraints.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, mcc=False, debug=False, solver_pids=None, additional_techniques=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, formula_skeleton=None, parikh=False, mcc=False, debug=False, solver_pids=None, additional_techniques=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -84,6 +90,13 @@ class StateEquation(AbstractChecker):
 
         # Formula to study
         self.formula: Formula = formula
+
+        # Skeleton and corresponding formula
+        self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
+        self.formula_skeleton: Optional[Formula] = formula_skeleton
+
+        # Generate Parikh vector
+        self.parikh = parikh
 
         # MCC mode
         self.mcc: bool = mcc
@@ -122,7 +135,7 @@ class StateEquation(AbstractChecker):
         smt_input += self.ptnet.smtlib_declare_places()
 
         smt_input += "; Declaration of the transitions from the Petri net\n"
-        smt_input += self.ptnet.smtlib_declare_transitions()
+        smt_input += self.ptnet.smtlib_declare_transitions(parikh=self.parikh)
 
         smt_input += "; State Equation\n"
         smt_input += self.ptnet.smtlib_state_equation()
@@ -145,7 +158,7 @@ class StateEquation(AbstractChecker):
         smt_input += self.system.smtlib()
 
         smt_input += "; Declaration of the transitions from the reduced Petri net\n"
-        smt_input += self.ptnet_reduced.smtlib_declare_transitions()
+        smt_input += self.ptnet_reduced.smtlib_declare_transitions(parikh=self.parikh)
 
         smt_input += "; State Equation of the reduced Petri net\n"
         smt_input += self.ptnet_reduced.smtlib_state_equation()
@@ -160,17 +173,33 @@ class StateEquation(AbstractChecker):
         """
         log.info("[STATE-EQUATION] RUNNING")
 
-        if self.ptnet_reduced is None:
-            verdict = self.prove_without_reduction()
-        else:
-            verdict = self.prove_with_reduction()
+        verdict = Verdict.UNKNOWN
+
+        if self.ptnet_skeleton is not None:
+            verdict = self.prove_without_reduction(skeleton=True)
+            if verdict == Verdict.UNKNOWN:
+                self.solver.reset()
+            elif self.additional_techniques is not None:
+                self.additional_techniques.put('SKELETON')
+
+        if verdict == Verdict.UNKNOWN:
+            if self.ptnet_reduced is None:
+                verdict = self.prove_without_reduction()
+            else:
+                verdict = self.prove_with_reduction()
+
+        if self.additional_techniques is not None:
+            if self.ptnet.colored:
+                self.additional_techniques.put('UNFOLDING_TO_PT')
+            if self.ptnet_reduced is not None:
+                self.additional_techniques.put('STRUCTURAL_REDUCTIONS')
 
         # Kill the solver
         self.solver.kill()
         if self.traps is not None:
             self.traps.solver.kill()
 
-        # Quit if the solver has aborted, or if unknow result (and mcc mode disabled)
+        # Quit if the solver has aborted, or if unknown result (and mcc mode disabled)
         if self.solver.aborted or (not self.mcc and verdict == Verdict.UNKNOWN):
             return
 
@@ -182,28 +211,34 @@ class StateEquation(AbstractChecker):
         if not concurrent_pids.empty():
             send_signal_pids(concurrent_pids.get(), STOP)
 
-    def prove_without_reduction(self):
+    def prove_without_reduction(self, skeleton: bool = False):
         """ Prover for non-reduced Petri Net.
         """
-        log.info("[STATE-EQUATION] > Declaration of the places from the Petri net")
-        self.solver.write(self.ptnet.smtlib_declare_places())
+        ptnet: PetriNet =  self.ptnet_skeleton if skeleton else self.ptnet
+        formula: Formula = self.formula_skeleton if skeleton else self.formula
 
-        log.info(
-            "[STATE-EQUATION] > Declaration of the transitions from the Petri net")
-        self.solver.write(self.ptnet.smtlib_declare_transitions())
+        log.info("[STATE-EQUATION] > Declaration of the places from the Petri net")
+        self.solver.write(ptnet.smtlib_declare_places())
+
+        log.info("[STATE-EQUATION] > Declaration of the transitions from the Petri net")
+        self.solver.write(ptnet.smtlib_declare_transitions(parikh=self.parikh and not skeleton))
 
         log.info("[STATE-EQUATION] > State Equation")
-        self.solver.write(self.ptnet.smtlib_state_equation())
+        self.solver.write(ptnet.smtlib_state_equation())
 
         log.info("[STATE-EQUATION] > Formula to check the satisfiability")
-        self.solver.write(self.formula.R.smtlib(assertion=True))
+        self.solver.write(formula.R.smtlib(assertion=True))
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
+        elif self.parikh and not skeleton:
+            parikh_set = self.solver.get_parikh(self.ptnet)
+            with open(self.formula.parikh_filename, 'w') as fp:
+                fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
 
         log.info("[STATE-EQUATION] > Add read arc constraints")
-        self.solver.write(self.ptnet.smtlib_read_arc_constraints())
+        self.solver.write(ptnet.smtlib_read_arc_constraints())
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
@@ -212,7 +247,7 @@ class StateEquation(AbstractChecker):
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add useful trap constraints")
-        if self.trap_constraints(self.ptnet) is not None:
+        if self.trap_constraints(ptnet) is not None:
             if self.additional_techniques is not None:
                 self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
@@ -221,14 +256,14 @@ class StateEquation(AbstractChecker):
         if not self.solver.check_sat():
             return Verdict.INV
 
-        if self.ptnet.nupn is None or not self.ptnet.nupn.unit_safe or len(self.ptnet.nupn.units) > MAX_NUMBER_UNITS:
+        if ptnet.nupn is None or not ptnet.nupn.unit_safe or len(ptnet.nupn.units) > MAX_NUMBER_UNITS:
             log.info("[STATE-EQUATION] > Unknown")
             return Verdict.UNKNOWN
 
         sys.setrecursionlimit(10000)
 
         log.info("[STATE-EQUATION] > Add unit-safe local constraints")
-        self.solver.write(self.ptnet.nupn.smtlib_local_constraints())
+        self.solver.write(ptnet.nupn.smtlib_local_constraints())
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
@@ -238,7 +273,7 @@ class StateEquation(AbstractChecker):
             return Verdict.INV
 
         log.info("[STATE-EQUATION] > Add unit-safe hierarchical constraints")
-        self.solver.write(self.ptnet.nupn.smtlib_hierarchy_constraints())
+        self.solver.write(ptnet.nupn.smtlib_hierarchy_constraints())
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
@@ -262,7 +297,7 @@ class StateEquation(AbstractChecker):
 
         log.info(
             "[STATE-EQUATION] > Declaration of the transitions from the Petri net")
-        self.solver.write(self.ptnet_reduced.smtlib_declare_transitions())
+        self.solver.write(self.ptnet_reduced.smtlib_declare_transitions(parikh=self.parikh))
 
         log.info("[STATE-EQUATION] > State Equation")
         self.solver.write(self.ptnet_reduced.smtlib_state_equation())
@@ -273,6 +308,10 @@ class StateEquation(AbstractChecker):
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
+        elif self.parikh:
+            parikh_set = self.solver.get_parikh(self.ptnet_reduced)
+            with open(self.formula.parikh_filename, 'w') as fp:
+                fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
 
         log.info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints())
@@ -297,7 +336,7 @@ class StateEquation(AbstractChecker):
         """
         self.traps = TrapConstraints(
             ptnet, debug=self.debug, solver_pids=self.solver_pids)
-        self.traps.assert_constaints()
+        self.traps.assert_constraints()
 
         while True:
 
@@ -337,7 +376,7 @@ class TrapConstraints:
         # Current Petri net (can be reduced)
         self.ptnet = ptnet
 
-    def assert_constaints(self):
+    def assert_constraints(self):
         """ Assert trap constraints:
             - declaration,
             - trap is initially marked,

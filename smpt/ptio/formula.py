@@ -28,6 +28,7 @@ import itertools
 import operator
 import os
 import re
+import tempfile
 import uuid
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
@@ -414,6 +415,8 @@ class Formula:
         Monotonicity flag.
     walk_filename : str, optional
         Path to .ltl file.
+    parikh_filename : str, optional
+        Path to an eventual Parikh file.
     show_complete : bool
         Shadow-completeness of the projected formula.
     """
@@ -441,6 +444,12 @@ class Formula:
         self.non_monotonic: bool = False
 
         self.walk_filename: Optional[str] = None
+
+        # Parikh temporary file management
+        self.parikh_filename: Optional[str] = None
+        if ptnet.parikh:
+            with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+                self.parikh_filename = tmpfile.name
 
         self.shadow_complete: bool = False
 

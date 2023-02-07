@@ -68,17 +68,19 @@ class PetriNet:
         Correspondence of the colored transitions with the unfolded ones (not colored).
     state_equation : bool
         State equation method flag.
+    parikh: bool, optional
+        Parikh computation flag.
     pnml_mapping : bool
         PNML mapping flag.
     pnml_places_mapping : dict of str: str
         Correspondence of the place ids with the names (.pnml).
     pnml_transitions_mapping: dict of str: str
-        Correspondence of the transition ids with the names (.pnmml).
+        Correspondence of the transition ids with the names (.pnml).
     nupn : NUPN, optional
         NUPN flag.
     """
 
-    def __init__(self, filename: str, pnml_filename: str = None, colored: bool = False, state_equation: bool = False) -> None:
+    def __init__(self, filename: str, pnml_filename: str = None, skeleton: bool = False, colored: bool = False, state_equation: bool = False, parikh: bool = False) -> None:
         """ Initializer.
 
         Parameters
@@ -93,6 +95,8 @@ class PetriNet:
             Colored flag.
         state_equation : bool, optional
             State equation method flag.
+        parikh : bool, optional
+            Parikh computation flag.
         """
         self.id: str = ""
         self.filename: str = filename
@@ -111,6 +115,9 @@ class PetriNet:
 
         # State equation management
         self.state_equation: bool = state_equation
+
+        # Parikh computation flag
+        self.parikh: bool = parikh
 
         # `.pnml` management
         self.pnml_mapping: bool = False
@@ -1405,7 +1412,7 @@ class Unit:
             smt_input_places = "(+ {})".format(smt_input_places)
         smt_input += "(assert (= {} {}))\n".format(self.id, smt_input_places)
 
-        # Assert safe unit defintion
+        # Assert safe unit definition
         smt_input += "(assert (<= {} 1))\n".format(self.id)
 
         return smt_input
