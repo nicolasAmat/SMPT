@@ -56,15 +56,13 @@ class KInduction(AbstractChecker):
         System of reduction equations.
     formula : Formula
         Reachability formula.
-    projection : bool
-        Projection flag.
     induction_queue : Queue of int, optional
         Queue for the exchange with k-induction.
     solver : Z3
         SMT solver (Z3).
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, projection: bool = False, debug: bool = False, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None) -> None:
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, debug: bool = False, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -77,8 +75,6 @@ class KInduction(AbstractChecker):
             Reduced Petri net.
         system : System, optional
             System of reduction equations.
-        projection : bool, optional
-            Projection flag.
         debug : bool, optional
             Debugging flag.
         induction_queue : Queue of int, optional
@@ -97,9 +93,6 @@ class KInduction(AbstractChecker):
 
         # Formula to study
         self.formula: Formula = formula
-
-        # Projection flag
-        self.projection: bool = projection
 
         # Queue shared with BMC
         self.induction_queue: Optional[Queue[int]] = induction_queue
@@ -120,7 +113,7 @@ class KInduction(AbstractChecker):
         str
             SMT-LIB format.
         """
-        if self.ptnet_reduced is None or self.projection:
+        if self.ptnet_reduced is None:
             smt_input = self.smtlib_without_reduction(k)
         else:
             smt_input = self.smtlib_with_reduction(k)

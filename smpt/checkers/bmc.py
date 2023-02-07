@@ -54,8 +54,6 @@ class BMC(AbstractChecker):
         System of reduction equations.
     formula : Formula
         Reachability formula.
-    projection : bool
-        Projection flag.
     debug : bool
         Debugging flag.
     check_proof : bool
@@ -72,7 +70,7 @@ class BMC(AbstractChecker):
         SMT solver (Z3).
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, projection: bool = False, show_model: bool = False, debug: bool = False, check_proof: bool = False, path_proof: Optional[str] = None, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None) -> None:
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, check_proof: bool = False, path_proof: Optional[str] = None, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -85,8 +83,6 @@ class BMC(AbstractChecker):
             Reduced Petri net.
         system : System, optional
             System of reduction equations.
-        projection : bool, optional
-            Projection flag.
         show_model : bool, optional
             Show model flag.
         debug : bool, optional
@@ -117,9 +113,6 @@ class BMC(AbstractChecker):
 
         # Formula to study
         self.formula: Formula = formula
-
-        # Projection flag
-        self.projection: bool = projection
 
         # Debugging flag
         self.debug: bool = debug
@@ -155,7 +148,7 @@ class BMC(AbstractChecker):
         str
             SMT-LIB format.
         """
-        if self.ptnet_reduced is None or self.projection:
+        if self.ptnet_reduced is None:
             smt_input = self.smtlib_without_reduction(k)
         else:
             smt_input = self.smtlib_with_reduction(k)
