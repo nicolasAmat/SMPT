@@ -96,7 +96,7 @@ class StateEquation(AbstractChecker):
         self.formula_skeleton: Optional[Formula] = formula_skeleton
 
         # Generate Parikh vector
-        self.parikh = mcc
+        self.parikh = False
 
         # MCC mode
         self.mcc: bool = mcc
