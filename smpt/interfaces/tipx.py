@@ -41,6 +41,9 @@ from smpt.interfaces.solver import Solver
 from smpt.ptio.ptnet import Marking, PetriNet
 
 
+PROJECT_TIMEOUT = 2
+
+
 class Tipx(Solver):
     """ TiPX interface.
 
@@ -216,7 +219,7 @@ class Tipx(Solver):
                         formula.walk_filename, 'project', 'fprint']
 
         try:
-            output = check_output(process, timeout=120).decode(
+            output = check_output(process, timeout=PROJECT_TIMEOUT).decode(
                 'utf-8').splitlines()
         except TimeoutExpired:
             return (None, False)
