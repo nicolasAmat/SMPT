@@ -42,7 +42,7 @@ class RandomWalk(AbstractChecker):
     """ Random walk method.
     """
 
-    def __init__(self, ptnet: PetriNet, formula, tipx: bool = False, debug: bool = False, solver_pids: Optional[Queue[int]] = None):
+    def __init__(self, ptnet: PetriNet, formula, tipx: bool = False, parikh_timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None):
         """ Initializer.
         """
         # Initial Petri net
@@ -51,9 +51,11 @@ class RandomWalk(AbstractChecker):
         # Formula to study
         self.formula = formula
 
+        # Timeout for Parikh walking
+        self.parikh_timeout = parikh_timeout
+
         # Walker
-        self.solver = Tipx(ptnet.filename, debug=debug, solver_pids=solver_pids) if tipx else Walk(
-            ptnet.filename, debug=debug, solver_pids=solver_pids)
+        self.solver = Tipx(ptnet.filename, debug=debug, solver_pids=solver_pids) if tipx else Walk(ptnet.filename, debug=debug, solver_pids=solver_pids)
 
     def prove(self, result, concurrent_pids):
         """ Prover.
