@@ -59,7 +59,7 @@ class Walk(Solver):
         Debugging flag.
     """
 
-    def __init__(self, ptnet_filename: str, debug: bool = False, timeout: int = 0, solver_pids: Optional[Queue[int]] = None) -> None:
+    def __init__(self, ptnet_filename: str, parikh_filename: Optional[str] = None, debug: bool = False, timeout: int = 0, solver_pids: Optional[Queue[int]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -75,6 +75,9 @@ class Walk(Solver):
         """
         # Petri net
         self.ptnet_filename: str = ptnet_filename
+
+        # Parikh vector
+        self.parikh_filename: Optional[str] = parikh_filename
 
         # Solver
         self.solver: Optional[Popen] = None
@@ -145,6 +148,10 @@ class Walk(Solver):
 
         process = ['walk', '-R', '-loop', '-seed',
                    self.ptnet_filename, '-ff', walk_filename]
+
+        if self.parikh_filename:
+            process += ['-favor', self.parikh_filename]
+
         if self.timeout:
             process += ['-t', str(self.timeout)]
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)

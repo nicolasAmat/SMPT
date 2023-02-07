@@ -27,6 +27,7 @@ __license__ = "GPLv3"
 __version__ = "4.0.0"
 
 import logging as log
+import os
 from multiprocessing import Queue
 from typing import Optional
 
@@ -54,22 +55,34 @@ class RandomWalk(AbstractChecker):
         # Timeout for Parikh walking
         self.parikh_timeout = parikh_timeout
 
-        # Walker
+        # Walkers
         self.solver = Tipx(ptnet.filename, debug=debug, solver_pids=solver_pids) if tipx else Walk(ptnet.filename, debug=debug, solver_pids=solver_pids)
+        if self.parikh_timeout and self.formula.parikh_filename is not None and os.path.getsize(self.formula.parikh_filename) > 0:
+            self.solver_parikh = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, timeout=parikh_timeout, solver_pids=solver_pids)
+        else:
+            self.solver_parikh = None
 
     def prove(self, result, concurrent_pids):
         """ Prover.
         """
         log.info("[RANDOM-WALK] RUNNING")
 
-        log.info("[RANDOM-WALK] Walk")
-        sat = self.solver.check_sat(self.formula.walk_filename)
+        sat = None
+
+        if self.solver_parikh:
+            log.info("[RANDOM-WALK] Parikh walk")
+            sat = self.solver.check_sat(self.formula.walk_filename)
+            sat = sat and not self.solver_parikh.aborted
+
+        if not sat:
+            log.info("[RANDOM-WALK] Walk")
+            sat = self.solver.check_sat(self.formula.walk_filename)
+            sat = sat and not self.solver.aborted
 
         # Kill the solver
         self.solver.kill()
 
-        # Quit if the solver has aborted
-        if not sat or self.solver.aborted:
+        if not sat:
             return
 
         # Put the result in the queue
