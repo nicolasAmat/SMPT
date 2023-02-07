@@ -300,7 +300,7 @@ def main():
         system = System(results.path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
 
     # Read the reduced Petri net using TFG reductions
-    if results.project:
+    if results.project and not (results.mcc and not ptnet_reduced.places):
         ptnet_tfg = PetriNet(path_ptnet_tfg)
 
     # Generate the state-space if '--auto-enumerative' enabled
@@ -351,19 +351,20 @@ def main():
             print("# Reduction Ratio (TFG) ~ {}%".format(
                 int((len(ptnet.places) - len(ptnet_tfg.places)) / len(ptnet.places) * 100)))
 
+    # Disable reduction is the Petri net is not reducible
+    if system is not None and not system.equations:
+        ptnet_reduced = None
+        system = None
+
     # Generate Walk files if mcc mode, projection or Walk methods enabled
     if results.mcc or results.project or 'WALK' in results.methods or 'TIPX' in results.methods:
         properties.generate_walk_files()
 
     # Project formulas if enabled
-    if results.project:
+    if results.project and not (results.mcc and not ptnet_reduced.places):
         properties.project(ptnet_tfg, show_projection=results.show_projection, save_projection=results.path_projection_directory,
                            show_time=results.show_time, show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
 
-    # Disable reduction is the Petri net is not reducible
-    if system is not None and not system.equations:
-        ptnet_reduced = None
-        system = None
 
     # Set timeout value
     if results.global_timeout is not None:
