@@ -40,7 +40,7 @@ from multiprocessing.pool import ThreadPool
 from smpt.exec.parallelizer import Parallelizer, worker
 from smpt.interfaces.convert import convert
 from smpt.interfaces.reduce import reduce
-from smpt.interfaces.unfold import unfold
+from smpt.interfaces.unfold import unfold, unfold_and_skeleton
 from smpt.ptio.formula import Properties
 from smpt.ptio.ptnet import PetriNet
 from smpt.ptio.system import System
@@ -235,6 +235,7 @@ def main():
 
     # Path to Petri net (can evolved if some file conversion are necessary)
     path_net = results.net
+
     # Path to .pnml Petri net (do no include colored nets)
     path_pnml = None
 
@@ -243,7 +244,12 @@ def main():
 
     # Check if colored net
     if results.colored:
-        path_net = unfold(path_net)
+        if 'STATE-EQUATION' in results.methods:
+            path_net, path_skeleton = unfold_and_skeleton(path_net)
+            ptnet_skeleton = PetriNet(path_skeleton, skeleton=True, state_equation=True)
+        else:
+            path_net = unfold(path_net)
+            ptnet_skeleton = None
 
     # Check if extension is `.pnml`
     elif path_net.lower().endswith('.pnml'):
@@ -254,7 +260,7 @@ def main():
     state_equation = results.mcc or 'STATE-EQUATION' in results.methods
 
     # Read the input Petri net
-    ptnet = PetriNet(path_net, path_pnml, results.colored, state_equation)
+    ptnet = PetriNet(path_net, pnml_filename=path_pnml, colored=results.colored, state_equation=state_equation)
 
     # By default no reduction
     ptnet_reduced, system, ptnet_tfg = None, None, None
@@ -268,21 +274,17 @@ def main():
     # Reduce the Petri net if '--auto-reduce' enabled
     if results.auto_reduce and results.path_ptnet_reduced is None:
         extension = '.pnml' if path_pnml else '.net'
-        fp_ptnet_reduced = open(results.net.replace(
-            extension, '_reduced.net'), 'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net')
+        fp_ptnet_reduced = open(results.net.replace(extension, '_reduced.net'), 'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net')
         results.path_ptnet_reduced = fp_ptnet_reduced.name
-        reduce_processes.append(Process(target=reduce, args=(
-            reduce_source, results.path_ptnet_reduced, False, results.show_time,)))
+        reduce_processes.append(Process(target=reduce, args=(reduce_source, results.path_ptnet_reduced, False, results.show_time,)))
         reduce_processes[-1].start()
 
     # Reduce the Petri net using TFG reductions if `--project` enabled
     if results.project:
         extension = '.pnml' if path_pnml else '.net'
-        fp_ptnet_tfg = open(results.net.replace(extension, '_tfg.net'),
-                            'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net', delete=False)
+        fp_ptnet_tfg = open(results.net.replace(extension, '_tfg.net'), 'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net', delete=False)
         path_ptnet_tfg = fp_ptnet_tfg.name
-        reduce_processes.append(Process(target=reduce, args=(
-            results.net, path_ptnet_tfg, True, results.show_time,)))
+        reduce_processes.append(Process(target=reduce, args=(results.net, path_ptnet_tfg, True, results.show_time,)))
         reduce_processes[-1].start()
 
     # Join reduce processes
@@ -291,10 +293,8 @@ def main():
 
     # Read the reduced Petri net and the system of reduction equations
     if results.path_ptnet_reduced is not None:
-        ptnet_reduced = PetriNet(
-            results.path_ptnet_reduced, state_equation=state_equation)
-        system = System(results.path_ptnet_reduced,
-                        ptnet.places.keys(), ptnet_reduced.places.keys())
+        ptnet_reduced = PetriNet(results.path_ptnet_reduced, state_equation=state_equation)
+        system = System(results.path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
 
     # Read the reduced Petri net using TFG reductions
     if results.project:
@@ -311,8 +311,8 @@ def main():
         results.path_markings = fp_markings.name
 
     # Read properties
-    properties = Properties(ptnet, ptnet_tfg=ptnet_tfg,
-                            xml_filename=results.path_properties)
+    properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, xml_filename=results.path_properties)
+    properties_skeleton = Properties(ptnet_skeleton, xml_filename=results.path_properties) if ptnet_skeleton else None
 
     # Parse .ltl file if there is one
     if results.path_ltl_formula:
@@ -375,8 +375,7 @@ def main():
     if results.mcc and (ptnet_reduced is None or ptnet_reduced.places):
         try:
             pool = ThreadPool(processes=2)
-            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], show_techniques=results.show_techniques, show_time=results.show_time,
-                                          show_model=results.show_model, debug=results.debug, mcc=True) for property_id, formula in properties.formulas.items()]
+            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced=ptnet_reduced, system=system, ptnet_skeleton=ptnet_skeleton, formula_skeleton=properties_skeleton.formulas[property_id] if properties_skeleton else None, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True) for property_id, formula in properties.formulas.items()]
             pre_results = pool.map(worker, ((obj) for obj in parallelizers))
         finally:
             pool.close()
@@ -414,8 +413,7 @@ def main():
 
             if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
                 # Use BMC and PDR methods in parallel
-                methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION',
-                            'PDR-REACH', 'PDR-REACH-SATURATED', 'TIPX', 'TIPX-WALK']
+                methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED', 'TIPX', 'TIPX-WALK']
 
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')

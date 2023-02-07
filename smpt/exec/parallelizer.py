@@ -61,6 +61,10 @@ class Parallelizer:
         Id of the property.
     formula : Formula
         Reachability formula.
+    ptnet_skeleton : PetriNet, optional
+        Skeleton of a colored Petri net.
+    formula_skeleton : Formula, optional
+        Formula for skeleton.
     methods : list of str
         List of methods to be run in parallel.
     show_techniques : bool, optional 
@@ -79,10 +83,6 @@ class Parallelizer:
         Path to proof.
     mcc : bool, optional
         MCC mode.
-    ptnet_tfg : PetriNet, optional
-        Reduced Petri net (TFG).
-    projected_formula : Formula, optional
-        Projected formula.
     additional_techniques : Queue of str
         Queue of additional techniques involved during the computation ('TOPOLOGICAL', 'USE_NUPN', ...).
     processes : list of Process
@@ -109,7 +109,7 @@ class Parallelizer:
         Formulas used for BMC / K-INDUCTION.
     """
 
-    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False):
+    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, formula_skeleton: Optional[Formula] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False, parikh: bool = False):
         """ Initializer.
 
         Parameters
@@ -130,6 +130,10 @@ class Parallelizer:
             Reduced Petri net (TFG).
         projected_formula : Formula, optional
             Projected formula.
+        ptnet_skeleton : PetriNet, optional
+            Skeleton of a colored Petri net.
+        formula_skeleton : Formula, optional
+            Formula for skeleton.
         show_techniques : bool, optional 
             Show techniques flag.
         show_time : bool, optional
@@ -155,6 +159,10 @@ class Parallelizer:
         # Property id and corresponding formula
         self.property_id: str = property_id
         self.formula: Formula = formula
+
+        # Skeleton and corresponding formula
+        self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
+        self.formula_skeleton: Optional[Formula] = formula_skeleton
 
         # Methods
         self.methods: list[str] = methods
@@ -218,7 +226,7 @@ class Parallelizer:
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['WALK'])
 
             if method == 'STATE-EQUATION':
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
+                self.techniques.append(collateral_processing + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
 
             if method == 'INDUCTION':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
@@ -274,7 +282,7 @@ class Parallelizer:
             prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, debug=self.debug, solver_pids=self.solver_pids)
 
         if method == 'STATE-EQUATION':
-            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, mcc=self.mcc, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, mcc=self.mcc, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         if method == 'INDUCTION':
             prover = Induction(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, show_model=self.show_model, debug=self.debug, solver_pids=self.solver_pids)

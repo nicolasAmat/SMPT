@@ -58,6 +58,8 @@ class PetriNet:
         Finite set of transitions (identified by names).
     initial_marking : Marking
         Initial marking.
+    skeleton : bool
+        Skeleton flag.
     colored : bool
         Colored flag.
     colored_places_mapping : dict of str: list of str
@@ -85,6 +87,8 @@ class PetriNet:
             Petri net filename.
         pnml_filename : str, optional
             PNML filename (.pnml format).
+        skeleton: : bool, optional
+            Skeleton flag.
         colored: : bool, optional
             Colored flag.
         state_equation : bool, optional
@@ -97,7 +101,8 @@ class PetriNet:
         self.transitions: dict[str, Transition] = {}
         self.initial_marking: Marking = Marking()
 
-        # Colored management
+        # Colored and skeleton management
+        self.skeleton: bool = skeleton
         self.colored: bool = colored
 
         # Mapping when colored

@@ -129,7 +129,7 @@ class Properties:
         Set of projected formulas.
     """
 
-    def __init__(self, ptnet: PetriNet, ptnet_tfg: Optional[PetriNet], xml_filename: Optional[str] = None) -> None:
+    def __init__(self, ptnet: PetriNet, ptnet_tfg: Optional[PetriNet] = None, xml_filename: Optional[str] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -508,6 +508,10 @@ class Formula:
                     transitions += [self.ptnet.transitions[tr]
                                     for tr in self.ptnet.colored_transitions_mapping[colored_transition.text]]
 
+            elif self.ptnet.skeleton:
+                # skeleton `.net` input Petri net
+                transitions = [self.ptnet.transitions[re.sub("[^0-9a-zA-Z]", "_", tr.text)] for tr in formula_xml]
+
             elif self.ptnet.pnml_mapping:
                 # `.pnml` input Petri net
                 transitions = [
@@ -593,6 +597,10 @@ class Formula:
                 for colored_place in formula_xml:
                     places += [self.ptnet.places[pl]
                                for pl in self.ptnet.colored_places_mapping[colored_place.text.replace('#', '.')]]
+
+            elif self.ptnet.skeleton:
+                # skeleton `.net` input Petri net
+                places = [self.ptnet.places[re.sub("[^0-9a-zA-Z]", "_", place.text)] for place in formula_xml]
 
             elif self.ptnet.pnml_mapping:
                 # `.pnml` input Petri net
