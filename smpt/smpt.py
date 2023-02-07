@@ -361,7 +361,7 @@ def main():
         properties.generate_walk_files()
 
     # Project formulas if enabled
-    if results.project and not (results.mcc and not ptnet_reduced.places):
+    if results.project and len(ptnet_tfg.places) < len(ptnet.places) and not (results.mcc and not ptnet_reduced.places):
         properties.project(ptnet_tfg, show_projection=results.show_projection, save_projection=results.path_projection_directory,
                            show_time=results.show_time, show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
 
