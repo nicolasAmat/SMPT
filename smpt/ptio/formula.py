@@ -368,6 +368,10 @@ class Properties:
 
         # Iterate over projections
         for (projection, completeness), (property_id, formula) in zip(projections, self.formulas.items()):
+
+            if projection is None:
+                continue
+
             # Create new formula
             projected_formula = Formula(ptnet_tfg, property_id)
 
