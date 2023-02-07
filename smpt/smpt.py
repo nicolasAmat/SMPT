@@ -243,13 +243,13 @@ def main():
     use_pnml_reduce = False
 
     # Check if colored net
+    ptnet_skeleton = None
     if results.colored:
         if 'STATE-EQUATION' in results.methods:
             path_net, path_skeleton = unfold_and_skeleton(path_net)
             ptnet_skeleton = PetriNet(path_skeleton, skeleton=True, state_equation=True)
         else:
             path_net = unfold(path_net)
-            ptnet_skeleton = None
 
     # Check if extension is `.pnml`
     elif path_net.lower().endswith('.pnml'):
@@ -301,7 +301,7 @@ def main():
 
     # Read the reduced Petri net using TFG reductions
     if results.project and not (results.mcc and not ptnet_reduced.places):
-        ptnet_tfg = PetriNet(path_ptnet_tfg)
+        ptnet_tfg = PetriNet(path_ptnet_tfg, state_equation=state_equation)
 
     # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
@@ -315,7 +315,7 @@ def main():
 
     # Read properties
     properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, xml_filename=results.path_properties)
-    properties_skeleton = Properties(ptnet_skeleton, xml_filename=results.path_properties) if ptnet_skeleton else None
+    properties_skeleton = Properties(ptnet_skeleton, xml_filename=results.path_properties) if ptnet_skeleton and ptnet_reduced.places else None
 
     # Parse .ltl file if there is one
     if results.path_ltl_formula:
@@ -365,7 +365,6 @@ def main():
         properties.project(ptnet_tfg, show_projection=results.show_projection, save_projection=results.path_projection_directory,
                            show_time=results.show_time, show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
 
-
     # Set timeout value
     if results.global_timeout is not None:
         timeout = results.global_timeout / len(properties.formulas)
@@ -379,7 +378,7 @@ def main():
     if results.mcc and (ptnet_reduced is None or ptnet_reduced.places):
         try:
             pool = ThreadPool(processes=2)
-            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced=ptnet_reduced, system=system, ptnet_skeleton=ptnet_skeleton, formula_skeleton=properties_skeleton.formulas[property_id] if properties_skeleton else None, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True) for property_id, formula in properties.formulas.items()]
+            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), ptnet_skeleton=ptnet_skeleton, formula_skeleton=properties_skeleton.formulas[property_id] if properties_skeleton else None, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True) for property_id, formula in properties.formulas.items()]
             pre_results = pool.map(worker, ((obj) for obj in parallelizers))
         finally:
             pool.close()
@@ -393,6 +392,7 @@ def main():
 
     # Number of properties to be run
     nb_properties = computations.qsize()
+    counter = 0
 
     while not computations.empty() and time.time() - start_time < global_timeout:
 
@@ -439,13 +439,18 @@ def main():
         if results.mcc and ptnet_reduced and not ptnet_reduced.places:
             methods += ["WALK" for _ in range(3)]
 
+        # If second round then run only walkers
+        if results.mcc and counter >= nb_properties:
+            methods = ["WALK" for _ in range(4)]
+
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(
-            property_id, None), show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, check_proof=results.check_proof, path_proof=results.path_proof)
+        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, parikh_timeout=int(timeout / 2), check_proof=results.check_proof, path_proof=results.path_proof)
 
         # If computation is uncomplete add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:
             computations.put((property_id, formula))
+
+        counter += 1
 
     # Close temporary files
     if results.net.endswith('.pnml'):
