@@ -77,6 +77,8 @@ class Parallelizer:
         Debugging flag.
     path_markings : str, optional
         Path to the list of markings (.aut format).
+    parikh_timeout : int, optional
+        Timeout for Parikh walking (if not None).
     check_proof : bool, optional
         Check proof flag.
     path_proof : str, optional
@@ -103,13 +105,13 @@ class Parallelizer:
         Formula used for walking.
     projection : bool
         Shadow-completeness of an eventual projection.
-    ptnet_bmc : PetriNet
+    ptnet_switched : PetriNet
         Net used for BMC / K-INDUCTION.
-    formula_bmc : Formula
+    formula_switched : Formula
         Formulas used for BMC / K-INDUCTION.
     """
 
-    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, formula_skeleton: Optional[Formula] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False, parikh: bool = False):
+    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, formula_skeleton: Optional[Formula] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, parikh_timeout: Optional[int] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False):
         """ Initializer.
 
         Parameters
@@ -144,6 +146,8 @@ class Parallelizer:
             Debugging flag.
         path_markings : str, optional
             Path to the list of markings (.aut format).
+        parikh_timeout : int, optional
+            Timeout for Parikh walking (if not None).
         check_proof : bool, optional
             Check proof flag.
         path_proof : str, optional
@@ -174,7 +178,10 @@ class Parallelizer:
         self.debug: bool = debug
 
         # Path to markings
-        self.path_markings = path_markings
+        self.path_markings: Optional[str] = path_markings
+
+        # Parikh timeout
+        self.parikh_timeout: Optional[int] = parikh_timeout
 
         # Proof
         self.check_proof: bool = check_proof
@@ -212,12 +219,15 @@ class Parallelizer:
 
         # Projection management
         # WALK
-        self.ptnet_walk: PetriNet = ptnet_tfg if ptnet_tfg is not None else ptnet
-        self.formula_walk: Formula = projected_formula if projected_formula is not None else formula
+        self.ptnet_walk: PetriNet = ptnet_tfg if ptnet_tfg is not None and projected_formula is not None and (not mcc or projected_formula.shadow_complete) else ptnet
+        self.formula_walk: Formula = projected_formula if ptnet_tfg is not None and projected_formula is not None and (not mcc or projected_formula.shadow_complete) else formula
         # BMC / K-INDUCTION
         self.projection: bool = projected_formula is not None and projected_formula.shadow_complete
-        self.ptnet_bmc: PetriNet = ptnet_tfg if self.projection else ptnet
-        self.formula_bmc: Formula = projected_formula if self.projection else formula
+        self.ptnet_switched: PetriNet = ptnet_tfg if self.projection else ptnet
+        self.formula_switched: Formula = projected_formula if self.projection else formula
+        # Optional reductions
+        self.optional_ptnet_reduced: Optional[PetriNet] = None if self.projection else ptnet_reduced
+        self.optional_system: Optional[System] = None if self.projection else system
 
         # Initialize methods
         for method in methods:
@@ -279,31 +289,31 @@ class Parallelizer:
         prover : Optional[AbstractChecker] = None
 
         if method == 'WALK':
-            prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, debug=self.debug, solver_pids=self.solver_pids)
+            prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, parikh_timeout=self.parikh_timeout, debug=self.debug, solver_pids=self.solver_pids)
 
         if method == 'STATE-EQUATION':
-            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, mcc=self.mcc, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, mcc=self.mcc, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         if method == 'INDUCTION':
             prover = Induction(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, show_model=self.show_model, debug=self.debug, solver_pids=self.solver_pids)
 
         if method == 'BMC':
-            prover = BMC(self.ptnet_bmc, self.formula_bmc, ptnet_reduced=self.ptnet_reduced, system=self.system, projection=self.projection, show_model=self.show_model, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, induction_queue=self.induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = BMC(self.ptnet_switched, self.formula_switched, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, show_model=self.show_model, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, induction_queue=self.induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         if method == 'K-INDUCTION':
-            prover = KInduction(self.ptnet_bmc, self.formula_bmc, projection=self.projection, debug=self.debug, induction_queue=self.induction_queue, solver_pids=self.solver_pids)
+            prover = KInduction(self.ptnet_switched, self.formula_switched, debug=self.debug, induction_queue=self.induction_queue, solver_pids=self.solver_pids)
 
         if method == 'PDR-COV':
-            prover = PDR(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='COV', solver_pids=self.solver_pids)
+            prover = PDR(self.ptnet_switched, self.formula_switched, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='COV', solver_pids=self.solver_pids)
 
         if method == 'PDR-REACH':
-            prover = PDR(self.ptnet, self.formula, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=False, solver_pids=self.solver_pids)
+            prover = PDR(self.ptnet_switched, self.formula_switched, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=False, solver_pids=self.solver_pids)
 
         if method == 'PDR-REACH-SATURATED':
-            prover = PDR(self.ptnet, self.formula, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=True, solver_pids=self.solver_pids)
+            prover = PDR(self.ptnet_switched, self.formula_switched, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=True, solver_pids=self.solver_pids)
 
         if method == 'SMT':
-            prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=False, solver_pids=self.solver_pids)
+            prover = CP(self.ptnet_switched, self.formula_switched, self.system, show_model=self.show_model, debug=self.debug, minizinc=False, solver_pids=self.solver_pids)
 
         if method == 'CP':
             prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=True, solver_pids=self.solver_pids)
