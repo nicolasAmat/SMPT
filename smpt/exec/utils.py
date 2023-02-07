@@ -67,5 +67,5 @@ def send_signal_group_pid(pid: int, signal_to_send: signal.Signals):
     """
     try:
         os.killpg(os.getpgid(pid), signal_to_send)
-    except ProcessLookupError:
+    except (ProcessLookupError, PermissionError):
         pass
