@@ -251,7 +251,7 @@ class PetriNet:
 
         return smt_input
 
-    def smtlib_state_equation(self, k: Optional[int] = None) -> str:
+    def smtlib_state_equation(self, k: Optional[int] = None, parikh: bool = False) -> str:
         """ Assert the state equation (potentially reachable markings).
 
         Parameters
@@ -264,7 +264,7 @@ class PetriNet:
         str
             SMT-LIB format.
         """
-        return ''.join(map(lambda pl: pl.smtlib_state_equation(k), self.places.values()))
+        return ''.join(map(lambda pl: pl.smtlib_state_equation(k, parikh), self.places.values()))
 
     def smtlib_read_arc_constraints(self) -> str:
         """ Assert read arc constraints.
@@ -708,7 +708,7 @@ class Place:
         """
         return "(assert (= {} {}))\n".format(self.smtlib(k), self.initial_marking)
 
-    def smtlib_state_equation(self, k: Optional[int] = None) -> str:
+    def smtlib_state_equation(self, k: Optional[int] = None, parikh: bool = False) -> str:
         """ Assert the state equation.
 
         Parameters
@@ -721,8 +721,8 @@ class Place:
         str
             SMT-LIB format.
         """
-        smt_input = ' '.join(["(* {} {})".format(tr.id + "@t", weight) if weight !=
-                             1 else tr.id + "@t" for tr, weight in self.delta.items()])
+        smt_input = ' '.join(["(* {} {})".format(tr.id + "@t" if parikh else tr.id, weight) if weight !=
+                             1 else tr.id + "@t" if parikh else tr.id for tr, weight in self.delta.items()])
 
         if self.initial_marking != 0:
             smt_input += " " + str(self.initial_marking)

@@ -76,7 +76,7 @@ class StateEquation(AbstractChecker):
         Engine to compute some trap constraints.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, formula_skeleton=None, parikh=False, mcc=False, debug=False, solver_pids=None, additional_techniques=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, formula_skeleton=None, mcc=False, debug=False, solver_pids=None, additional_techniques=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -96,7 +96,7 @@ class StateEquation(AbstractChecker):
         self.formula_skeleton: Optional[Formula] = formula_skeleton
 
         # Generate Parikh vector
-        self.parikh = parikh
+        self.parikh = mcc
 
         # MCC mode
         self.mcc: bool = mcc
@@ -224,7 +224,7 @@ class StateEquation(AbstractChecker):
         self.solver.write(ptnet.smtlib_declare_transitions(parikh=self.parikh and not skeleton))
 
         log.info("[STATE-EQUATION] > State Equation")
-        self.solver.write(ptnet.smtlib_state_equation())
+        self.solver.write(ptnet.smtlib_state_equation(parikh=self.parikh and not skeleton))
 
         log.info("[STATE-EQUATION] > Formula to check the satisfiability")
         self.solver.write(formula.R.smtlib(assertion=True))
@@ -300,7 +300,7 @@ class StateEquation(AbstractChecker):
         self.solver.write(self.ptnet_reduced.smtlib_declare_transitions(parikh=self.parikh))
 
         log.info("[STATE-EQUATION] > State Equation")
-        self.solver.write(self.ptnet_reduced.smtlib_state_equation())
+        self.solver.write(self.ptnet_reduced.smtlib_state_equation(parikh=self.parikh))
 
         log.info("[STATE-EQUATION] > Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
