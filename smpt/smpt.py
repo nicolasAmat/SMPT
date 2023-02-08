@@ -351,17 +351,21 @@ def main():
             print("# Reduction Ratio (TFG) ~ {}%".format(
                 int((len(ptnet.places) - len(ptnet_tfg.places)) / len(ptnet.places) * 100)))
 
-    # Disable reduction is the Petri net is not reducible
+    # Disable reduction if the Petri net is not reducible
     if system is not None and not system.equations:
         ptnet_reduced = None
         system = None
+
+    # Disable TFG if the Petri net is not reducible
+    if len(ptnet_tfg.places) == len(ptnet.places):
+        ptnet_tfg = None
 
     # Generate Walk files if mcc mode, projection or Walk methods enabled
     if results.mcc or results.project or 'WALK' in results.methods or 'TIPX' in results.methods:
         properties.generate_walk_files()
 
     # Project formulas if enabled
-    if results.project and len(ptnet_tfg.places) < len(ptnet.places) and not (results.mcc and not ptnet_reduced.places):
+    if results.project and ptnet_tfg and not (results.mcc and ptnet_reduced is not None and not ptnet_reduced.places):
         properties.project(ptnet_tfg, show_projection=results.show_projection, save_projection=results.path_projection_directory,
                            show_time=results.show_time, show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
 
