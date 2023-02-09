@@ -53,7 +53,7 @@ class RandomWalk(AbstractChecker):
         self.formula = formula
 
         # Timeout for Parikh walking
-        self.parikh_timeout = None
+        self.parikh_timeout = parikh_timeout
 
         # Walkers
         self.solver = Tipx(ptnet.filename, debug=debug, solver_pids=solver_pids) if tipx else Walk(ptnet.filename, debug=debug, solver_pids=solver_pids)
@@ -71,7 +71,7 @@ class RandomWalk(AbstractChecker):
 
         if self.solver_parikh:
             log.info("[RANDOM-WALK] Parikh walk")
-            sat = self.solver.check_sat(self.formula.walk_filename)
+            sat = self.solver_parikh.check_sat(self.formula.walk_filename)
             sat = sat and not self.solver_parikh.aborted
 
         if not sat:

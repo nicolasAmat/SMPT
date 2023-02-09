@@ -125,7 +125,7 @@ class Walk(Solver):
 
         return output
 
-    def check_sat(self, walk_filename: str = None, parikh_filename: Optional[str] = None, parikh_timeout: Optional[int] = None) -> bool:
+    def check_sat(self, walk_filename: str = None) -> bool:
         """ Check if a state violates the formula.
 
         Parameters
