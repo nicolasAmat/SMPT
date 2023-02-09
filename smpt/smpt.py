@@ -357,7 +357,7 @@ def main():
         system = None
 
     # Disable TFG if the Petri net is not reducible
-    if len(ptnet_tfg.places) == len(ptnet.places):
+    if ptnet_tfg is not None and len(ptnet_tfg.places) == len(ptnet.places):
         ptnet_tfg = None
 
     # Generate Walk files if mcc mode, projection or Walk methods enabled
