@@ -41,7 +41,7 @@ from smpt.interfaces.solver import Solver
 from smpt.ptio.ptnet import Marking, PetriNet
 
 
-PROJECT_TIMEOUT = 2
+PROJECT_TIMEOUT = 3
 
 
 class Tipx(Solver):

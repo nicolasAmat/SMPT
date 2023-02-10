@@ -266,14 +266,19 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.smtlib_state_equation(k, parikh), self.places.values()))
 
-    def smtlib_read_arc_constraints(self) -> str:
+    def smtlib_read_arc_constraints(self, parikh: bool = False) -> str:
         """ Assert read arc constraints.
+
+        Parameters
+        ----------
+        parikh : bool, optional
+            Computation of parikh vector enabled.
 
         Returns
         -------
             SMTT-LIB format.
         """
-        return ''.join(map(lambda tr: tr.smtlib_read_arc_constraints(), self.transitions.values()))
+        return ''.join(map(lambda tr: tr.smtlib_read_arc_constraints(parikh), self.transitions.values()))
 
     def smtlib_declare_trap(self) -> str:
         """ Declare trap Boolean variable for each place.
@@ -1000,8 +1005,13 @@ class Transition:
         identifier = self.id + "@t" if parikh else self.id
         return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(identifier, identifier)
 
-    def smtlib_read_arc_constraints(self) -> str:
+    def smtlib_read_arc_constraints(self, parikh : bool = False) -> str:
         """ Assert read arc constraints.
+
+        Parameters
+        ----------
+        parikh : bool, optional
+            Computation of parikh vector enabled.
 
         Returns
         -------
@@ -1016,7 +1026,7 @@ class Transition:
             if not self.delta.get(pl, 0) and weight > pl.initial_marking:
                 # t > 0 => \/_{t' s.t. post(t,p) > 0 \ t and delta(t',p) > 0} t' > 0
                 right_member = ["(> {} 0)".format(
-                    tr.id) for tr in pl.input_transitions if tr != self and tr.delta.get(pl, 0) > 0]
+                    tr.id + "@t" if parikh else tr.id) for tr in pl.input_transitions if tr != self and tr.delta.get(pl, 0) > 0]
                 if not right_member:
                     smt_input_right_member = "false"
                 elif len(right_member) == 1:
@@ -1024,7 +1034,7 @@ class Transition:
                 else:
                     smt_input_right_member = "(or {})".format(
                         ''.join(right_member))
-                smt_input += "(assert (=> (> {} 0) {}))\n".format(self.id,
+                smt_input += "(assert (=> (> {} 0) {}))\n".format(self.id + "@t" if parikh else self.id,
                                                                   smt_input_right_member)
 
         return smt_input

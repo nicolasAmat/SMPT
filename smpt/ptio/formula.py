@@ -341,13 +341,15 @@ class Properties:
         for formula in self.formulas.values():
             formula.remove_parikh_file()
 
-    def project(self, ptnet_tfg: PetriNet, show_projection: bool = False, save_projection: Optional[str] = None, show_time: bool = False, show_shadow_completeness: bool = False, debug: bool = False) -> None:
+    def project(self, ptnet_tfg: PetriNet, drop_incomplete: bool = False, show_projection: bool = False, save_projection: Optional[str] = None, show_time: bool = False, show_shadow_completeness: bool = False, debug: bool = False) -> None:
         """ Generate projection formulas (.ltl format).
 
         Parameters
         ----------
         ptnet_tfg : Petri Net
             Petri Net TFG.
+        drop_incomplete : bool, optional
+            Drop incomplete projections.
         show_projection : bool, optional
             Show projected formulas.
         save_projection : str, optional
@@ -367,16 +369,16 @@ class Properties:
         )), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
 
         # Iterate over projections
-        for (projection, completeness), (property_id, formula) in zip(projections, self.formulas.items()):
+        for (projection, complete), (property_id, formula) in zip(projections, self.formulas.items()):
 
-            if projection is None:
+            if projection is None or (drop_incomplete and not complete):
                 continue
 
             # Create new formula
             projected_formula = Formula(ptnet_tfg, property_id)
 
             # Set shadow-completeness
-            projected_formula.shadow_complete = completeness
+            projected_formula.shadow_complete = complete
 
             # Write the projected formula into a temporary file
             fp_projected_formula = NamedTemporaryFile(

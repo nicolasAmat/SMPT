@@ -27,9 +27,10 @@ __version__ = "4.0.0"
 
 import subprocess
 from multiprocessing import Process
+from typing import Optional
 
 
-def unfold_and_skeleton(path_ptnet: str) -> tuple[str, str]:
+def unfold_and_skeleton(path_ptnet: str, timeout_unfold: Optional[int] = None) -> tuple[Optional[str], str]:
     """ Unfold and compute the skeleton of a colored Petri net.
 
     Parameters
@@ -39,20 +40,25 @@ def unfold_and_skeleton(path_ptnet: str) -> tuple[str, str]:
     
     Returns
     -------
-    tuple of str
+    tuple of str, str
         Path to the unfold and skeleton Petri nets (.net format).
     """
-    processes = []
-    processes.append(Process(target=unfold, args=(path_ptnet,)))
-    processes.append(Process(target=skeleton, args=(path_ptnet,)))
+    unfold_proc = Process(target=unfold, args=(path_ptnet,))
+    unfold_proc.start()
 
-    for process in processes:
-        process.start()
+    skeleton_proc = Process(target=skeleton, args=(path_ptnet,))
+    skeleton_proc.start()
 
-    for process in processes:
-        process.join()
+    unfold_proc.join(timeout=0)
+    skeleton_proc.join()
 
-    return (path_ptnet.replace('.pnml', '_unfolded.net'), path_ptnet.replace('.pnml', '_skeleton.net'))
+    if unfold_proc.is_alive:
+        unfold_proc.kill()
+        unfold_path = None
+    else:
+        unfold_path = path_ptnet.replace('.pnml', '_unfolded.net')
+
+    return (unfold_path, path_ptnet.replace('.pnml', '_skeleton.net'))
 
 
 def unfold(path_ptnet: str) -> str:

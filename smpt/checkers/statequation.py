@@ -62,8 +62,8 @@ class StateEquation(AbstractChecker):
         Formula for skeleton.
     parikh : bool
         Generate Parikh vector.
-    mcc : bool
-        MCC mode.
+    pre_run : bool
+        Pre-run mode.
     solver : Z3
         SMT solver (Z3).
     debug : bool
@@ -76,7 +76,7 @@ class StateEquation(AbstractChecker):
         Engine to compute some trap constraints.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, formula_skeleton=None, mcc=False, debug=False, solver_pids=None, additional_techniques=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, formula_skeleton=None, pre_run=False, debug=False, solver_pids=None, additional_techniques=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -98,8 +98,8 @@ class StateEquation(AbstractChecker):
         # Generate Parikh vector
         self.parikh = formula.parikh_filename is not None
 
-        # MCC mode
-        self.mcc: bool = mcc
+        # Pre-run mode
+        self.pre_run: bool = pre_run
 
         # SMT solver
         self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
@@ -199,8 +199,8 @@ class StateEquation(AbstractChecker):
         if self.traps is not None:
             self.traps.solver.kill()
 
-        # Quit if the solver has aborted, or if unknown result (and mcc mode disabled)
-        if self.solver.aborted or (not self.mcc and verdict == Verdict.UNKNOWN):
+        # Quit if the solver has aborted, or if unknown result (and pre-run mode disabled)
+        if self.solver.aborted or (not self.pre_run and verdict == Verdict.UNKNOWN):
             return
 
         # Put the result in the queue
@@ -238,7 +238,7 @@ class StateEquation(AbstractChecker):
                 fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
 
         log.info("[STATE-EQUATION] > Add read arc constraints")
-        self.solver.write(ptnet.smtlib_read_arc_constraints())
+        self.solver.write(ptnet.smtlib_read_arc_constraints(parikh=self.parikh and not skeleton))
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
@@ -314,7 +314,7 @@ class StateEquation(AbstractChecker):
                 fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
 
         log.info("[STATE-EQUATION] > Add read arc constraints")
-        self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints())
+        self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints(parikh=self.parikh))
 
         log.info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():

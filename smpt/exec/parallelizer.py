@@ -44,6 +44,7 @@ from smpt.ptio.system import System
 from smpt.ptio.verdict import Verdict
 
 PRE_TIMEOUT = 120
+RATIO_LIMIT = 0.8
 
 
 class Parallelizer:
@@ -83,8 +84,8 @@ class Parallelizer:
         Check proof flag.
     path_proof : str, optional
         Path to proof.
-    mcc : bool, optional
-        MCC mode.
+    pre_run : bool, optional
+        Pre-run mode (mainly for STATE-EQUATION).
     additional_techniques : Queue of str
         Queue of additional techniques involved during the computation ('TOPOLOGICAL', 'USE_NUPN', ...).
     processes : list of Process
@@ -110,8 +111,7 @@ class Parallelizer:
     formula_switched : Formula
         Formulas used for BMC / K-INDUCTION.
     """
-
-    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, formula_skeleton: Optional[Formula] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, parikh_timeout: Optional[int] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False):
+    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, formula_skeleton: Optional[Formula] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, parikh_timeout: Optional[int] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False,  pre_run: bool = False):
         """ Initializer.
 
         Parameters
@@ -154,6 +154,8 @@ class Parallelizer:
             Path to proof.
         mcc : bool, optional
             MCC mode.
+        pre_run : bool, optional
+            Pre-run mode (mainly for STATE-EQUATION).
         """
         # Petri nets
         self.ptnet: PetriNet = ptnet
@@ -187,8 +189,8 @@ class Parallelizer:
         self.check_proof: bool = check_proof
         self.path_proof: str = path_proof
 
-        # MCC mode
-        self.mcc: bool = mcc
+        # Pre-run mode
+        self.pre_run: bool = pre_run
 
         # Common techniques
         collateral_processing, unfolding_to_pt, structural_reduction = [], [], []
@@ -217,17 +219,24 @@ class Parallelizer:
         if 'K-INDUCTION' in methods:
             self.induction_queue = Queue()
 
-        # Projection management
+        # Petri net / Formula selection
+        #
         # WALK
+        # (ptnet_tfg + projected formula if possible, but in mcc mode keep only complete projections)
         self.ptnet_walk: PetriNet = ptnet_tfg if ptnet_tfg is not None and projected_formula is not None and (not mcc or projected_formula.shadow_complete) else ptnet
         self.formula_walk: Formula = projected_formula if ptnet_tfg is not None and projected_formula is not None and (not mcc or projected_formula.shadow_complete) else formula
-        # BMC / K-INDUCTION
-        self.projection: bool = projected_formula is not None and projected_formula.shadow_complete
-        self.ptnet_switched: PetriNet = ptnet_tfg if self.projection else ptnet
-        self.formula_switched: Formula = projected_formula if self.projection else formula
+        #
+        # BMC / K-INDUCTION / PDR-COV
+        # (ptnet_tfg + projected formula if possible, and in mcc mode only if the ratio > RATIO_LIMIT)
+        # print(len(ptnet_reduced.transitions) / len(ptnet_tfg.transitions))
+        bad_ratio = ptnet_reduced and ptnet_tfg and ptnet_tfg.transitions and len(ptnet_reduced.transitions) / len(ptnet_tfg.transitions) <= RATIO_LIMIT
+        projection: bool = projected_formula is not None and projected_formula.shadow_complete and not (mcc and bad_ratio)
+        # Petri net and formula
+        self.ptnet_switched: PetriNet = ptnet_tfg if projection else ptnet
+        self.formula_switched: Formula = projected_formula if projection else formula
         # Optional reductions
-        self.optional_ptnet_reduced: Optional[PetriNet] = None if self.projection else ptnet_reduced
-        self.optional_system: Optional[System] = None if self.projection else system
+        self.optional_ptnet_reduced: Optional[PetriNet] = None if projection else ptnet_reduced
+        self.optional_system: Optional[System] = None if projection else system
 
         # Initialize methods
         for method in methods:
@@ -292,7 +301,7 @@ class Parallelizer:
             prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, parikh_timeout=self.parikh_timeout, debug=self.debug, solver_pids=self.solver_pids)
 
         if method == 'STATE-EQUATION':
-            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, mcc=self.mcc, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         if method == 'INDUCTION':
             prover = Induction(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, show_model=self.show_model, debug=self.debug, solver_pids=self.solver_pids)
@@ -430,17 +439,19 @@ class Parallelizer:
             send_signal_group_pid(self.solver_pids.get(), KILL)
 
 
-def worker(parallelizer: Parallelizer) -> Optional[str]:
+def worker(parallelizer: Parallelizer, timeout: int = PRE_TIMEOUT) -> Optional[str]:
     """ Call run method n parallelizer object.
 
     Parameters
     ----------
     parallelizer : Parallelizer
         Parallelizer object to run.
+    timeout : int, optional
+        Time limit.
 
     Returns
     -------
     str, optional
         Property id if the computation is completed, None otherwise.
     """
-    return parallelizer.run(PRE_TIMEOUT)
+    return parallelizer.run(timeout)
