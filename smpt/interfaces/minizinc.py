@@ -25,11 +25,11 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
-import sys
-import tempfile
+from logging import warning
 from multiprocessing import Queue
 from subprocess import DEVNULL, PIPE, Popen
+from sys import exit
+from tempfile import NamedTemporaryFile, _TemporaryFileWrapper
 from typing import Optional
 
 from smpt.exec.utils import STOP, send_signal_pids
@@ -75,8 +75,7 @@ class MiniZinc(Solver):
             Queue of solver pids.
         """
         # File to write formula
-        self.file: tempfile._TemporaryFileWrapper[str] = tempfile.NamedTemporaryFile(
-            'w', suffix='.mzn')
+        self.file: _TemporaryFileWrapper[str] = NamedTemporaryFile('w', suffix='.mzn')
 
         # Solver
         self.solver: Optional[Popen] = None
@@ -101,10 +100,10 @@ class MiniZinc(Solver):
     def abort(self) -> None:
         """ Abort the solver.
         """
-        log.warning("MiniZinc process has been aborted")
+        warning("MiniZinc process has been aborted")
         self.solver.kill()
         self.aborted = True
-        sys.exit()
+        exit()
 
     def write(self, input: str, debug: bool = False) -> None:
         """ Write instructions into the standard input.

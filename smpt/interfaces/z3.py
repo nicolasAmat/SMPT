@@ -25,10 +25,10 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
-import sys
+from logging import warning
 from multiprocessing import Queue
 from subprocess import PIPE, Popen
+from sys import exit
 from typing import Optional
 
 from smpt.interfaces.solver import Solver
@@ -92,10 +92,10 @@ class Z3(Solver):
     def abort(self) -> None:
         """ Abort the solver.
         """
-        log.warning("z3 process has been aborted")
+        warning("z3 process has been aborted")
         self.solver.kill()
         self.aborted = True
-        sys.exit()
+        exit()
 
     def write(self, input: str, debug: bool = False) -> None:
         """ Write instructions to the standard input.

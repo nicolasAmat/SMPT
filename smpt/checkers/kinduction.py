@@ -31,7 +31,7 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
+from logging import info
 from multiprocessing import Queue
 from typing import Optional
 
@@ -209,7 +209,7 @@ class KInduction(AbstractChecker):
         concurrent_pids : Queue of int
             Not used.
         """
-        log.info("[K-INDUCTION] RUNNING")
+        info("[K-INDUCTION] RUNNING")
 
         if self.ptnet_reduced is None:
             iteration = self.prove_without_reduction()
@@ -230,56 +230,50 @@ class KInduction(AbstractChecker):
         int
             Order of the counter-example.
         """
-        log.info("[K-INDUCTION] > Initialization")
+        info("[K-INDUCTION] > Initialization")
 
-        log.info(
-            "[K-INDUCTION] > Declaration of the places from the Petri net (iteration: 0)")
+        info("[K-INDUCTION] > Declaration of the places from the Petri net (iteration: 0)")
         self.solver.write(self.ptnet.smtlib_declare_places(0))
 
         k = 0
-        log.info("[K-INDUCTION] > k = 0")
+        info("[K-INDUCTION] > k = 0")
 
-        log.info("[K-INDUCTION] > Push")
+        info("[K-INDUCTION] > Push")
         self.solver.push()
 
-        log.info(
-            "[K-INDUCTION] > Formula to check the satisfiability (iteration: 0)")
+        info("[K-INDUCTION] > Formula to check the satisfiability (iteration: 0)")
         self.solver.write(self.formula.R.smtlib(0, assertion=True))
 
         while self.solver.check_sat():
 
-            log.info("[K-INDUCTION] > Pop")
+            info("[K-INDUCTION] > Pop")
             self.solver.pop()
 
-            log.info(
-                "[K-INDUCTION] > Assert states safe (iteration: {})".format(k))
+            info("[K-INDUCTION] > Assert states safe (iteration: {})".format(k))
             self.solver.write(self.formula.P.smtlib(k, assertion=True))
 
             if not k:
-                log.info("[K-INDUCTION] > Declaration of the transitions from the Petri net")
+                info("[K-INDUCTION] > Declaration of the transitions from the Petri net")
                 self.solver.write(self.ptnet.smtlib_declare_transitions())
-                log.info("[K-INDUCTION] > State Equation")
+                info("[K-INDUCTION] > State Equation")
                 self.solver.write(self.ptnet.smtlib_state_equation(0))
-                log.info("[K-INDUCTION] > Add read arc constraints")
+                info("[K-INDUCTION] > Add read arc constraints")
                 self.solver.write(self.ptnet.smtlib_read_arc_constraints())
 
             k += 1
-            log.info("[K-INDUCTION] > k = {}".format(k))
+            info("[K-INDUCTION] > k = {}".format(k))
 
-            log.info(
-                "[K-INDUCTION] > Declaration of the places from the Petri net (iteration: {})".format(k))
+            info("[K-INDUCTION] > Declaration of the places from the Petri net (iteration: {})".format(k))
             self.solver.write(self.ptnet.smtlib_declare_places(k))
 
-            log.info(
-                "[K-INDUCTION] > Transition relation: {} -> {}".format(k - 1, k))
+            info("[K-INDUCTION] > Transition relation: {} -> {}".format(k - 1, k))
             self.solver.write(
                 self.ptnet.smtlib_transition_relation(k - 1, eq=False))
 
-            log.info("[K-INDUCTION] > Push")
+            info("[K-INDUCTION] > Push")
             self.solver.push()
 
-            log.info(
-                "[K-INDUCTION] > Formula to check the satisfiability (iteration: {})".format(k))
+            info("[K-INDUCTION] > Formula to check the satisfiability (iteration: {})".format(k))
             self.solver.write(self.formula.R.smtlib(k, assertion=True))
 
         return k
@@ -297,62 +291,56 @@ class KInduction(AbstractChecker):
         Reduction can deteriorate the performances.
         Sometimes the existential variable avoids termination. 
         """
-        log.info("[K-INDUCTION] > Initialization")
+        info("[K-INDUCTION] > Initialization")
 
-        log.info(
-            "[K-INDUCTION] > Declaration of the places from the initial net (iteration: 0)")
+        info("[K-INDUCTION] > Declaration of the places from the initial net (iteration: 0)")
         self.solver.write(self.ptnet.smtlib_declare_places(0))
 
-        log.info("[K-INDUCTION] > Assert reduction equations")
+        info("[K-INDUCTION] > Assert reduction equations")
         self.solver.write(self.system.smtlib(0, 0))
 
-        log.info("[K-INDUCTION] > Push")
+        info("[K-INDUCTION] > Push")
         self.solver.push()
 
         k = 0
-        log.info("[K-INDUCTION] > k = 0")
+        info("[K-INDUCTION] > k = 0")
 
-        log.info(
-            "[K-INDUCTION] > Formula to check the satisfiability (iteration: 0)")
+        info("[K-INDUCTION] > Formula to check the satisfiability (iteration: 0)")
         self.solver.write(self.formula.R.smtlib(0, assertion=True))
 
         while self.solver.check_sat():
 
-            log.info("[K-INDUCTION] > Pop")
+            info("[K-INDUCTION] > Pop")
             self.solver.pop()
 
-            log.info(
-                "[K-INDUCTION] > Assert safe states (iteration: {})".format(k))
+            info("[K-INDUCTION] > Assert safe states (iteration: {})".format(k))
             self.solver.write(self.formula.P.smtlib(k, assertion=True))
 
             if not k:
-                log.info("[K-INDUCTION] > Declaration of the transitions from the Petri net")
+                info("[K-INDUCTION] > Declaration of the transitions from the Petri net")
                 self.solver.write(self.ptnet_reduced.smtlib_declare_transitions())
-                log.info("[K-INDUCTION] > State Equation")
+                info("[K-INDUCTION] > State Equation")
                 self.solver.write(self.ptnet_reduced.smtlib_state_equation(0))
-                log.info("[K-INDUCTION] > Add read arc constraints")
+                info("[K-INDUCTION] > Add read arc constraints")
                 self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints())
 
             k += 1
-            log.info("[K-INDUCTION] > k = {}".format(k))
+            info("[K-INDUCTION] > k = {}".format(k))
 
-            log.info(
-                "[K-INDUCTION] > Declaration of the places from the initial net (iteration: {})".format(k))
+            info("[K-INDUCTION] > Declaration of the places from the initial net (iteration: {})".format(k))
             self.solver.write(self.ptnet.smtlib_declare_places(k))
 
-            log.info("[K-INDUCTION] > Assert reduction equations")
+            info("[K-INDUCTION] > Assert reduction equations")
             self.solver.write(self.system.smtlib(k, k))
 
-            log.info(
-                "[K-INDUCTION] > Transition relation: {} -> {}".format(k - 1, k))
+            info("[K-INDUCTION] > Transition relation: {} -> {}".format(k - 1, k))
             self.solver.write(
                 self.ptnet_reduced.smtlib_transition_relation(k - 1, eq=False))
 
-            log.info("[K-INDUCTION] > Push")
+            info("[K-INDUCTION] > Push")
             self.solver.push()
 
-            log.info(
-                "[K-INDUCTION] > Formula to check the satisfiability (iteration: {})".format(k))
+            info("[K-INDUCTION] > Formula to check the satisfiability (iteration: {})".format(k))
             self.solver.write(self.formula.R.smtlib(k, assertion=True))
 
         return k

@@ -26,9 +26,9 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
-import os
+from logging import info
 from multiprocessing import Queue
+from os.path import getsize
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
@@ -57,7 +57,7 @@ class RandomWalk(AbstractChecker):
 
         # Walkers
         self.solver = Tipx(ptnet.filename, debug=debug, solver_pids=solver_pids) if tipx else Walk(ptnet.filename, debug=debug, solver_pids=solver_pids)
-        if self.parikh_timeout and self.formula.parikh_filename is not None and os.path.getsize(self.formula.parikh_filename) > 0:
+        if self.parikh_timeout and self.formula.parikh_filename is not None and getsize(self.formula.parikh_filename) > 0:
             self.solver_parikh = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, timeout=parikh_timeout, solver_pids=solver_pids)
         else:
             self.solver_parikh = None
@@ -65,17 +65,17 @@ class RandomWalk(AbstractChecker):
     def prove(self, result, concurrent_pids):
         """ Prover.
         """
-        log.info("[RANDOM-WALK] RUNNING")
+        info("[RANDOM-WALK] RUNNING")
 
         sat = None
 
         if self.solver_parikh:
-            log.info("[RANDOM-WALK] Parikh walk")
+            info("[RANDOM-WALK] Parikh walk")
             sat = self.solver_parikh.check_sat(self.formula.walk_filename)
             sat = sat and not self.solver_parikh.aborted
 
         if not sat:
-            log.info("[RANDOM-WALK] Walk")
+            info("[RANDOM-WALK] Walk")
             sat = self.solver.check_sat(self.formula.walk_filename)
             sat = sat and not self.solver.aborted
 

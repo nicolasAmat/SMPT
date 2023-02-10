@@ -25,12 +25,12 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
-import sys
 from itertools import repeat
+from logging import warning
 from multiprocessing import Queue
 from multiprocessing.pool import ThreadPool
 from subprocess import PIPE, Popen, TimeoutExpired, check_output
+from sys import exit
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -39,7 +39,6 @@ if TYPE_CHECKING:
 from smpt.exec.utils import KILL, send_signal_pids
 from smpt.interfaces.solver import Solver
 from smpt.ptio.ptnet import Marking, PetriNet
-
 
 PROJECT_TIMEOUT = 3
 
@@ -102,10 +101,10 @@ class Tipx(Solver):
     def abort(self) -> None:
         """ Abort the solver.
         """
-        log.warning("Walk process has been aborted")
+        warning("Walk process has been aborted")
         self.solver.kill()
         self.aborted = True
-        sys.exit()
+        exit()
 
     def readline(self, debug: bool = False) -> str:
         """ Read a line from the standard output.

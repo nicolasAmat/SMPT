@@ -26,17 +26,17 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import argparse
-import logging as log
-import os
-import queue
-import subprocess
-import sys
-import tempfile
-import time
+from argparse import ArgumentParser
 from itertools import repeat
+from logging import DEBUG, basicConfig
 from multiprocessing import Process
 from multiprocessing.pool import ThreadPool
+from os import remove
+from queue import Queue
+from subprocess import run
+from sys import exit
+from tempfile import NamedTemporaryFile
+from time import time
 
 from smpt.exec.parallelizer import Parallelizer, worker
 from smpt.interfaces.convert import convert
@@ -51,11 +51,10 @@ def main():
     """ Main function.
     """
     # Start time
-    start_time = time.time()
+    start_time = time()
 
     # Arguments parser
-    parser = argparse.ArgumentParser(
-        description='SMPT: Satisfiability Modulo Petri Net')
+    parser = ArgumentParser(description='SMPT: Satisfiability Modulo Petri Net')
 
     parser.add_argument('--version',
                         action='version',
@@ -230,9 +229,9 @@ def main():
 
     # Set the verbose level
     if results.verbose:
-        log.basicConfig(format="%(message)s", level=log.DEBUG)
+        basicConfig(format="%(message)s", level=DEBUG)
     else:
-        log.basicConfig(format="%(message)s")
+        basicConfig(format="%(message)s")
 
     # Path to Petri net (can evolved if some file conversion are necessary)
     path_net = results.net
@@ -257,8 +256,8 @@ def main():
                 pool = ThreadPool(processes=4)
                 parallelizers = [Parallelizer(property_id, ptnet_skeleton, formula, ['STATE-EQUATION'], show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug) for property_id, formula in properties_skeleton.formulas.items()]
                 pool.starmap(worker, zip(parallelizers, repeat((results.global_timeout - start_time) / 4 if results.global_timeout else results.timeout)))
-                os.remove(path_skeleton)
-                exit(0)
+                remove(path_skeleton)
+                exit()
         else:
             path_net = unfold(path_net, timeout_unfold=timeout_unfold)
 
@@ -289,7 +288,7 @@ def main():
     path_ptnet_reduced = results.path_ptnet_reduced if ptnet is not None else None
     if ptnet is not None and results.auto_reduce and path_ptnet_reduced is None:
         extension = '.pnml' if path_pnml else '.net'
-        fp_ptnet_reduced = open(results.net.replace(extension, '_reduced.net'), 'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net')
+        fp_ptnet_reduced = open(results.net.replace(extension, '_reduced.net'), 'w+') if results.save_reduced_net else NamedTemporaryFile(suffix='.net')
         path_ptnet_reduced = fp_ptnet_reduced.name
         reduce_processes.append(Process(target=reduce, args=(reduce_source, path_ptnet_reduced, False, results.show_time,)))
         reduce_processes[-1].start()
@@ -297,7 +296,7 @@ def main():
     # Reduce the Petri net using TFG reductions if `--project` enabled
     if ptnet is not None and results.project:
         extension = '.pnml' if path_pnml else '.net'
-        fp_ptnet_tfg = open(results.net.replace(extension, '_tfg.net'), 'w+') if results.save_reduced_net else tempfile.NamedTemporaryFile(suffix='.net', delete=False)
+        fp_ptnet_tfg = open(results.net.replace(extension, '_tfg.net'), 'w+') if results.save_reduced_net else NamedTemporaryFile(suffix='.net', delete=False)
         path_ptnet_tfg = fp_ptnet_tfg.name
         reduce_processes.append(Process(target=reduce, args=(results.net, path_ptnet_tfg, True, results.show_time,)))
         reduce_processes[-1].start()
@@ -335,12 +334,12 @@ def main():
 
     # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
-        fp_markings = tempfile.NamedTemporaryFile(suffix='.aut')
+        fp_markings = NamedTemporaryFile(suffix='.aut')
         if path_ptnet_reduced is not None:
             net = path_ptnet_reduced
         else:
             net = results.net
-        subprocess.run(["tina", "-aut", "-sp", "2", net, fp_markings.name])
+        run(["tina", "-aut", "-sp", "2", net, fp_markings.name])
         results.path_markings = fp_markings.name
 
     # Read properties and keep skeleton ones in not fully reducible
@@ -402,7 +401,7 @@ def main():
             pool.join()
 
     # Iterate over properties
-    computations = queue.Queue()
+    computations = Queue()
     for property_id, formula in properties.formulas.items():
         if pre_results is None or property_id not in pre_results:
             computations.put((property_id, formula))
@@ -411,10 +410,10 @@ def main():
     nb_properties = computations.qsize()
     counter = 0
 
-    while not computations.empty() and time.time() - start_time < global_timeout:
+    while not computations.empty() and time() - start_time < global_timeout:
 
         # Update the timeout
-        timeout = (global_timeout - (time.time() - start_time)) / nb_properties
+        timeout = (global_timeout - (time() - start_time)) / nb_properties
 
         # Get property
         property_id, formula = computations.get()
@@ -471,12 +470,12 @@ def main():
 
     # Close temporary files
     if results.net.endswith('.pnml'):
-        os.remove(path_net)
+        remove(path_net)
     if results.auto_reduce:
         fp_ptnet_reduced.close()
     if results.project:
         fp_ptnet_tfg.close()
-        os.remove(fp_ptnet_tfg.name)
+        remove(fp_ptnet_tfg.name)
     if results.auto_enumerative:
         fp_markings.close()
 
@@ -491,4 +490,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    sys.exit(0)
+    exit()

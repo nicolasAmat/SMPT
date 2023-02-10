@@ -22,11 +22,11 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import signal
 from enum import Enum
+from signal import SIGKILL, SIGTERM
 
-STOP = signal.SIGTERM
-KILL = signal.SIGKILL
+STOP = SIGTERM
+KILL = SIGKILL
 
 
 class Verdict(Enum):

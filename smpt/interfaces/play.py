@@ -23,7 +23,7 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import subprocess
+from subprocess import run
 
 
 def play(path_ptnet: str, path_trace: str, debug: bool = False) -> bool:
@@ -43,8 +43,7 @@ def play(path_ptnet: str, path_trace: str, debug: bool = False) -> bool:
     bool
         True if the trace is fireable from the initial marking, false otherwise.
     """
-    output = subprocess.run(['play', path_ptnet], input=bytes(
-        "l {}".format(path_trace), 'utf-8'), capture_output=True).stdout
+    output = run(['play', path_ptnet], input=bytes("l {}".format(path_trace), 'utf-8'), capture_output=True).stdout
 
     for line in output.decode('utf-8').splitlines():
 

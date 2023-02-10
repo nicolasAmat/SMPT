@@ -24,7 +24,7 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
+from logging import info
 from multiprocessing import Queue
 
 from smpt.checkers.abstractchecker import AbstractChecker
@@ -146,14 +146,13 @@ class CP(AbstractChecker):
         bool
             Satisfiability of the formula.
         """
-        log.info("[CP] \t>> Declaration of the places from the initial Petri net")
+        info("[CP] \t>> Declaration of the places from the initial Petri net")
         self.solver.write(self.ptnet.minizinc_declare_places())
 
-        log.info(
-            "[CP] \t>> Declaration of the additional variables and assertion of the reduction equations")
+        info("[CP] \t>> Declaration of the additional variables and assertion of the reduction equations")
         self.solver.write(self.system.minizinc())
 
-        log.info("[CP] \t>> Formula to check the satisfiability")
+        info("[CP] \t>> Formula to check the satisfiability")
         self.solver.write(self.formula.R.minizinc(assertion=True))
 
         return self.solver.check_sat()
@@ -166,14 +165,13 @@ class CP(AbstractChecker):
         bool
             Satisfiability of the formula.
         """
-        log.info("[CP] \t>> Declaration of the places from the initial Petri net")
+        info("[CP] \t>> Declaration of the places from the initial Petri net")
         self.solver.write(self.ptnet.smtlib_declare_places())
 
-        log.info(
-            "[CP] \t>> Declaration of the additional variables and assertion of the reduction equations")
+        info("[CP] \t>> Declaration of the additional variables and assertion of the reduction equations")
         self.solver.write(self.system.smtlib())
 
-        log.info("[CP] \t>> Formula to check the satisfiability")
+        info("[CP] \t>> Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
 
         return self.solver.check_sat()

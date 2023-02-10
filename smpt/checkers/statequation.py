@@ -23,9 +23,9 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
-import sys
+from logging import info
 from multiprocessing import Queue
+from sys import setrecursionlimit
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
@@ -171,7 +171,7 @@ class StateEquation(AbstractChecker):
     def prove(self, result, concurrent_pids):
         """ Prover.
         """
-        log.info("[STATE-EQUATION] RUNNING")
+        info("[STATE-EQUATION] RUNNING")
 
         verdict = Verdict.UNKNOWN
 
@@ -217,19 +217,19 @@ class StateEquation(AbstractChecker):
         ptnet: PetriNet =  self.ptnet_skeleton if skeleton else self.ptnet
         formula: Formula = self.formula_skeleton if skeleton else self.formula
 
-        log.info("[STATE-EQUATION] > Declaration of the places from the Petri net")
+        info("[STATE-EQUATION] > Declaration of the places from the Petri net")
         self.solver.write(ptnet.smtlib_declare_places())
 
-        log.info("[STATE-EQUATION] > Declaration of the transitions from the Petri net")
+        info("[STATE-EQUATION] > Declaration of the transitions from the Petri net")
         self.solver.write(ptnet.smtlib_declare_transitions(parikh=self.parikh and not skeleton))
 
-        log.info("[STATE-EQUATION] > State Equation")
+        info("[STATE-EQUATION] > State Equation")
         self.solver.write(ptnet.smtlib_state_equation(parikh=self.parikh and not skeleton))
 
-        log.info("[STATE-EQUATION] > Formula to check the satisfiability")
+        info("[STATE-EQUATION] > Formula to check the satisfiability")
         self.solver.write(formula.R.smtlib(assertion=True))
 
-        log.info("[STATE-EQUATION] > Check satisfiability")
+        info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
         elif self.parikh and not skeleton:
@@ -237,75 +237,73 @@ class StateEquation(AbstractChecker):
             with open(self.formula.parikh_filename, 'w') as fp:
                 fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
 
-        log.info("[STATE-EQUATION] > Add read arc constraints")
+        info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(ptnet.smtlib_read_arc_constraints(parikh=self.parikh and not skeleton))
 
-        log.info("[STATE-EQUATION] > Check satisfiability")
+        info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             if self.additional_techniques is not None:
                 self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
 
-        log.info("[STATE-EQUATION] > Add useful trap constraints")
+        info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(ptnet) is not None:
             if self.additional_techniques is not None:
                 self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
 
-        log.info("[STATE-EQUATION] > Check satisfiability")
+        info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
 
         if ptnet.nupn is None or not ptnet.nupn.unit_safe or len(ptnet.nupn.units) > MAX_NUMBER_UNITS:
-            log.info("[STATE-EQUATION] > Unknown")
+            info("[STATE-EQUATION] > Unknown")
             return Verdict.UNKNOWN
 
-        sys.setrecursionlimit(10000)
+        setrecursionlimit(10000)
 
-        log.info("[STATE-EQUATION] > Add unit-safe local constraints")
+        info("[STATE-EQUATION] > Add unit-safe local constraints")
         self.solver.write(ptnet.nupn.smtlib_local_constraints())
 
-        log.info("[STATE-EQUATION] > Check satisfiability")
+        info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             if self.additional_techniques is not None:
                 self.additional_techniques.put('TOPOLOGICAL')
                 self.additional_techniques.put('USE_NUPN')
             return Verdict.INV
 
-        log.info("[STATE-EQUATION] > Add unit-safe hierarchical constraints")
+        info("[STATE-EQUATION] > Add unit-safe hierarchical constraints")
         self.solver.write(ptnet.nupn.smtlib_hierarchy_constraints())
 
-        log.info("[STATE-EQUATION] > Check satisfiability")
+        info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             if self.additional_techniques is not None:
                 self.additional_techniques.put('TOPOLOGICAL')
                 self.additional_techniques.put('USE_NUPN')
             return Verdict.INV
 
-        log.info("[STATE-EQUATION] > Unknown")
+        info("[STATE-EQUATION] > Unknown")
         return Verdict.UNKNOWN
 
     def prove_with_reduction(self):
         """ Prover for reduced Petri Net.
         """
-        log.info("[STATE-EQUATION] > Declaration of the places from the Petri net")
+        info("[STATE-EQUATION] > Declaration of the places from the Petri net")
         self.solver.write(self.ptnet.smtlib_declare_places())
 
-        log.info(
-            "[STATE-EQUATION] > Declaration of the variables and assert reduction equations")
+        info("[STATE-EQUATION] > Declaration of the variables and assert reduction equations")
         self.solver.write(self.system.smtlib())
 
-        log.info(
-            "[STATE-EQUATION] > Declaration of the transitions from the Petri net")
+        info("[STATE-EQUATION] > Declaration of the transitions from the Petri net")
         self.solver.write(self.ptnet_reduced.smtlib_declare_transitions(parikh=self.parikh))
 
-        log.info("[STATE-EQUATION] > State Equation")
+        info("[STATE-EQUATION] > State Equation")
         self.solver.write(self.ptnet_reduced.smtlib_state_equation(parikh=self.parikh))
 
-        log.info("[STATE-EQUATION] > Formula to check the satisfiability")
+        info("[STATE-EQUATION] > Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
 
-        log.info("[STATE-EQUATION] > Check satisfiability")
+        info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
         elif self.parikh:
@@ -313,22 +311,22 @@ class StateEquation(AbstractChecker):
             with open(self.formula.parikh_filename, 'w') as fp:
                 fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
 
-        log.info("[STATE-EQUATION] > Add read arc constraints")
+        info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints(parikh=self.parikh))
 
-        log.info("[STATE-EQUATION] > Check satisfiability")
+        info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             if self.additional_techniques is not None:
                 self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
 
-        log.info("[STATE-EQUATION] > Add useful trap constraints")
+        info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(self.ptnet_reduced) is not None:
             if self.additional_techniques is not None:
                 self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
 
-        log.info("[STATE-EQUATION] > Unknown")
+        info("[STATE-EQUATION] > Unknown")
         return Verdict.UNKNOWN
 
     def trap_constraints(self, ptnet):
@@ -345,7 +343,7 @@ class StateEquation(AbstractChecker):
 
             if trap:
                 # Assert trap constraints
-                log.info("[STATE-EQUATION] > Assert a trap violating a witness")
+                info("[STATE-EQUATION] > Assert a trap violating a witness")
                 smt_input = ''.join(
                     map(lambda pl: "(> {} 0)".format(pl.id), trap))
 
@@ -354,7 +352,7 @@ class StateEquation(AbstractChecker):
 
                 self.solver.write("(assert {})\n".format(smt_input))
 
-                log.info("[STATE-EQUATION] > Check satisfiability")
+                info("[STATE-EQUATION] > Check satisfiability")
                 if not self.solver.check_sat():
                     return False
 

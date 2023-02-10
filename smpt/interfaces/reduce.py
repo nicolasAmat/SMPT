@@ -23,8 +23,8 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import time
 from subprocess import Popen
+from time import time
 
 
 def reduce(path_ptnet: str, path_ptnet_reduced: str, tfg: bool = False, show_time: bool = False):
@@ -45,7 +45,7 @@ def reduce(path_ptnet: str, path_ptnet_reduced: str, tfg: bool = False, show_tim
     """
     option = "-rg,redundant,compact,4ti2" if tfg else "-rg,redundant,compact+,mg,4ti2"
 
-    reduce_start_time = time.time()
+    reduce_start_time = time()
 
     reduce_process = Popen(["reduce", option, "-redundant-limit", "650", "-redundant-time", "10",
                            "-inv-limit", "1000", "-inv-time", "10", path_ptnet, path_ptnet_reduced], start_new_session=True)
@@ -53,5 +53,4 @@ def reduce(path_ptnet: str, path_ptnet_reduced: str, tfg: bool = False, show_tim
     reduce_process.wait()
 
     if show_time:
-        print("# Reduction time ({}): {}".format(
-            "TFG" if tfg else "Full", time.time() - reduce_start_time))
+        print("# Reduction time ({}): {}".format("TFG" if tfg else "Full", time() - reduce_start_time))

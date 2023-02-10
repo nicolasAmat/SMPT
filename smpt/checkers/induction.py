@@ -22,7 +22,7 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
+from logging import info
 
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
@@ -163,7 +163,7 @@ class Induction(AbstractChecker):
     def prove(self, result, concurrent_pids):
         """ Prover.
         """
-        log.info("[INDUCTION] RUNNING")
+        info("[INDUCTION] RUNNING")
 
         if self.ptnet_reduced is None:
             induction = self.prove_without_reduction()
@@ -192,36 +192,34 @@ class Induction(AbstractChecker):
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.
         """
-        log.info("[INDUCTION] > Declaration of the places from the Petri net (0)")
+        info("[INDUCTION] > Declaration of the places from the Petri net (0)")
         self.solver.write(self.ptnet.smtlib_declare_places(0))
 
-        log.info("[INDUCTION] > Push")
+        info("[INDUCTION] > Push")
         self.solver.push()
 
-        log.info("[INDUCTION] > Initial marking of the Petri net")
+        info("[INDUCTION] > Initial marking of the Petri net")
         self.solver.write(self.ptnet.smtlib_initial_marking(0))
 
-        log.info("[INDUCTION] > Assert feared states (0)")
+        info("[INDUCTION] > Assert feared states (0)")
         self.solver.write(self.formula.R.smtlib(0, assertion=True))
 
         if self.solver.check_sat():
             return True
 
-        log.info("[INDUCTION] > Pop")
+        info("[INDUCTION] > Pop")
         self.solver.pop()
 
-        log.info("[INDUCTION] > Assert safe states (0)")
+        info("[INDUCTION] > Assert safe states (0)")
         self.solver.write(self.formula.P.smtlib(0, assertion=True))
 
-        log.info(
-            "[INDUCTION] > Declaration of the places from the Petri net (iteration: 1)")
+        info("[INDUCTION] > Declaration of the places from the Petri net (iteration: 1)")
         self.solver.write(self.ptnet.smtlib_declare_places(1))
 
-        log.info("[INDUCTION] > Transition relation: 0 -> 1")
+        info("[INDUCTION] > Transition relation: 0 -> 1")
         self.solver.write(self.ptnet.smtlib_transition_relation(0, eq=False))
 
-        log.info(
-            "[INDUCTION] > Formula to check the satisfiability (iteration: 1)")
+        info("[INDUCTION] > Formula to check the satisfiability (iteration: 1)")
         self.solver.write(self.formula.R.smtlib(1, assertion=True))
 
         if not self.solver.check_sat():
@@ -232,42 +230,41 @@ class Induction(AbstractChecker):
     def prove_with_reduction(self):
         """ Prover for reduced Petri Net.
         """
-        log.info("[INDUCTION] > Declaration of the places from the Petri net (0)")
+        info("[INDUCTION] > Declaration of the places from the Petri net (0)")
         self.solver.write(self.ptnet.smtlib_declare_places(0))
 
-        log.info("[K-INDUCTION] > Assert reduction equations")
+        info("[K-INDUCTION] > Assert reduction equations")
         self.solver.write(self.system.smtlib(0, 0))
 
-        log.info("[INDUCTION] > Push")
+        info("[INDUCTION] > Push")
         self.solver.push()
 
-        log.info("[INDUCTION] > Initial marking of the reduced Petri net")
+        info("[INDUCTION] > Initial marking of the reduced Petri net")
         self.solver.write(self.ptnet_reduced.smtlib_initial_marking(0))
 
-        log.info("[INDUCTION] > Assert feared states (0)")
+        info("[INDUCTION] > Assert feared states (0)")
         self.solver.write(self.formula.R.smtlib(0, assertion=True))
 
         if self.solver.check_sat():
             return True
 
-        log.info("[INDUCTION] > Pop")
+        info("[INDUCTION] > Pop")
         self.solver.pop()
 
-        log.info("[INDUCTION] > Assert safe states (0)")
+        info("[INDUCTION] > Assert safe states (0)")
         self.solver.write(self.formula.P.smtlib(0, assertion=True))
 
-        log.info("[INDUCTION] > Declaration of the places from the Petri net (1)")
+        info("[INDUCTION] > Declaration of the places from the Petri net (1)")
         self.solver.write(self.ptnet.smtlib_declare_places(1))
 
-        log.info("[K-INDUCTION] > Assert reduction equations")
+        info("[K-INDUCTION] > Assert reduction equations")
         self.solver.write(self.system.smtlib(1, 1))
 
-        log.info("[INDUCTION] > Transition relation: 0 -> 1")
+        info("[INDUCTION] > Transition relation: 0 -> 1")
         self.solver.write(
             self.ptnet_reduced.smtlib_transition_relation(0, eq=False))
 
-        log.info(
-            "[INDUCTION] > Formula to check the satisfiability (iteration: 1)")
+        info("[INDUCTION] > Formula to check the satisfiability (iteration: 1)")
         self.solver.write(self.formula.R.smtlib(1, assertion=True))
 
         if not self.solver.check_sat():

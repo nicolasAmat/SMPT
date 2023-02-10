@@ -25,8 +25,8 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import subprocess
 from multiprocessing import Process
+from subprocess import run
 from typing import Optional
 
 
@@ -75,7 +75,7 @@ def unfold(path_ptnet: str) -> str:
         Path to the unfold Petri net (.net format).
     """
     new_filename = path_ptnet.replace('.pnml', '_unfolded')
-    subprocess.run(["mcc", "smpt", "-i", path_ptnet, '-o', new_filename])
+    run(["mcc", "smpt", "-i", path_ptnet, '-o', new_filename])
     return new_filename + '.net'
 
 
@@ -93,5 +93,5 @@ def skeleton(path_ptnet: str) -> str:
         Path to the skeleton (.net format).
     """
     new_filename = path_ptnet.replace('.pnml', '_skeleton')
-    subprocess.run(["mcc", "skeleton", "-i", path_ptnet, '-o', new_filename])
+    run(["mcc", "skeleton", "-i", path_ptnet, '-o', new_filename])
     return new_filename + '.net'

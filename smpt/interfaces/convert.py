@@ -25,8 +25,8 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import subprocess
-import tempfile
+from subprocess import DEVNULL, PIPE, run
+from tempfile import NamedTemporaryFile
 
 
 def convert(path_pnml: str) -> tuple[str, bool]:
@@ -44,12 +44,11 @@ def convert(path_pnml: str) -> tuple[str, bool]:
     tuple of str, bool
         Path to the converted Petri net (.net format) and flag if reduce must use the original file.
     """
-    fp_ptnet = tempfile.NamedTemporaryFile(suffix='.net', delete=False)
+    fp_ptnet = NamedTemporaryFile(suffix='.net', delete=False)
     use_pnml_reduce = False
 
-    if subprocess.run(["ndrio", path_pnml, fp_ptnet.name], stderr=subprocess.DEVNULL).returncode:
-        tina_output = subprocess.run(
-            ["tina", "-p", path_pnml], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines()
+    if run(["ndrio", path_pnml, fp_ptnet.name], stderr=DEVNULL).returncode:
+        tina_output = run(["tina", "-p", path_pnml], stdout=PIPE).stdout.decode('utf-8').splitlines()
         fp_ptnet.writelines("{}\n".format(line).encode()
                             for line in tina_output[10:-5])
         fp_ptnet.flush()

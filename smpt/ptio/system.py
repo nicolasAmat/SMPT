@@ -28,8 +28,8 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import re
-import sys
+from re import DOTALL, search, split
+from sys import exit
 from typing import Optional
 
 
@@ -255,15 +255,15 @@ class System:
         """
         try:
             with open(filename, 'r') as fp:
-                content = re.search(r'generated equations\n(.*)?\n\n',
-                                    fp.read().replace('#', '.').replace(',', '.'), re.DOTALL)  # '#' and ',' forbidden in SMT-LIB
+                content = search(r'generated equations\n(.*)?\n\n',
+                                    fp.read().replace('#', '.').replace(',', '.'), DOTALL)  # '#' and ',' forbidden in SMT-LIB
                 if content:
-                    for line in re.split('\n+', content.group())[1:-1]:
+                    for line in split('\n+', content.group())[1:-1]:
                         if line.partition(' |- ')[0] not in ['. O', '. C']:
                             self.equations.append(Equation(line, self))
             fp.close()
         except FileNotFoundError as e:
-            sys.exit(e)
+            exit(e)
 
 
 class Equation:
@@ -474,7 +474,7 @@ class Equation:
         system : System
             Current system of reduction equations. 
         """
-        elements = re.split(r'\s+', content.partition(' |- ')[2])
+        elements = split(r'\s+', content.partition(' |- ')[2])
 
         current, inversed = self.left, self.right
         minus = False

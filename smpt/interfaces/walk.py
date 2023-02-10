@@ -25,10 +25,10 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
-import sys
+from logging import warning
 from multiprocessing import Queue
 from subprocess import PIPE, Popen
+from sys import exit
 from typing import Optional
 
 from smpt.exec.utils import KILL, send_signal_pids
@@ -97,10 +97,10 @@ class Walk(Solver):
     def abort(self) -> None:
         """ Abort the solver.
         """
-        log.warning("Walk process has been aborted")
+        warning("Walk process has been aborted")
         self.solver.kill()
         self.aborted = True
-        sys.exit()
+        exit()
 
     def readline(self, debug: bool = False) -> str:
         """ Read a line from the standard output.

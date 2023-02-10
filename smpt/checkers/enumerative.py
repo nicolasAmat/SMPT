@@ -27,10 +27,10 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import logging as log
-import re
-import sys
+from logging import info
 from multiprocessing import Queue
+from re import split
+from sys import exit
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
@@ -159,7 +159,7 @@ class Enumerative(AbstractChecker):
                 for line in fp.readlines():
                     content = line.strip().replace('(', '').replace(')', '').split(',')
                     if len(content) >= 3 and content[0] == content[-1]:
-                        content = re.split(r'\s+', content[1].replace('"', ''))
+                        content = split(r'\s+', content[1].replace('"', ''))
                         consistent = True
                         marking = dict()
                         for marking_data in content:
@@ -181,7 +181,7 @@ class Enumerative(AbstractChecker):
                         if consistent:
                             self.markings.append(marking)
         except FileNotFoundError as e:
-            sys.exit(e)
+            exit(e)
 
     def prove(self, result: Queue[tuple[Verdict, Marking]], concurrent_pids: Queue[list[int]]) -> None:
         """ Prover.
@@ -193,7 +193,7 @@ class Enumerative(AbstractChecker):
         concurrent_pids : Queue of int
             Queue to get the PIDs of the concurrent methods.
         """
-        log.info("[ENUMERATIVE] RUNNING")
+        info("[ENUMERATIVE] RUNNING")
 
         if self.ptnet_reduced is None:
             self.prove_without_reduction()
@@ -221,21 +221,21 @@ class Enumerative(AbstractChecker):
     def prove_without_reduction(self) -> None:
         """ Prover for non-reduced Petri net.
         """
-        log.info("[ENUMERATIVE] Declaration of the places")
+        info("[ENUMERATIVE] Declaration of the places")
         self.solver.write(self.ptnet.smtlib_declare_places())
-        log.info("[ENUMERATIVE] Formula to check the satisfiability")
+        info("[ENUMERATIVE] Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
-        log.info("[ENUMERATIVE] Markings")
+        info("[ENUMERATIVE] Markings")
         self.solver.write(self.smtlib())
 
     def prove_with_reduction(self) -> None:
         """ Prover for reduced Petri net.
         """
-        log.info("[ENUMERATIVE] Declaration of the places")
+        info("[ENUMERATIVE] Declaration of the places")
         self.solver.write(self.ptnet.smtlib_declare_places())
-        log.info("[ENUMERATIVE] Reduction equations")
+        info("[ENUMERATIVE] Reduction equations")
         self.solver.write(self.system.smtlib())
-        log.info("[ENUMERATIVE] Formula to check the satisfiability")
+        info("[ENUMERATIVE] Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
-        log.info("[ENUMERATIVE] Markings from the reduced Petri net")
+        info("[ENUMERATIVE] Markings from the reduced Petri net")
         self.solver.write(self.smtlib())

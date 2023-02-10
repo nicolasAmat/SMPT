@@ -24,29 +24,28 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import itertools
-import operator
-import os
-import re
-import tempfile
-import uuid
-import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from collections import Counter, deque
+from itertools import product
+from operator import eq, ge, gt, le, lt, ne
+from os import fsync, remove
+from re import search, split, sub
 from tempfile import NamedTemporaryFile
 from typing import Any, Optional, Sequence
+from uuid import uuid4
+from xml.etree.ElementTree import Element, parse
 
 from smpt.interfaces.tipx import Tipx
 from smpt.ptio.ptnet import Marking, PetriNet, Place
 from smpt.ptio.verdict import Verdict
 
 TRANSLATION_COMPARISON_OPERATORS = {
-    '=': operator.eq,
-    '<=': operator.le,
-    '>=': operator.ge,
-    '<': operator.lt,
-    '>': operator.gt,
-    'distinct': operator.ne
+    '=': eq,
+    '<=': le,
+    '>=': ge,
+    '<': lt,
+    '>': gt,
+    'distinct': ne
 }
 
 NEGATION_COMPARISON_OPERATORS = {
@@ -214,7 +213,7 @@ class Properties:
         str
             Path to formula file (.xml format).
         """
-        tree = ET.parse(filename)
+        tree = parse(filename)
         properties_xml = tree.getroot()
 
         for property_xml in properties_xml:
@@ -239,7 +238,7 @@ class Properties:
             Property id.
         """
         if property_id is None:
-            property_id = str(uuid.uuid4())
+            property_id = str(uuid4())
 
         formula.identifier = property_id
         self.formulas[property_id] = formula
@@ -386,7 +385,7 @@ class Properties:
             projected_formula.walk_filename = fp_projected_formula.name
             fp_projected_formula.write(projection)
             fp_projected_formula.flush()
-            os.fsync(fp_projected_formula.fileno())
+            fsync(fp_projected_formula.fileno())
             fp_projected_formula.close()
 
             # Parse and add the projected formula
@@ -433,7 +432,7 @@ class Formula:
         Shadow-completeness of the projected formula.
     """
 
-    def __init__(self, ptnet: PetriNet, identifier: str = "", formula_xml: Optional[ET.Element] = None) -> None:
+    def __init__(self, ptnet: PetriNet, identifier: str = "", formula_xml: Optional[Element] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -442,7 +441,7 @@ class Formula:
             Associated Petri net.
         identifier : str
             Associated identifier.
-        formula_xml : ET.Element, optional
+        formula_xml : Element, optional
             Formula node (.xml format).
         """
         self.ptnet: PetriNet = ptnet
@@ -460,7 +459,7 @@ class Formula:
         # Parikh temporary file management
         self.parikh_filename: Optional[str] = None
         if ptnet.parikh:
-            with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+            with NamedTemporaryFile(delete=False) as tmpfile:
                 self.parikh_filename = tmpfile.name
 
         self.shadow_complete: bool = False
@@ -473,12 +472,12 @@ class Formula:
 
             self.parse_xml(formula_xml[0])
 
-    def parse_xml(self, formula_xml: ET.Element, negation: bool = False) -> Optional[Expression]:
+    def parse_xml(self, formula_xml: Element, negation: bool = False) -> Optional[Expression]:
         """ Formula parser.
 
         Parameters
         ----------
-        formula_xml : ET.Element
+        formula_xml : Element
             Formula node (.xml format).
         negation : bool
             Negation flag.
@@ -531,7 +530,7 @@ class Formula:
 
             elif self.ptnet.skeleton:
                 # skeleton `.net` input Petri net
-                transitions = [self.ptnet.transitions[re.sub("[^0-9a-zA-Z]", "_", tr.text)] for tr in formula_xml]
+                transitions = [self.ptnet.transitions[sub("[^0-9a-zA-Z]", "_", tr.text)] for tr in formula_xml]
 
             elif self.ptnet.pnml_mapping:
                 # `.pnml` input Petri net
@@ -589,12 +588,12 @@ class Formula:
         else:
             raise ValueError("Invalid .xml node")
 
-    def parse_simple_expression_xml(self, formula_xml: ET.Element) -> SimpleExpression:
+    def parse_simple_expression_xml(self, formula_xml: Element) -> SimpleExpression:
         """ SimpleExpression parser.
 
         Parameters
         ----------
-        formula_xml : ET.Element
+        formula_xml : Element
             Formula node (.xml format).
         negation : bool
             Negation flag.
@@ -621,7 +620,7 @@ class Formula:
 
             elif self.ptnet.skeleton:
                 # skeleton `.net` input Petri net
-                places = [self.ptnet.places[re.sub("[^0-9a-zA-Z]", "_", place.text)] for place in formula_xml]
+                places = [self.ptnet.places[sub("[^0-9a-zA-Z]", "_", place.text)] for place in formula_xml]
 
             elif self.ptnet.pnml_mapping:
                 # `.pnml` input Petri net
@@ -790,15 +789,15 @@ class Formula:
 
             else:
                 # Construct Atom
-                if re.search("(<=|>=|<|>|=)", token):
+                if search("(<=|>=|<|>|=)", token):
                     if parse_atom:
-                        _, operator, right = re.split("(<=|>=|<|>|=)", token)
+                        _, operator, right = split("(<=|>=|<|>|=)", token)
                         stack_operands[-1].append(
                             Atom(stack_operands[-1].pop(), _member_constructor(right), operator))
                         parse_atom = False
 
                     else:
-                        left, operator, right = re.split(
+                        left, operator, right = split(
                             "(<=|>=|<|>|=)", token)
                         stack_operands[-1].append(Atom(_member_constructor(
                             left), _member_constructor(right), operator))
@@ -888,7 +887,7 @@ class Formula:
 
         walk_file.write(self.P.walk())
         walk_file.flush()
-        os.fsync(walk_file.fileno())
+        fsync(walk_file.fileno())
         walk_file.close()
 
     def remove_walk_file(self) -> None:
@@ -898,7 +897,7 @@ class Formula:
             return
 
         try:
-            os.remove(self.walk_filename)
+            remove(self.walk_filename)
         except OSError:
             pass
 
@@ -909,7 +908,7 @@ class Formula:
             return
 
         try:
-            os.remove(self.parikh_filename)
+            remove(self.parikh_filename)
         except OSError:
             pass
 
@@ -1615,7 +1614,7 @@ class StateFormula(Expression):
                         operands.append([operand_dnf])
 
                 clauses = []
-                for combination in itertools.product(*operands):
+                for combination in product(*operands):
                     combination_factorized: list[Expression] = []
                     for cube in combination:
                         if isinstance(cube, StateFormula) and cube.operator == 'and':

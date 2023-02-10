@@ -24,8 +24,8 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import time
 from multiprocessing import Process, Queue
+from time import time
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
@@ -381,7 +381,7 @@ class Parallelizer:
             Property id if the computation is completed, None if the time limit is reached.
         """
         # Get the starting time
-        start_time = time.time()
+        start_time = time()
 
         # Join processes
         # Wait for the first process
@@ -389,10 +389,10 @@ class Parallelizer:
         # Wait for the other processes (in case of aborted method)
         if len(self.processes) > 1:
             for proc in self.processes[1:]:
-                proc.join(timeout=timeout - (time.time() - start_time))
+                proc.join(timeout=timeout - (time() - start_time))
 
         # Get the computation time
-        self.computation_time += time.time() - start_time
+        self.computation_time += time() - start_time
 
         # Return result data if one method finished
         for result_method, techniques in zip(self.results, self.techniques):

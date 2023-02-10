@@ -27,11 +27,10 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import re
-import sys
-import xml.etree.ElementTree as ET
+from re import split
+from sys import exit
 from typing import Optional
-
+from xml.etree.ElementTree import parse, register_namespace
 
 MULTIPLIER_TO_INT = {
     'K': 1000,
@@ -344,7 +343,7 @@ class PetriNet:
         """
         xmlns = "{http://www.pnml.org/version-2009/grammar/pnml}"
 
-        tree = ET.parse(filename)
+        tree = parse(filename)
         root = tree.getroot()
 
         for place_node in root.iter(xmlns + 'place'):
@@ -377,7 +376,7 @@ class PetriNet:
                 for line in fp.readlines():
 
                     # '#' and ',' forbidden in SMT-LIB
-                    content = re.split(
+                    content = split(
                         r'\s+', line.strip().replace('#', '.').replace(',', '.'))
 
                     # Skip empty lines and get the first identifier
@@ -409,7 +408,7 @@ class PetriNet:
                         self.parse_place(content)
             fp.close()
         except FileNotFoundError as e:
-            sys.exit(e)
+            exit(e)
 
     def parse_transition(self, content: list[str]) -> None:
         """ Transition parser.
@@ -1301,10 +1300,9 @@ class NUPN:
             Petri net filename (.pnml format).
         """
         xmlns = "{http://www.pnml.org/version-2009/grammar/pnml}"
-        ET.register_namespace(
-            '', "http://www.pnml.org/version-2009/grammar/pnml")
+        register_namespace('', "http://www.pnml.org/version-2009/grammar/pnml")
 
-        tree = ET.parse(filename)
+        tree = parse(filename)
         root = tree.getroot()
         # Check if the net is known to be unit-safe
         structure = root.find(xmlns + "net/" + xmlns + "page/" +

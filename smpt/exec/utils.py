@@ -24,8 +24,8 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import os
 import signal
+from os import getpgid, getpid, kill, killpg
 
 STOP = signal.SIGTERM
 KILL = signal.SIGKILL
@@ -42,7 +42,7 @@ def send_signal_pids(pids: list[int], signal_to_send: signal.Signals):
     signal_to_send : Signals
         Signal to send.
     """
-    current_pid = os.getpid()
+    current_pid = getpid()
 
     for pid in pids:
         # Do not send a signal to the current process
@@ -50,7 +50,7 @@ def send_signal_pids(pids: list[int], signal_to_send: signal.Signals):
             continue
 
         try:
-            os.kill(pid, signal_to_send)
+            kill(pid, signal_to_send)
         except OSError:
             pass
 
@@ -66,6 +66,6 @@ def send_signal_group_pid(pid: int, signal_to_send: signal.Signals):
         Signal to send.
     """
     try:
-        os.killpg(os.getpgid(pid), signal_to_send)
+        killpg(getpgid(pid), signal_to_send)
     except (ProcessLookupError, PermissionError):
         pass

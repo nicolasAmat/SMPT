@@ -37,10 +37,10 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-import copy
-import logging as log
-import platform
-import resource
+from copy import copy
+from logging import info
+from platform import system
+from resource import RLIMIT_AS, setrlimit
 
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
@@ -177,8 +177,8 @@ class States:
             prev_states.current_delta = {pl: self.current_delta.get(pl, 0) + tr.delta.get(pl, 0) for pl in set(self.current_delta) | set(tr.delta)}
 
             # Copy saturated hurdle and delta vectors
-            prev_states.saturated_hurdle = [{pl: copy.copy(hurdle) for pl, hurdle in saturated_hurdle.items()} for saturated_hurdle in self.saturated_hurdle] 
-            prev_states.saturated_delta = {pl: copy.copy(delta) for pl, delta in self.saturated_delta.items()}
+            prev_states.saturated_hurdle = [{pl: copy(hurdle) for pl, hurdle in saturated_hurdle.items()} for saturated_hurdle in self.saturated_hurdle] 
+            prev_states.saturated_delta = {pl: copy(delta) for pl, delta in self.saturated_delta.items()}
 
             # Check if saturation is needed
             if prev_states.cube.need_saturation(prev_states.current_delta) or all(prev_states.current_delta.get(pl, 0) >= 0 for hurdle in self.saturated_hurdle for pl in hurdle):
@@ -320,7 +320,7 @@ class States:
             # Construct the corresponding clause
             clause = StateFormula(literals, "or")
 
-        log.info("[PDR] \t\t\t>> Clause learned: {}".format(clause))
+        info("[PDR] \t\t\t>> Clause learned: {}".format(clause))
         return clause
 
 
@@ -450,7 +450,7 @@ class PDR(AbstractChecker):
         """ Initialization of the OARS.
             F0 = I and F1 = P.
         """
-        log.info("[PDR] > F0 = I and F1 = P")
+        info("[PDR] > F0 = I and F1 = P")
 
         # F0 = I
         marking = []
@@ -469,7 +469,7 @@ class PDR(AbstractChecker):
     def initial_marking_reach_bad_state(self):
         """ sat (I and T and -P')
         """
-        log.info("[PDR] > INIT and T => P'")
+        info("[PDR] > INIT and T => P'")
 
         self.solver.reset()
 
@@ -559,7 +559,7 @@ class PDR(AbstractChecker):
         """ Remove unsat cubes in R.
             If no cubes are satisfiable return True.
         """
-        log.info("[PDR] > Remove unsat cubes from R")
+        info("[PDR] > Remove unsat cubes from R")
 
         self.solver.reset()
 
@@ -605,9 +605,9 @@ class PDR(AbstractChecker):
             replace equalities by "greater or equal than".
         """
         if states:
-            log.info("[PDR] \t>> Generalization (s = {})".format(' or '.join(map(str, states))))
+            info("[PDR] \t>> Generalization (s = {})".format(' or '.join(map(str, states))))
         else:
-            log.info("[PDR] \t>> Generalization (s = {})".format(self.formula.R))
+            info("[PDR] \t>> Generalization (s = {})".format(self.formula.R))
 
         if self.method == 'REACH':
             # Get a marking sequence m_1 -> m_2
@@ -636,13 +636,13 @@ class PDR(AbstractChecker):
                     literals.append(Atom(TokenCount([place]), IntegerConstant(tokens), ">="))
             generalization = States(StateFormula(literals, "and"))
 
-        log.info("[PDR] \t   {}".format(generalization))
+        info("[PDR] \t   {}".format(generalization))
         return generalization
 
     def prove(self, result, concurrent_pids):
         """ Prover.
         """
-        log.info("[PDR] RUNNING")
+        info("[PDR] RUNNING")
 
         try:
 
@@ -652,8 +652,8 @@ class PDR(AbstractChecker):
 
             if self.method == 'REACH':
                 # Limit the memory of the current thread to 4Go (due to the DNF transform explosion)
-                if platform.system() == 'Linux':
-                    resource.setrlimit(resource.RLIMIT_AS, (4294967296, 4294967296))
+                if system() == 'Linux':
+                    setrlimit(RLIMIT_AS, (4294967296, 4294967296))
 
                 # Transform R into DNF
                 self.formula = self.formula.dnf()
@@ -663,15 +663,15 @@ class PDR(AbstractChecker):
                     self.exit_helper(Verdict.INV, result, concurrent_pids)
                     return Verdict.INV
 
-            log.info("[PDR] > R = {}".format(self.formula.R))
-            log.info("[PDR] > P = {}".format(self.formula.P))
+            info("[PDR] > R = {}".format(self.formula.R))
+            info("[PDR] > P = {}".format(self.formula.P))
 
             self.oars_initialization()
 
             k = 1
 
             while True:
-                log.info("[PDR] > F{} = P".format(k + 1))
+                info("[PDR] > F{} = P".format(k + 1))
 
                 self.oars.append([self.formula.P])
                 if not self.strengthen(k):
@@ -699,15 +699,15 @@ class PDR(AbstractChecker):
         """ Iterate until Fk excludes all states
             that lead to a dangerous state in one step.
         """
-        log.info("[PDR] > Strengthen (k = {})".format(k))
+        info("[PDR] > Strengthen (k = {})".format(k))
 
         try:
             while self.formula_reach_bad_state(k):
                 s = self.witness_generalizer(self.feared_states)
                 n = self.inductively_generalize(s, k - 2, k)
 
-                log.info("[PDR] \t\t>> s: {}".format(s))
-                log.info("[PDR] \t\t>> n: {}".format(n))
+                info("[PDR] \t\t>> s: {}".format(s))
+                info("[PDR] \t\t>> n: {}".format(n))
 
                 self.push_generalization({(n + 1, s)}, k)
             return True
@@ -722,7 +722,7 @@ class PDR(AbstractChecker):
             When this is the case, propagate the clause forward,
             i.e. add c to CL(Fi+1)
         """
-        log.info("[PDR] > Propagate Clauses (k = {})".format(k))
+        info("[PDR] > Propagate Clauses (k = {})".format(k))
 
         for i in range(1, k + 1):
             for c in self.oars[i][1:]:  # we do not look at the first clause that corresponds to I or P
@@ -733,14 +733,14 @@ class PDR(AbstractChecker):
         """ Strengthen the invariants in F,
             by adding cubes generated during the `push_generalization`.
         """
-        log.info("[PDR] > Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
+        info("[PDR] > Inductively Generalize (s = {} min = {}, k = {})".format(s, minimum, k))
 
         if minimum < 0 and self.formula_reach_state(0, s):
             raise Counterexample
 
         for i in range(max(1, minimum + 1), k + 1):
             if self.clause_not_relative_inductive(i, s):
-                log.info('[PDR] \t>> F{} reach {}'.format(i, s))
+                info('[PDR] \t>> F{} reach {}'.format(i, s))
                 self.generate_clause(s, i - 1, k)
                 return i - 1
 
@@ -751,7 +751,7 @@ class PDR(AbstractChecker):
         """ Find a minimal inductive cube `c` that is inductive relative to Fi.
             Add c to CL(Fi) for all 1 <= j <= i.
         """
-        log.info("[PDR] > Generate Clause (i = {}, k = {})".format(i, k))
+        info("[PDR] > Generate Clause (i = {}, k = {})".format(i, k))
 
         c = self.sub_clause_finder(i, s)
 
@@ -762,7 +762,7 @@ class PDR(AbstractChecker):
         """ Apply inductive generalization of a dangerous state s 
             to its Fi state predecessors.
         """
-        log.info("[PDR] > Push generalization (k = {})".format(k))
+        info("[PDR] > Push generalization (k = {})".format(k))
 
         while True:
             n, s = min(states, key=lambda t: t[0])
@@ -771,7 +771,7 @@ class PDR(AbstractChecker):
                 return
 
             if self.formula_reach_state(n, s):
-                log.info('[PDR] \t>> F{} reach {}'.format(n, s))
+                info('[PDR] \t>> F{} reach {}'.format(n, s))
                 p = self.witness_generalizer([s])
                 m = self.inductively_generalize(p, n - 2, k)
                 states.add((m + 1, p))
