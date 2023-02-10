@@ -152,20 +152,22 @@ class PetriNet:
 
         return text
 
-    def smtlib_declare_places(self, k: Optional[int] = None) -> str:
+    def smtlib_declare_places(self, k: Optional[int] = None, non_negative: bool = True) -> str:
         """ Declare places.
 
         Parameters
         ----------
         k : int, optional
             Order.
+        non_negative : bool, optional
+            Assert non-negative constraints.
 
         Returns
         -------
         str
             SMT-LIB format.
         """
-        return ''.join(map(lambda pl: pl.smtlib_declare(k), self.places.values()))
+        return ''.join(map(lambda pl: pl.smtlib_declare(k, non_negative=non_negative), self.places.values()))
 
     def minizinc_declare_places(self) -> str:
         """ Declare places.
@@ -673,20 +675,22 @@ class Place:
         """
         return "{}@{}".format(self.id, k) if k is not None else self.id
 
-    def smtlib_declare(self, k: Optional[int] = None) -> str:
+    def smtlib_declare(self, k: Optional[int] = None, non_negative: bool = True) -> str:
         """ Declare a place.
 
         Parameters
         ----------
         k : int, optional
             Order.
+        non_negative : bool, optional
+            Assert non-negative constraints.
 
         Returns
         -------
         str
             SMT-LIB format.
         """
-        return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.smtlib(k), self.smtlib(k))
+        return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.smtlib(k), self.smtlib(k)) if non_negative else "(declare-const {} Int)\n".format(self.smtlib(k))
 
     def minizinc_declare(self) -> str:
         """ Declare a place.
