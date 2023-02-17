@@ -49,10 +49,10 @@ def unfold_and_skeleton(path_ptnet: str, timeout_unfold: Optional[int] = None) -
     skeleton_proc = Process(target=skeleton, args=(path_ptnet,))
     skeleton_proc.start()
 
-    unfold_proc.join(timeout=0)
+    unfold_proc.join(timeout=timeout_unfold)
     skeleton_proc.join()
 
-    if unfold_proc.is_alive:
+    if unfold_proc.is_alive():
         unfold_proc.kill()
         unfold_path = None
     else:
