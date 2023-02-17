@@ -26,16 +26,18 @@ __version__ = "4.0.0"
 
 from abc import ABC, abstractmethod
 from collections import Counter, deque
+from copy import deepcopy
 from itertools import product
 from operator import eq, ge, gt, le, lt, ne
 from os import fsync, remove
-from re import search, split, sub
+from re import search, split
 from tempfile import NamedTemporaryFile
 from typing import Any, Optional, Sequence
 from uuid import uuid4
 from xml.etree.ElementTree import Element, parse
 
 from smpt.interfaces.tipx import Tipx
+from smpt.interfaces.z3 import Z3
 from smpt.ptio.ptnet import Marking, PetriNet, Place
 from smpt.ptio.verdict import Verdict
 
@@ -123,13 +125,15 @@ class Properties:
         Associated Petri net.
     ptnet_tfg : PetriNet, optional
         Associated reduced Petri net (TFG).
+    ptnet_skeleton : PetriNet, optional
+        Skeleton Petri net (if colored).
     formulas : dict of str: Formula
         Set of formulas.
     projected_formulas : dict of str: Formula
         Set of projected formulas.
     """
 
-    def __init__(self, ptnet: PetriNet, ptnet_tfg: Optional[PetriNet] = None, xml_filename: Optional[str] = None) -> None:
+    def __init__(self, ptnet: PetriNet, ptnet_tfg: Optional[PetriNet] = None, ptnet_skeleton: Optional[PetriNet] = None, xml_filename: Optional[str] = None, fireability: bool = False, simplify: bool = False) -> None:
         """ Initializer.
 
         Parameters
@@ -138,17 +142,24 @@ class Properties:
             Associated Petri net.
         ptnet_tfg : PetriNet, optional
             Associated reduced Petri net (TFG).
+        ptnet_skeleton : PetriNet, optional
+            Skeleton Petri net (if colored).
         xml_filename : str, optional
             Path to formula file (.xml format).
+        fireability : bool, optional
+            Fireability mode.
+        simplify : bool, optional
+            Enable simplification formula using z3.
         """
         self.ptnet: PetriNet = ptnet
-        self.ptnet_tfg: PetriNet = ptnet_tfg
+        self.ptnet_tfg: Optional[PetriNet] = ptnet_tfg
+        self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
 
         self.formulas: dict[str, Formula] = {}
         self.projected_formulas: dict[str, Formula] = {}
 
         if xml_filename is not None:
-            self.parse_xml(xml_filename)
+            self.parse_xml(xml_filename, fireability=fireability, simplify=simplify)
 
     def __str__(self) -> str:
         """ Properties to textual format.
@@ -180,8 +191,7 @@ class Properties:
         smt_input = ""
 
         for formula_id, formula in self.formulas.items():
-            smt_input += "; -> Property {}\n{}\n".format(
-                formula_id, formula.smtlib())
+            smt_input += "; -> Property {}\n{}\n".format(formula_id, formula.smtlib())
 
         return smt_input
 
@@ -200,18 +210,21 @@ class Properties:
         minizinc_input = ""
 
         for formula_id, formula in self.formulas.items():
-            minizinc_input += "; -> Property {}\n{}\n".format(
-                formula_id, formula.minizinc())
+            minizinc_input += "; -> Property {}\n{}\n".format(formula_id, formula.minizinc())
 
         return minizinc_input
 
-    def parse_xml(self, filename: str) -> None:
+    def parse_xml(self, filename: str, fireability: bool = False, simplify: bool = False) -> None:
         """ Properties parser.
 
         Parameters
         ----------
-        str
+        filename : str
             Path to formula file (.xml format).
+        fireability : bool, optional
+            Fireability mode.
+        simplify : bool, optional
+            Enable simplification formula using z3.
         """
         tree = parse(filename)
         properties_xml = tree.getroot()
@@ -219,9 +232,7 @@ class Properties:
         for property_xml in properties_xml:
             property_id = property_xml[0].text
             formula_xml = property_xml[2]
-
-            self.add_formula(
-                Formula(self.ptnet, formula_xml=formula_xml), property_id)
+            self.add_formula(Formula(self.ptnet, ptnet_skeleton=self.ptnet_skeleton, formula_xml=formula_xml, fireability=fireability, simplify=simplify), property_id)
 
     def add_formula(self, formula: Formula, property_id: Optional[str] = None) -> None:
         """ Add a formula.
@@ -273,8 +284,7 @@ class Properties:
             Comma separated list of transition names.
         """
         property_id = "Quasi-liveness-{}".format(quasi_live_transitions)
-        transitions = quasi_live_transitions.replace(
-            '#', '.').replace('{', '').replace('}', '').split(',')
+        transitions = quasi_live_transitions.replace('#', '.').replace('{', '').replace('}', '').split(',')
         formula = Formula(self.ptnet, identifier=property_id)
         formula.generate_quasi_liveness(transitions)
         self.add_formula(formula, property_id)
@@ -288,8 +298,7 @@ class Properties:
             Comma separated list of place names.
         """
         property_id = "Reachability:-{}".format(reachable_places)
-        places = reachable_places.replace('#', '.').replace(
-            '{', '').replace('}', '').split(',')
+        places = reachable_places.replace('#', '.').replace('{', '').replace('}', '').split(',')
         marking = {self.ptnet.places[pl]: 1 for pl in places}
         formula = Formula(self.ptnet, identifier=property_id)
         formula.generate_reachability(marking)
@@ -304,8 +313,7 @@ class Properties:
             List of queries.
         """
         indices = set(map(int, queries.split(',')))
-        self.formulas = {property_id: formula for index, (property_id, formula) in enumerate(
-            self.formulas.items()) if index in indices}
+        self.formulas = {property_id: formula for index, (property_id, formula) in enumerate(self.formulas.items()) if index in indices}
 
     def dnf(self) -> Properties:
         """ Convert all formulas to Disjunctive Normal Form (DNF).
@@ -333,6 +341,15 @@ class Properties:
             formula.remove_walk_file()
         for formula in self.projected_formulas.values():
             formula.remove_walk_file()
+
+    def generate_parikh_files(self) -> None:
+        """ Generated temporary Parikh files.
+        """
+        for property_id in self.formulas.keys():
+            if property_id in self.projected_formulas and self.projected_formulas[property_id].shadow_complete:
+                self.projected_formulas[property_id].generate_parikh_file()
+            else:
+                self.formulas[property_id].generate_parikh_file()
 
     def remove_parikh_files(self) -> None:
         """ Delete temporary files.
@@ -364,8 +381,7 @@ class Properties:
         tipx = Tipx(ptnet_tfg.filename, debug=debug)
 
         # Run projections
-        projections = tipx.project(list(self.formulas.values(
-        )), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
+        projections = tipx.project(list(self.formulas.values()), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
 
         # Iterate over projections
         for (projection, complete), (property_id, formula) in zip(projections, self.formulas.items()):
@@ -380,8 +396,7 @@ class Properties:
             projected_formula.shadow_complete = complete
 
             # Write the projected formula into a temporary file
-            fp_projected_formula = NamedTemporaryFile(
-                'w', suffix='.ltl', delete=False)
+            fp_projected_formula = NamedTemporaryFile('w', suffix='.ltl', delete=False)
             projected_formula.walk_filename = fp_projected_formula.name
             fp_projected_formula.write(projection)
             fp_projected_formula.flush()
@@ -395,12 +410,10 @@ class Properties:
             self.projected_formulas[property_id] = projected_formula
 
             if show_projection or save_projection:
-                output_projection = "<> " + projected_formula.R.walk() if projected_formula.property_def == 'finally' else "[] " + \
-                    projected_formula.P.walk()
+                output_projection = "<> " + projected_formula.R.walk() if projected_formula.property_def == 'finally' else "[] " + projected_formula.P.walk()
                 # Show projected formula if option enabled
                 if show_projection:
-                    print("# Projection of {}:".format(
-                        property_id), output_projection)
+                    print("# Projection of {}:".format(property_id), output_projection)
                 # Save projected formula if option enabled
                 if save_projection:
                     with open(save_projection + "/" + property_id + ".ltl", 'w') as fp:
@@ -414,14 +427,18 @@ class Formula:
     ----------
     ptnet : PetriNet
         Associated Petri net.
+    ptnet_skeleton : PetriNet, optional
+        Skeleton Petri net (if colored).
     identifier : str
         Associated identifier.
+    property_def : str
+        Property definition ('finally' or 'globally').
     R : Expression, optional
         Feared events.
     P: Expression, optional
         Unfeared events.
-    property_def : str
-        Property definition (exists-paths finally, all-paths globally).
+    R_skeleton : Expression, optional
+        Feared events (on skeleton).
     non_monotonic : bool
         Monotonicity flag.
     walk_filename : str, optional
@@ -432,55 +449,85 @@ class Formula:
         Shadow-completeness of the projected formula.
     """
 
-    def __init__(self, ptnet: PetriNet, identifier: str = "", formula_xml: Optional[Element] = None) -> None:
+    def __init__(self, ptnet: PetriNet, ptnet_skeleton: Optional[PetriNet] = None, identifier: str = "", formula_xml: Optional[Element] = None, fireability: bool = False, simplify: bool = False) -> None:
         """ Initializer.
 
         Parameters
         ----------
         ptnet : PetriNet
             Associated Petri net.
+        ptnet_skeleton : PetriNet, optional
+            Skeleton Petri net (if colored).
         identifier : str
             Associated identifier.
         formula_xml : Element, optional
             Formula node (.xml format).
+        fireability : bool, optional
+            Fireability mode.
+        simplify : bool, optional
+            Enable simplification formula using z3.
+
         """
         self.ptnet: PetriNet = ptnet
+        self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
 
         self.identifier: str = identifier
+        self.property_def: str = ""
 
         self.R: Optional[Expression] = None
         self.P: Optional[Expression] = None
 
-        self.property_def: str = ""
+        self.R_skeleton: Optional[Expression] = None
+
         self.non_monotonic: bool = False
 
+        # Temporary files
         self.walk_filename: Optional[str] = None
-
-        # Parikh temporary file management
         self.parikh_filename: Optional[str] = None
-        if ptnet.parikh:
-            with NamedTemporaryFile(delete=False) as tmpfile:
-                self.parikh_filename = tmpfile.name
 
+        # Misc information
+        self.fireability: bool = fireability
         self.shadow_complete: bool = False
 
+        # Parse XML
         if formula_xml is not None:
             _, _, node = formula_xml.tag.rpartition('}')
 
             if node != 'formula':
                 raise ValueError("Invalid formula")
 
-            self.parse_xml(formula_xml[0])
+            if simplify:
+                simplified_formula = Z3().simplify(self.parse_xml_to_smt(formula_xml[0]))
+                f = self.parse_smt(simplified_formula, lets={}, predicates={}) if self.ptnet else None
+                f_skeleton = self.parse_smt(simplified_formula, lets={}, predicates={}, skeleton=True) if self.ptnet_skeleton else None
+            else:
+                f = self.parse_xml(formula_xml[0])
+                f_skeleton = self.parse_xml(formula_xml[0], skeleton=True) if self.ptnet_skeleton else None
+            
+            if self.property_def == 'finally':
+                if f:
+                    self.R = f
+                    self.P = StateFormula([f], 'not')
+                self.R_skeleton = f_skeleton
+            else:
+                if f:
+                    self.R = StateFormula([f], 'not')
+                    self.P = f
+                if f_skeleton:
+                    self.R_skeleton = StateFormula([f_skeleton], 'not')
 
-    def parse_xml(self, formula_xml: Element, negation: bool = False) -> Optional[Expression]:
+            if self.R:
+                self.non_monotonic = not self.R.is_monotonic()
+
+    def parse_xml(self, formula_xml: Element, skeleton: bool = False) -> Optional[Expression]:
         """ Formula parser.
 
         Parameters
         ----------
         formula_xml : Element
             Formula node (.xml format).
-        negation : bool
-            Negation flag.
+        skeleton : bool, optional
+            Parsing skeleton property.
 
         Returns
         -------
@@ -499,63 +546,43 @@ class Formula:
 
             if (node, child) == ('exists-path', 'finally'):
                 self.property_def = child
-                self.R = self.parse_xml(formula_xml[0][0])
-                self.P = StateFormula([self.R], 'not')
 
             if (node, child) == ('all-paths', 'globally'):
                 self.property_def = child
-                self.P = self.parse_xml(formula_xml[0][0])
-                self.R = StateFormula([self.P], 'not')
 
-            return None
+            return self.parse_xml(formula_xml[0][0], skeleton)
 
         elif node == 'deadlock':
             return self.generate_deadlock()
 
         elif node in ['negation', 'conjunction', 'disjunction']:
-            negation ^= node == 'negation'
-            operands = [self.parse_xml(operand_xml, negation=negation)
-                        for operand_xml in formula_xml]
-            return StateFormula(operands, node)
+            return StateFormula([self.parse_xml(operand_xml, skeleton) for operand_xml in formula_xml], node)
 
         elif node == 'is-fireable':
             clauses: list[Expression] = []
+            
+            if skeleton:
+                # skeleton `.net` input Petri net
+                transitions = [self.ptnet.transitions[tr] for tr in formula_xml]
 
-            if self.ptnet.colored:
+            elif self.ptnet.colored:
                 # colored `.pnml` input Petri net
                 transitions = []
                 for colored_transition in formula_xml:
-                    transitions += [self.ptnet.transitions[tr]
-                                    for tr in self.ptnet.colored_transitions_mapping[colored_transition.text]]
-
-            elif self.ptnet.skeleton:
-                # skeleton `.net` input Petri net
-                transitions = [self.ptnet.transitions[sub("[^0-9a-zA-Z]", "_", tr.text)] for tr in formula_xml]
+                    transitions += [self.ptnet.transitions[tr] for tr in self.ptnet.colored_transitions_mapping[colored_transition.text]]
 
             elif self.ptnet.pnml_mapping:
                 # `.pnml` input Petri net
-                transitions = [
-                    self.ptnet.transitions[self.ptnet.pnml_transitions_mapping[tr.text]] for tr in formula_xml]
+                transitions = [self.ptnet.transitions[self.ptnet.pnml_transitions_mapping[tr.text]] for tr in formula_xml]
 
             else:
                 # `.net` input Petri net
-                transitions = [self.ptnet.transitions[tr.text.replace(
-                    '#', '.').replace(',', '.')] for tr in formula_xml]
+                transitions = [self.ptnet.transitions[tr.text.replace('#', '.').replace(',', '.')] for tr in formula_xml]
 
             for tr in transitions:
                 inequalities = []
                 for pl, weight in tr.pre.items():
-                    if weight > 0:
-                        inequality = Atom(TokenCount(
-                            [pl]), IntegerConstant(weight), '>=')
-                        if (self.property_def == 'finally' and negation) or (self.property_def == 'globally' and not negation):
-                            self.non_monotonic = True
-                    else:
-                        inequality = Atom(TokenCount(
-                            [pl]), IntegerConstant(-weight), '<')
-                        if (self.property_def == 'finally' and not negation) or (self.property_def == 'globally' and negation):
-                            self.non_monotonic = True
-                    inequalities.append(inequality)
+                    inequalities.append(Atom(TokenCount([pl]), IntegerConstant(weight), '>='))
 
                 if not inequalities:
                     clauses.append(BooleanConstant(True))
@@ -570,33 +597,20 @@ class Formula:
                 return StateFormula(clauses, 'or')
 
         elif node in ['integer-le', 'integer-ge', 'integer-eq']:
-            left_operand = self.parse_simple_expression_xml(formula_xml[0])
-            right_operand = self.parse_simple_expression_xml(formula_xml[1])
-
-            finally_monotonic = self.property_def == 'finally' \
-                and ((not negation and isinstance(left_operand, IntegerConstant) and isinstance(right_operand, TokenCount))
-                     or (negation and isinstance(left_operand, TokenCount) and isinstance(right_operand, IntegerConstant)))
-            globally_monotonic = self.property_def == 'globally' \
-                and ((negation and isinstance(left_operand, IntegerConstant) and isinstance(right_operand, TokenCount))
-                     or (not negation and isinstance(left_operand, TokenCount) and isinstance(right_operand, IntegerConstant)))
-
-            if not (finally_monotonic or globally_monotonic):
-                self.non_monotonic = True
-
-            return Atom(left_operand, right_operand, XML_TO_COMPARISON_OPERATORS[node])
+            return Atom(self.parse_simple_expression_xml(formula_xml[0], skeleton), self.parse_simple_expression_xml(formula_xml[1], skeleton), XML_TO_COMPARISON_OPERATORS[node])
 
         else:
             raise ValueError("Invalid .xml node")
 
-    def parse_simple_expression_xml(self, formula_xml: Element) -> SimpleExpression:
+    def parse_simple_expression_xml(self, formula_xml: Element, skeleton: bool = False) -> SimpleExpression:
         """ SimpleExpression parser.
 
         Parameters
         ----------
         formula_xml : Element
             Formula node (.xml format).
-        negation : bool
-            Negation flag.
+        skeleton: bool, optional
+            Parsing skeleton property.
 
         Returns
         -------
@@ -611,26 +625,23 @@ class Formula:
         _, _, node = formula_xml.tag.rpartition('}')
 
         if node == 'tokens-count':
-            if self.ptnet.colored:
+            if skeleton:
+                # skeleton `.net` input Petri net
+                places = [self.ptnet_skeleton.places[place.text] for place in formula_xml]
+
+            elif self.ptnet.colored:
                 # colored `.pnml` input Petri net
                 places = []
                 for colored_place in formula_xml:
-                    places += [self.ptnet.places[pl]
-                               for pl in self.ptnet.colored_places_mapping[colored_place.text.replace('#', '.')]]
-
-            elif self.ptnet.skeleton:
-                # skeleton `.net` input Petri net
-                places = [self.ptnet.places[sub("[^0-9a-zA-Z]", "_", place.text)] for place in formula_xml]
+                    places += [self.ptnet.places[pl] for pl in self.ptnet.colored_places_mapping[colored_place.text.replace('#', '.')]]
 
             elif self.ptnet.pnml_mapping:
                 # `.pnml` input Petri net
-                places = [self.ptnet.places[self.ptnet.pnml_places_mapping[place.text.replace(
-                    '#', '.')]] for place in formula_xml]
+                places = [self.ptnet.places[self.ptnet.pnml_places_mapping[place.text.replace('#', '.')]] for place in formula_xml]
 
             else:
                 # `.net` input Petri net
-                places = [self.ptnet.places[place.text.replace(
-                    '#', '.')] for place in formula_xml]
+                places = [self.ptnet.places[place.text.replace('#', '.')] for place in formula_xml]
             return TokenCount(places)
 
         elif node == 'integer-constant':
@@ -639,6 +650,216 @@ class Formula:
 
         else:
             raise ValueError("Invalid .xml node")
+
+    def parse_xml_to_smt(self, formula_xml: Element, support: Optional[set[str]] = None) -> str:
+        """ Parse XML formula and return SMT-LIB assertion.
+
+        Parameters
+        ----------
+        formula_xml : Element
+            Formula node (.xml format).
+        support : set of str, optional
+            Support of the formula.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        _, _, node = formula_xml.tag.rpartition('}')
+
+        if node in ['exists-path', 'all-paths']:
+            _, _, child = formula_xml[0].tag.rpartition('}')
+
+            if (node, child) == ('exists-path', 'finally'):
+                self.property_def = child
+                
+            if (node, child) == ('all-paths', 'globally'):
+                self.property_def = child
+
+            support = set()
+            formula = self.parse_xml_to_smt(formula_xml[0][0], support)
+
+            if self.fireability:
+                return ''.join(map(lambda var: "(declare-const {} Bool)\n".format(var), support)) + "(assert {})\n".format(formula)
+            else: 
+                return ''.join(map(lambda var: "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var, var), support)) + "(assert {})\n".format(formula)
+
+        elif node in ['negation', 'conjunction', 'disjunction']:
+            return "({} {})".format(XML_TO_BOOLEAN_OPERATORS[node], ' '.join([self.parse_xml_to_smt(operand_xml, support) for operand_xml in formula_xml]))
+
+        elif node in ['integer-le', 'integer-ge', 'integer-eq']:
+            return "({} {} {})".format(XML_TO_COMPARISON_OPERATORS[node], self.parse_xml_to_smt(formula_xml[0], support), self.parse_xml_to_smt(formula_xml[1], support))
+
+        elif node == 'is-fireable':
+            for var in formula_xml:
+                support.add(var.text)
+            return "(or {})".format(' '.join(map(lambda el: el.text, formula_xml))) if len(formula_xml) > 1 else formula_xml[0].text
+
+        elif node == 'tokens-count':
+            for var in formula_xml:
+                support.add(var.text)
+            return "(+ {})".format(' '.join(map(lambda el: el.text, formula_xml))) if len(formula_xml) > 1 else formula_xml[0].text
+
+        elif node == 'integer-constant':
+            return formula_xml.text
+
+        else:
+            raise ValueError("Invalid .xml node")
+
+    def smt_expand_helper(self, l: list[str], predicates: dict[str, SimpleExpression], skeleton: bool = False):
+        """ Helper for parsing simplified formula (SMT-LIB format).
+
+        Parameters
+        ----------
+        l : list of str
+            List to parse.
+        lets : dict of str: SimpleExpression
+            Lets associations.
+        predicates : dict of str: SimpleExpression
+            Memoization of expanded predicates.
+        skeleton : bool, optional
+            Parsing skeleton property.
+        """
+        # Check if memoized
+        if len(l) == 1 and l[0] in predicates:
+            return predicates[l[0]]
+
+        if self.fireability:
+            clauses: list[Expression] = []
+
+            if skeleton:
+                # skeleton `.net` input Petri net
+                transitions = [self.ptnet_skeleton.transitions[tr] for tr in l]
+
+            elif self.ptnet.colored:
+                # colored `.pnml` input Petri net
+                transitions = []
+                for colored_transition in l:
+                    transitions += [self.ptnet.transitions[tr] for tr in self.ptnet.colored_transitions_mapping[colored_transition]]
+
+            elif self.ptnet.pnml_mapping:
+                # `.pnml` input Petri net
+                transitions = [self.ptnet.transitions[self.ptnet.pnml_transitions_mapping[tr]] for tr in l]
+
+            else:
+                # `.net` input Petri net
+                transitions = [self.ptnet.transitions[tr.replace('#', '.').replace(',', '.')] for tr in l]
+
+            for tr in transitions:
+                inequalities = []
+                for pl, weight in tr.pre.items():
+                    inequality = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
+                    inequalities.append(inequality)
+
+                if not inequalities:
+                    clauses.append(BooleanConstant(True))
+                elif len(inequalities) == 1:
+                    clauses.append(inequalities[0])
+                else:
+                    clauses.append(StateFormula(inequalities, 'and'))
+
+            predicate: SimpleExpression = clauses[0] if len(clauses) == 1 else StateFormula(clauses, 'or')
+
+        else:
+            if skeleton:
+                # skeleton `.net` input Petri net
+                places = [self.ptnet_skeleton.places[place] for place in l]
+
+            elif self.ptnet.colored:
+                # colored `.pnml` input Petri net
+                places = []
+
+                for colored_place in l:
+                    places += [self.ptnet.places[pl] for pl in self.ptnet.colored_places_mapping[colored_place.replace('#', '.')]]
+
+            elif self.ptnet.pnml_mapping:
+                # `.pnml` input Petri net
+                places = [self.ptnet.places[self.ptnet.pnml_places_mapping[place]] for place in l]
+
+            else:
+                # `.net` input Petri net
+                places = [self.ptnet.places[place.replace('#', '.')] for place in l]
+
+            predicate = TokenCount(places)
+        
+        # Memoize and returns
+        if len(l) == 1:
+            predicates[l[0]] = predicate
+        return predicate
+
+    def parse_smt(self, simplified_formula: list[Any], lets: dict[str, SimpleExpression] = {}, predicates: dict[str, SimpleExpression] = {}, skeleton: bool = False) -> Optional[Expression]:
+        """ Parse simplified formula (SMT-LIB format).
+
+        Parameters
+        ----------
+        simplified_formula : Any
+            Result from sexpdata library.
+        lets : dict of str: SimpleExpression, optional
+            Lets associations.
+        predicates : dict of str: SimpleExpression, optional
+            Memoization of expanded predicates.
+        skeleton : bool, optional
+            Parsing skeleton property.
+        """
+        if type(simplified_formula) is not list:
+            element = str(simplified_formula)
+            if element.isnumeric():
+                return IntegerConstant(int(element))
+            elif element in lets:
+                return lets[element]
+            elif element in ["true", "false"]:
+                return BooleanConstant(element == "true")
+            else:
+                return self.smt_expand_helper([element], predicates, skeleton)
+
+        if len(simplified_formula) == 1:
+            return self.parse_smt(simplified_formula[0], lets, predicates, skeleton)
+
+        operator = str(simplified_formula[0])
+
+        if operator == "goals":
+            return self.parse_smt(simplified_formula[1], lets, predicates, skeleton)
+
+        elif operator in ["goal", "and", "or", "not"]:
+
+            if operator == "goal":
+                to_parse = simplified_formula[1:-4]
+                operator = "and"
+            else:
+                to_parse = simplified_formula[1:]
+
+            operands = []
+
+            for expr in to_parse:
+                parsed_expr = self.parse_smt(expr, lets, predicates, skeleton)
+                if parsed_expr is not None:
+                    operands.append(parsed_expr)
+
+            if not operands:
+                return BooleanConstant(False) if operator in ["or", "not"] else BooleanConstant(True)
+
+            elif operator != "not" and len(operands) == 1:
+                return operands[0]
+
+            else:
+                return StateFormula(operands, operator)
+
+        elif operator == "let":
+            for lets_statement in simplified_formula[1]:
+                lets[str(lets_statement[0])] = self.parse_smt(lets_statement[1], lets, predicates, skeleton)
+            return self.parse_smt(simplified_formula[2:], lets, predicates, skeleton)
+
+        elif operator in ["<=", ">=", '<', '>', "=", "distinct"]:
+            if (operator == "<=" and str(simplified_formula[1]) == '0') or (operator == ">=" and str(simplified_formula[2]) == '0'):
+                return None
+            return Atom(self.parse_smt(simplified_formula[1], lets, predicates, skeleton), self.parse_smt(simplified_formula[2], lets, predicates, skeleton), operator)
+
+        elif operator == '+':
+            return self.smt_expand_helper([str(element) for element in simplified_formula[1:]], predicates, skeleton)
+
+        else:
+            raise ValueError
 
     def parse_ltl(self, formula: str) -> None:
         """ Properties parser.
@@ -901,6 +1122,12 @@ class Formula:
         except OSError:
             pass
 
+    def generate_parikh_file(self) -> None:
+        """ Generated temporary Parikh files.
+        """
+        with NamedTemporaryFile(delete=False) as tmpfile:
+            self.parikh_filename = tmpfile.name
+
     def remove_parikh_file(self) -> None:
         """ Delete temporary file.
         """
@@ -926,13 +1153,7 @@ class Formula:
             inequalities_R = []
 
             for pl, weight in tr.pre.items():
-                if weight > 0:
-                    ineq_R = Atom(TokenCount([pl]),
-                                  IntegerConstant(weight), '<')
-                else:
-                    ineq_R = Atom(TokenCount([pl]),
-                                  IntegerConstant(-weight), '>=')
-                inequalities_R.append(ineq_R)
+                inequalities_R.append(Atom(TokenCount([pl]), IntegerConstant(weight), '<'))
 
             if not inequalities_R:
                 clauses_R.append(BooleanConstant(False))
@@ -963,14 +1184,7 @@ class Formula:
             inequalities_R = []
 
             for pl, weight in self.ptnet.transitions[tr_id].pre.items():
-                if weight > 0:
-                    ineq_R = Atom(TokenCount([pl]),
-                                  IntegerConstant(weight), '>=')
-                else:
-                    ineq_R = Atom(TokenCount([pl]),
-                                  IntegerConstant(-weight), '<')
-                    self.non_monotonic = True
-                inequalities_R.append(ineq_R)
+                inequalities_R.append(Atom(TokenCount([pl]), IntegerConstant(weight), '>='))
 
             if not inequalities_R:
                 clauses_R.append(BooleanConstant(True))
@@ -994,8 +1208,7 @@ class Formula:
         clauses_R = []
 
         for pl, tokens in marking.items():
-            clauses_R.append(
-                Atom(TokenCount([pl]), IntegerConstant(tokens), '>='))
+            clauses_R.append(Atom(TokenCount([pl]), IntegerConstant(tokens), '>='))
 
         self.R = StateFormula(clauses_R, 'and')
         self.P = StateFormula([self.R], 'not')
@@ -1307,6 +1520,30 @@ class Expression(SimpleExpression):
             Need saturation.
         """
         pass
+
+    def is_monotonic(self, negation : bool = False) -> bool:
+        """ Is monotonic.
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Negation flag.
+        
+        Returns
+        -------
+        bool
+            Is monotonic.
+        """
+        pass
+
+    def tautology(self) -> Optional[bool]:
+        """ Is a tautology or a contradiction.
+
+        Returns
+        -------
+        bool
+            `True` if tautology, `False` if contraction, and `None` otherwise.
+        """
 
 
 class StateFormula(Expression):
@@ -1732,6 +1969,50 @@ class StateFormula(Expression):
             Need saturation.
         """
         return all(operand.need_saturation(current_delta) for operand in self.operands)
+    
+    def is_monotonic(self, negation : bool = False) -> bool:
+        """ Is monotonic.
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Negation flag.
+        
+        Returns
+        -------
+        bool
+            Is monotonic.
+        """
+        return all(operand.is_monotonic(negation ^ (self.operator == 'not')) for operand in self.operands)
+    
+    def tautology(self) -> Optional[bool]:
+        """ Is a tautology or a contradiction.
+
+        Returns
+        -------
+        bool
+            `True` if tautology, `False` if contraction, and `None` otherwise.
+        """
+        verdicts = []
+
+        for operand in self.operands:
+            verdict = operand.tautology()
+            if verdict is None:
+                return None
+            else:
+                verdicts.append(verdict)
+
+        if self.operator == 'not':
+            return not verdicts[0]
+
+        elif self.operator == 'and':
+            return all(verdicts)
+
+        elif self.operator == 'or':
+            return any(verdicts)
+
+        else:
+            return None
 
 
 class Atom(Expression):
@@ -1993,13 +2274,11 @@ class Atom(Expression):
             else:
                 # Compute the monotonicty and anti-monocity of the atom
                 if self.operator in ['<', '<=']:
-                    self.anti_monotonic = isinstance(self.left_operand, TokenCount) and isinstance(
-                        self.right_operand, IntegerConstant)
+                    self.anti_monotonic = isinstance(self.left_operand, TokenCount) and isinstance(self.right_operand, IntegerConstant)
                 elif self.operator in ['>', '>=']:
-                    self.monotonic = isinstance(self.left_operand, TokenCount) and isinstance(
-                        self.right_operand, IntegerConstant)
+                    self.monotonic = isinstance(self.left_operand, TokenCount) and isinstance(self.right_operand, IntegerConstant)
 
-                return self
+                return Atom(self.left_operand.dnf(), self.right_operand.dnf(), self.operator)
 
     def eval(self, m: Marking) -> bool:
         """ Evaluate the Atom with marking m.
@@ -2067,6 +2346,44 @@ class Atom(Expression):
             Self.
         """
         return self
+    
+    def is_monotonic(self, negation : bool = False) -> bool:
+        """ Is monotonic.
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Negation flag.
+        
+        Returns
+        -------
+        bool
+            Is monotonic.
+        """
+        if isinstance(self.left_operand, IntegerConstant) and isinstance(self.right_operand, IntegerConstant):
+            return True
+        elif (not negation and self.operator in [">=", ">"]) or (negation and self.operator in ["<=", "<"]): 
+            return isinstance(self.left_operand, TokenCount) and isinstance(self.right_operand, IntegerConstant)
+        elif (negation and self.operator in [">=", ">"]) or (not negation and self.operator in ["<=", "<"]):
+            return isinstance(self.left_operand, IntegerConstant) and isinstance(self.right_operand, TokenCount)
+        else:
+            return False
+        
+    def tautology(self) -> Optional[bool]:
+        """ Is a tautology or a contradiction.
+
+        Returns
+        -------
+        bool
+            `True` if tautology, `False` if contraction, and `None` otherwise.
+        """
+        if isinstance(self.left_operand, IntegerConstant) and isinstance(self.right_operand, IntegerConstant):
+            return TRANSLATION_COMPARISON_OPERATORS[self.operator](self.left_operand.value, self.right_operand.value)
+        
+        elif hash(self.left_operand) == hash(self.right_operand):
+            return self.operator in [">=", "<=", "="]
+        
+        return None
 
 
 class BooleanConstant(Expression):
@@ -2275,6 +2592,31 @@ class BooleanConstant(Expression):
 
     def barvinok(self) -> str:
         raise NotImplementedError
+    
+    def is_monotonic(self, negation : bool = False) -> bool:
+        """ Is monotonic.
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Negation flag.
+        
+        Returns
+        -------
+        bool
+            Is monotonic.
+        """
+        return True
+    
+    def tautology(self) -> Optional[bool]:
+        """ Is a tautology or a contradiction.
+
+        Returns
+        -------
+        bool
+            `True` if tautology, `False` if contraction, and `None` otherwise.
+        """
+        return self.value
 
 
 class UniversalQuantification(Expression):
@@ -2400,6 +2742,12 @@ class UniversalQuantification(Expression):
         raise NotImplementedError
 
     def need_saturation(self, current_delta: dict[Place, int]) -> bool:
+        raise NotImplementedError
+
+    def is_monotonic(self, negation : bool = False) -> bool:
+        raise NotImplementedError
+    
+    def tautology(self) -> Optional[bool]:
         raise NotImplementedError
 
 

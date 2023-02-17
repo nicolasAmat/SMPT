@@ -31,7 +31,7 @@ from typing import Optional
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.z3 import Z3
-from smpt.ptio.formula import Formula
+from smpt.ptio.formula import Expression, Formula
 from smpt.ptio.ptnet import PetriNet
 from smpt.ptio.system import System
 from smpt.ptio.verdict import Verdict
@@ -58,8 +58,6 @@ class StateEquation(AbstractChecker):
         Reachability formula.
     ptnet_skeleton : PetriNet, optional
         Skeleton of a colored Petri net.
-    formula_skeleton : Formula, optional
-        Formula for skeleton.
     parikh : bool
         Generate Parikh vector.
     pre_run : bool
@@ -76,7 +74,7 @@ class StateEquation(AbstractChecker):
         Engine to compute some trap constraints.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, formula_skeleton=None, pre_run=False, debug=False, solver_pids=None, additional_techniques=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, pre_run=False, debug=False, solver_pids=None, additional_techniques=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -91,9 +89,8 @@ class StateEquation(AbstractChecker):
         # Formula to study
         self.formula: Formula = formula
 
-        # Skeleton and corresponding formula
+        # Skeleton Petri net
         self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
-        self.formula_skeleton: Optional[Formula] = formula_skeleton
 
         # Generate Parikh vector
         self.parikh = formula.parikh_filename is not None
@@ -107,8 +104,7 @@ class StateEquation(AbstractChecker):
         self.solver_pids: Optional[Queue[int]] = solver_pids
 
         # Additional techniques queue
-        self.additional_techniques: Optional[Queue[str]
-                                             ] = additional_techniques
+        self.additional_techniques: Optional[Queue[str]] = additional_techniques
 
         # Trap constraints
         self.traps: Optional[TrapConstraints] = None
@@ -182,17 +178,18 @@ class StateEquation(AbstractChecker):
             elif self.additional_techniques is not None:
                 self.additional_techniques.put('SKELETON')
 
-        if verdict == Verdict.UNKNOWN:
+        if self.ptnet is not None and verdict == Verdict.UNKNOWN:
             if self.ptnet_reduced is None:
                 verdict = self.prove_without_reduction()
             else:
                 verdict = self.prove_with_reduction()
 
         if self.additional_techniques is not None:
-            if self.ptnet.colored:
-                self.additional_techniques.put('UNFOLDING_TO_PT')
-            if self.ptnet_reduced is not None:
-                self.additional_techniques.put('STRUCTURAL_REDUCTIONS')
+            if self.ptnet is not None:
+                if self.ptnet.colored:
+                    self.additional_techniques.put('UNFOLDING_TO_PT')
+                if self.ptnet_reduced is not None:
+                    self.additional_techniques.put('STRUCTURAL_REDUCTIONS')
 
         # Kill the solver
         self.solver.kill()
@@ -215,7 +212,7 @@ class StateEquation(AbstractChecker):
         """ Prover for non-reduced Petri Net.
         """
         ptnet: PetriNet =  self.ptnet_skeleton if skeleton else self.ptnet
-        formula: Formula = self.formula_skeleton if skeleton else self.formula
+        R_current: Expression = self.formula.R_skeleton if skeleton else self.formula.R
 
         info("[STATE-EQUATION] > Declaration of the places from the Petri net")
         self.solver.write(ptnet.smtlib_declare_places())
@@ -227,13 +224,13 @@ class StateEquation(AbstractChecker):
         self.solver.write(ptnet.smtlib_state_equation(parikh=self.parikh and not skeleton))
 
         info("[STATE-EQUATION] > Formula to check the satisfiability")
-        self.solver.write(formula.R.smtlib(assertion=True))
+        self.solver.write(R_current.smtlib(assertion=True))
 
         info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
         elif self.parikh and not skeleton:
-            parikh_set = self.solver.get_parikh(self.ptnet)
+            parikh_set = self.solver.get_parikh(ptnet)
             with open(self.formula.parikh_filename, 'w') as fp:
                 fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
 

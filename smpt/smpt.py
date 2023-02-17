@@ -225,6 +225,10 @@ def main():
                         action='store_true',
                         help="Model Checking Contest mode")
 
+    parser.add_argument('--fireability',
+                        action='store_true',
+                        help="Reachability Fireability mode (Cardinality by default)")
+
     results = parser.parse_args()
 
     # Set the verbose level
@@ -246,28 +250,27 @@ def main():
     ptnet_skeleton, properties_skeleton = None, None
     if results.colored:
         timeout_unfold = int(results.global_timeout * 0.75) if results.global_timeout else None
-        if 'STATE-EQUATION' in results.methods:
+        if not results.fireability and (results.mcc or 'STATE-EQUATION' in results.methods):
             path_net, path_skeleton = unfold_and_skeleton(path_net, timeout_unfold=timeout_unfold)
             ptnet_skeleton = PetriNet(path_skeleton, skeleton=True, state_equation=True)
-            properties_skeleton = Properties(ptnet_skeleton, xml_filename=results.path_properties)
 
             # In mcc mode, run STATE-EQUATION on the skeleton if unfolding failed
             if results.mcc and path_net is None:
-                pool = ThreadPool(processes=4)
-                parallelizers = [Parallelizer(property_id, ptnet_skeleton, formula, ['STATE-EQUATION'], show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug) for property_id, formula in properties_skeleton.formulas.items()]
-                pool.starmap(worker, zip(parallelizers, repeat((results.global_timeout - start_time) / 4 if results.global_timeout else results.timeout)))
+                properties = Properties(None, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc)
+                pool = ThreadPool(processes=2)
+                parallelizers = [Parallelizer(property_id, None, formula, ['INITIAL-MARKING', 'STATE-EQUATION'], ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug) for property_id, formula in properties.formulas.items()]
+                pool.starmap(worker, zip(parallelizers, repeat((results.global_timeout - start_time) / 8 if results.global_timeout else results.timeout)))
                 remove(path_skeleton)
                 exit()
         else:
-            path_net = unfold(path_net, timeout_unfold=timeout_unfold)
+            path_net = unfold(path_net)
 
     # Check if extension is `.pnml`
     elif path_net.lower().endswith('.pnml'):
         path_pnml = path_net
         path_net, use_pnml_reduce = convert(path_pnml)
-
     # State equation method enabled
-    state_equation = results.mcc or 'STATE-EQUATION' in results.methods
+    state_equation = results.mcc or 'STATE-EQUATION' in results.methods or 'K-INDUCTION' in results.methods 
 
     # Parikh computation enabled
     parikh = results.mcc or ('STATE-EQUATION' in results.methods and 'WALK' in results.methods)
@@ -343,7 +346,7 @@ def main():
         results.path_markings = fp_markings.name
 
     # Read properties and keep skeleton ones in not fully reducible
-    properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, xml_filename=results.path_properties)
+    properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc)
     properties_skeleton = properties_skeleton if not fully_reducible else None
 
     # Parse .ltl file if there is one
@@ -373,6 +376,9 @@ def main():
         if properties_skeleton is not None:
             properties_skeleton.select_queries(results.queries)
 
+    # Free useless data
+    ptnet.free_mappings()
+
     # Generate Walk files if mcc mode, projection or Walk methods enabled
     if results.mcc or (ptnet_tfg is not None and results.project) or 'WALK' in results.methods or 'TIPX' in results.methods:
         properties.generate_walk_files()
@@ -380,6 +386,10 @@ def main():
     # Project formulas if enabled
     if results.project and ptnet_tfg is not None and not (results.mcc and fully_reducible):
         properties.project(ptnet_tfg, drop_incomplete=results.mcc, show_projection=results.show_projection, save_projection=results.path_projection_directory, show_time=results.show_time, show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
+
+    # Generate Parikh files
+    if parikh:
+        properties.generate_parikh_files()
 
     # Set timeout value
     if results.global_timeout is not None:
@@ -394,11 +404,14 @@ def main():
     if results.mcc and not fully_reducible:
         try:
             pool = ThreadPool(processes=2)
-            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), ptnet_skeleton=ptnet_skeleton, formula_skeleton=properties_skeleton.formulas[property_id] if properties_skeleton else None, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True, pre_run=True) for property_id, formula in properties.formulas.items()]
+            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True, pre_run=True) for property_id, formula in properties.formulas.items()]
             pre_results = pool.starmap(worker, zip(parallelizers, repeat(timeout)))
         finally:
             pool.close()
             pool.join()
+
+    # Free nupn
+    ptnet.free_nupn()
 
     # Iterate over properties
     computations = Queue()

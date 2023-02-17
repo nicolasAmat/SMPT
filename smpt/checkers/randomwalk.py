@@ -43,7 +43,7 @@ class RandomWalk(AbstractChecker):
     """ Random walk method.
     """
 
-    def __init__(self, ptnet: PetriNet, formula, tipx: bool = False, slice: bool = False, parikh_timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None):
+    def __init__(self, ptnet: PetriNet, formula, tipx: bool = False, slice: bool = False, parikh_timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
         """ Initializer.
         """
         # Initial Petri net
@@ -62,6 +62,9 @@ class RandomWalk(AbstractChecker):
         else:
             self.solver_parikh = None
 
+        # Additional techniques queue
+        self.additional_techniques = additional_techniques
+
     def prove(self, result, concurrent_pids):
         """ Prover.
         """
@@ -73,6 +76,8 @@ class RandomWalk(AbstractChecker):
             info("[RANDOM-WALK] Parikh walk")
             sat = self.solver_parikh.check_sat(self.formula.walk_filename)
             sat = sat and not self.solver_parikh.aborted
+            if sat and self.additional_techniques is not None:
+                self.additional_techniques.put('PARIKH')
 
         if not sat:
             info("[RANDOM-WALK] Walk")

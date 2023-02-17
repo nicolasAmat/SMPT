@@ -33,6 +33,7 @@ from smpt.checkers.bmc import BMC
 from smpt.checkers.cp import CP
 from smpt.checkers.enumerative import Enumerative
 from smpt.checkers.induction import Induction
+from smpt.checkers.initialmarking import InitialMarking
 from smpt.checkers.kinduction import KInduction
 from smpt.checkers.pdr import PDR
 from smpt.checkers.randomwalk import RandomWalk
@@ -111,7 +112,8 @@ class Parallelizer:
     formula_switched : Formula
         Formulas used for BMC / K-INDUCTION.
     """
-    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, formula_skeleton: Optional[Formula] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, parikh_timeout: Optional[int] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False,  pre_run: bool = False):
+
+    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, parikh_timeout: Optional[int] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False,  pre_run: bool = False):
         """ Initializer.
 
         Parameters
@@ -166,9 +168,8 @@ class Parallelizer:
         self.property_id: str = property_id
         self.formula: Formula = formula
 
-        # Skeleton and corresponding formula
+        # Skeleton Petri net
         self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
-        self.formula_skeleton: Optional[Formula] = formula_skeleton
 
         # Methods
         self.methods: list[str] = methods
@@ -196,7 +197,7 @@ class Parallelizer:
         collateral_processing, unfolding_to_pt, structural_reduction = [], [], []
         if len(methods) > 1:
             collateral_processing = ['COLLATERAL_PROCESSING']
-        if ptnet.colored:
+        if ptnet is not None and ptnet.colored:
             unfolding_to_pt = ['UNFOLDING_TO_PT']
         if ptnet_reduced is not None:
             structural_reduction = ['STRUCTURAL_REDUCTION']
@@ -208,8 +209,7 @@ class Parallelizer:
         self.computation_time: float = 0
 
         # Create queues to store the results
-        self.results: list[Queue[tuple[Verdict, Marking]]] = [Queue()
-                                                              for _ in methods]
+        self.results: list[Queue[tuple[Verdict, Marking]]] = [Queue() for _ in methods]
 
         # Create queue to store solver pids
         self.solver_pids: Queue[int] = Queue()
@@ -223,12 +223,13 @@ class Parallelizer:
         #
         # WALK
         # (ptnet_tfg + projected formula if possible, but in mcc mode keep only complete projections)
-        self.ptnet_walk: PetriNet = ptnet_tfg if ptnet_tfg is not None and projected_formula is not None and (not mcc or projected_formula.shadow_complete) else ptnet
-        self.formula_walk: Formula = projected_formula if ptnet_tfg is not None and projected_formula is not None and (not mcc or projected_formula.shadow_complete) else formula
+        projection_walk: bool = ptnet_tfg is not None and projected_formula is not None and (not mcc or projected_formula.shadow_complete)
+        self.slice = not self.pre_run and not projection_walk and ptnet_reduced is not None
+        self.ptnet_walk: PetriNet = ptnet_tfg if projection_walk else ptnet
+        self.formula_walk: Formula = projected_formula if projection_walk else formula
         #
         # BMC / K-INDUCTION / PDR-COV
         # (ptnet_tfg + projected formula if possible, and in mcc mode only if the ratio > RATIO_LIMIT)
-        # print(len(ptnet_reduced.transitions) / len(ptnet_tfg.transitions))
         bad_ratio = ptnet_reduced and ptnet_tfg and ptnet_tfg.transitions and len(ptnet_reduced.transitions) / len(ptnet_tfg.transitions) <= RATIO_LIMIT
         projection: bool = projected_formula is not None and projected_formula.shadow_complete and not (mcc and bad_ratio)
         # Petri net and formula
@@ -244,37 +245,40 @@ class Parallelizer:
             if method == 'WALK':
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['WALK'])
 
-            if method == 'STATE-EQUATION':
+            elif method == 'STATE-EQUATION':
                 self.techniques.append(collateral_processing + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
 
-            if method == 'INDUCTION':
+            elif method == 'INITIAL-MARKING':
+                self.techniques.append(collateral_processing + ['INITIAL-MARKING'])
+
+            elif method == 'INDUCTION':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
 
-            if method == 'BMC':
+            elif method == 'BMC':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
-            if method == 'K-INDUCTION':
+            elif method == 'K-INDUCTION':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
-            if method == 'PDR-COV':
+            elif method == 'PDR-COV':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'PDR-COV'])
 
-            if method == 'PDR-REACH':
+            elif method == 'PDR-REACH':
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
 
-            if method == 'PDR-REACH-SATURATED':
+            elif method == 'PDR-REACH-SATURATED':
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH-SATURATED'])
 
-            if method == 'SMT':
+            elif method == 'SMT':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
 
-            if method == 'CP':
+            elif method == 'CP':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
 
-            if method == 'TIPX':
+            elif method == 'TIPX':
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['TIPX'])
 
-            if method == 'ENUM':
+            elif method == 'ENUM':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT-SMT'])
 
     def __getstate__(self):
@@ -298,39 +302,41 @@ class Parallelizer:
         prover : Optional[AbstractChecker] = None
 
         if method == 'WALK':
-            prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, parikh_timeout=self.parikh_timeout, debug=self.debug, solver_pids=self.solver_pids)
+            prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, slice=self.slice, parikh_timeout=self.parikh_timeout, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
-        if method == 'STATE-EQUATION':
-            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+        elif method == 'STATE-EQUATION':
+            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, ptnet_skeleton=self.ptnet_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
-        if method == 'INDUCTION':
+        elif method == 'INITIAL-MARKING':
+            prover = InitialMarking(self.ptnet_skeleton, self.formula)
+
+        elif method == 'INDUCTION':
             prover = Induction(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, show_model=self.show_model, debug=self.debug, solver_pids=self.solver_pids)
 
-        if method == 'BMC':
+        elif method == 'BMC':
             prover = BMC(self.ptnet_switched, self.formula_switched, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, show_model=self.show_model, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, induction_queue=self.induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
-        if method == 'K-INDUCTION':
-            prover = KInduction(self.ptnet_switched, self.formula_switched, debug=self.debug, induction_queue=self.induction_queue, solver_pids=self.solver_pids)
+        elif method == 'K-INDUCTION':
 
-        if method == 'PDR-COV':
+        elif method == 'PDR-COV':
             prover = PDR(self.ptnet_switched, self.formula_switched, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='COV', solver_pids=self.solver_pids)
 
-        if method == 'PDR-REACH':
+        elif method == 'PDR-REACH':
             prover = PDR(self.ptnet_switched, self.formula_switched, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=False, solver_pids=self.solver_pids)
 
-        if method == 'PDR-REACH-SATURATED':
+        elif method == 'PDR-REACH-SATURATED':
             prover = PDR(self.ptnet_switched, self.formula_switched, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=True, solver_pids=self.solver_pids)
 
-        if method == 'SMT':
+        elif method == 'SMT':
             prover = CP(self.ptnet_switched, self.formula_switched, self.system, show_model=self.show_model, debug=self.debug, minizinc=False, solver_pids=self.solver_pids)
 
-        if method == 'CP':
+        elif method == 'CP':
             prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=True, solver_pids=self.solver_pids)
 
-        if method == 'TIPX':
+        elif method == 'TIPX':
             prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=True, debug=self.debug, solver_pids=self.solver_pids)
 
-        if method == 'ENUM':
+        elif method == 'ENUM':
             prover = Enumerative(self.path_markings, self.ptnet, self.formula, self.ptnet_reduced, self.system, self.debug, solver_pids=self.solver_pids)
 
         if prover:
