@@ -205,7 +205,7 @@ class Tipx(Solver):
         list of tuple of str, bool
             Projected formula and its corresponding shadow-completeness flag.
         """
-        process = ['tipx.exe', 'load', self.ptnet_filename]
+        process = ['tipx.exe', 'tfgload', self.ptnet_filename]
 
         if show_time:
             process.append('time')

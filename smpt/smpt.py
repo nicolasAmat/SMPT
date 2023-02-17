@@ -301,7 +301,7 @@ def main():
         extension = '.pnml' if path_pnml else '.net'
         fp_ptnet_tfg = open(results.net.replace(extension, '_tfg.net'), 'w+') if results.save_reduced_net else NamedTemporaryFile(suffix='.net', delete=False)
         path_ptnet_tfg = fp_ptnet_tfg.name
-        reduce_processes.append(Process(target=reduce, args=(results.net, path_ptnet_tfg, True, results.show_time,)))
+        reduce_processes.append(Process(target=reduce, args=(reduce_source, path_ptnet_tfg, True, results.show_time,)))
         reduce_processes[-1].start()
 
     # Join reduce processes
