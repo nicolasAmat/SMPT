@@ -317,6 +317,7 @@ class Parallelizer:
             prover = BMC(self.ptnet_switched, self.formula_switched, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, show_model=self.show_model, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, induction_queue=self.induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'K-INDUCTION':
+            prover = KInduction(self.ptnet_switched, self.formula_switched, debug=self.debug, induction_queue=self.induction_queue, solver_pids=self.solver_pids)
 
         elif method == 'PDR-COV':
             prover = PDR(self.ptnet_switched, self.formula_switched, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='COV', solver_pids=self.solver_pids)
