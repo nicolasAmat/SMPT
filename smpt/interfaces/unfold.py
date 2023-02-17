@@ -25,8 +25,8 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "4.0.0"
 
-from multiprocessing import Process
-from subprocess import run
+from multiprocessing.pool import ThreadPool
+from subprocess import check_output, TimeoutExpired
 from typing import Optional
 
 
@@ -43,31 +43,20 @@ def unfold_and_skeleton(path_ptnet: str, timeout_unfold: Optional[int] = None) -
     tuple of str, str
         Path to the unfold and skeleton Petri nets (.net format).
     """
-    unfold_proc = Process(target=unfold, args=(path_ptnet,))
-    unfold_proc.start()
-
-    skeleton_proc = Process(target=skeleton, args=(path_ptnet,))
-    skeleton_proc.start()
-
-    unfold_proc.join(timeout=timeout_unfold)
-    skeleton_proc.join()
-
-    if unfold_proc.is_alive():
-        unfold_proc.kill()
-        unfold_path = None
-    else:
-        unfold_path = path_ptnet.replace('.pnml', '_unfolded.net')
-
-    return (unfold_path, path_ptnet.replace('.pnml', '_skeleton.net'))
+    pool = ThreadPool(processes=2)
+    result = pool.map(lambda func: func(path_ptnet, timeout_unfold), [unfold, skeleton])
+    return result[0], result[1]
 
 
-def unfold(path_ptnet: str) -> str:
+def unfold(path_ptnet: str, timeout: Optional[int]) -> str:
     """ Unfold colored Petri net.
 
     Parameters
     ----------
     path_ptnet : str
         Path to the original colored Petri net (.pnml format).
+    timeout : int, optional
+        Time limit.
     
     Returns
     -------
@@ -75,17 +64,23 @@ def unfold(path_ptnet: str) -> str:
         Path to the unfold Petri net (.net format).
     """
     new_filename = path_ptnet.replace('.pnml', '_unfolded')
-    run(["mcc", "smpt", "-i", path_ptnet, '-o', new_filename])
+    try:
+        # Add a check here of the output if it has been killed due to memory
+        check_output("ulimit -Sv 12000000 ; mcc smpt -i {} -o {}".format(path_ptnet, new_filename), timeout=timeout, shell=True)
+    except TimeoutExpired:
+        return None
     return new_filename + '.net'
 
 
-def skeleton(path_ptnet: str) -> str:
+def skeleton(path_ptnet: str, timeout: Optional[int] = None) -> str:
     """ Compute the skeleton of a colored Petri net.
 
     Parameters
     ----------
     path_ptnet : str
         Path to the original colored Petri net (.pnml format).
+    timeout : int, optional
+        Not used.
     
     Returns
     -------
@@ -93,5 +88,5 @@ def skeleton(path_ptnet: str) -> str:
         Path to the skeleton (.net format).
     """
     new_filename = path_ptnet.replace('.pnml', '_skeleton')
-    run(["mcc", "skeleton", "-i", path_ptnet, '-o', new_filename])
+    check_output(["mcc", "skeleton", "-i", path_ptnet, '-o', new_filename])
     return new_filename + '.net'
