@@ -29,7 +29,9 @@ from logging import warning
 from multiprocessing import Queue
 from subprocess import PIPE, Popen
 from sys import exit
-from typing import Optional
+from typing import Any, Optional
+
+from sexpdata import loads
 
 from smpt.interfaces.solver import Solver
 from smpt.ptio.ptnet import Marking, PetriNet, Place, Transition
@@ -435,3 +437,16 @@ class Z3(Solver):
         self.flush()
 
         return self.readline().replace('(', '').replace(')', '').split(' ')
+
+    def simplify(self, input: str) -> Any:
+        """ Simplify a given formula.
+
+        Parameters
+        ----------
+        input
+            Formula to simplify.
+        """
+        self.write(input)
+        self.write("(apply (then simplify ctx-solver-simplify))")
+        self.solver.stdin.close()
+        return loads(self.solver.stdout.read().decode('ascii'))
