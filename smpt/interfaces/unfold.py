@@ -26,7 +26,7 @@ __license__ = "GPLv3"
 __version__ = "4.0.0"
 
 from multiprocessing.pool import ThreadPool
-from subprocess import check_output, TimeoutExpired
+from subprocess import DEVNULL, CalledProcessError, check_output, TimeoutExpired
 from typing import Optional
 
 
@@ -65,9 +65,8 @@ def unfold(path_ptnet: str, timeout: Optional[int]) -> str:
     """
     new_filename = path_ptnet.replace('.pnml', '_unfolded')
     try:
-        # Add a check here of the output if it has been killed due to memory
-        check_output("ulimit -Sv 12000000 ; mcc smpt -i {} -o {}".format(path_ptnet, new_filename), timeout=timeout, shell=True)
-    except TimeoutExpired:
+        check_output('export GOMEMLIMIT="12000000KiB"; ulimit -Sv 12000000 ; mcc smpt -i {} -o {}'.format(path_ptnet, new_filename), timeout=timeout, stderr=DEVNULL, shell=True)
+    except (TimeoutExpired, CalledProcessError):
         return None
     return new_filename + '.net'
 
