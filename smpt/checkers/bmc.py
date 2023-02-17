@@ -209,7 +209,7 @@ class BMC(AbstractChecker):
         smt_input = ""
 
         smt_input += "; Declaration of the places from the initial Petri net\n"
-        smt_input += self.ptnet.smtlib_declare_places(non_negative=False)
+        smt_input += self.ptnet.smtlib_declare_places()
 
         smt_input += "; Declaration of the additional variables\n"
         smt_input += self.system.smtlib_declare_additional_variables()
@@ -227,8 +227,7 @@ class BMC(AbstractChecker):
         smt_input += self.ptnet_reduced.smtlib_initial_marking(0)
 
         for i in range(k):
-            smt_input += "; Declaration of the places from the reduced Petri net (order: {})\n".format(
-                1)
+            smt_input += "; Declaration of the places from the reduced Petri net (order: {})\n".format(1)
             smt_input += self.ptnet_reduced.smtlib_declare_places(i + 1, non_negative=False)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
@@ -354,7 +353,7 @@ class BMC(AbstractChecker):
         info("[BMC] > Initialization")
 
         info("[BMC] > Declaration of the places from the initial Petri net")
-        self.solver.write(self.ptnet.smtlib_declare_places(non_negative=False))
+        self.solver.write(self.ptnet.smtlib_declare_places())
 
         info("[BMC] > Declaration of the additional variables")
         self.solver.write(self.system.smtlib_declare_additional_variables())
@@ -362,13 +361,10 @@ class BMC(AbstractChecker):
         info("[BMC] > Formula to check the satisfiability")
         self.solver.write(self.formula.R.smtlib(assertion=True))
 
-        info(
-            "[BMC] > Reduction equations (not involving places from the reduced Petri net)")
-        self.solver.write(
-            self.system.smtlib_equations_without_places_from_reduced_net())
+        info("[BMC] > Reduction equations (not involving places from the reduced Petri net)")
+        self.solver.write(self.system.smtlib_equations_without_places_from_reduced_net())
 
-        info(
-            "[BMC] > Declaration of the places from the reduced Petri net (order: 0)")
+        info("[BMC] > Declaration of the places from the reduced Petri net (order: 0)")
         self.solver.write(self.ptnet_reduced.smtlib_declare_places(0, non_negative=False))
 
         info("[BMC] > Initial marking of the reduced Petri net")
