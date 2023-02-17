@@ -43,7 +43,7 @@ class RandomWalk(AbstractChecker):
     """ Random walk method.
     """
 
-    def __init__(self, ptnet: PetriNet, formula, tipx: bool = False, parikh_timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None):
+    def __init__(self, ptnet: PetriNet, formula, tipx: bool = False, slice: bool = False, parikh_timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None):
         """ Initializer.
         """
         # Initial Petri net
@@ -56,7 +56,7 @@ class RandomWalk(AbstractChecker):
         self.parikh_timeout = parikh_timeout
 
         # Walkers
-        self.solver = Tipx(ptnet.filename, debug=debug, solver_pids=solver_pids) if tipx else Walk(ptnet.filename, debug=debug, solver_pids=solver_pids)
+        self.solver = Tipx(ptnet.filename, debug=debug, solver_pids=solver_pids) if tipx else Walk(ptnet.filename, slice=slice, debug=debug, solver_pids=solver_pids)
         if self.parikh_timeout and self.formula.parikh_filename is not None and getsize(self.formula.parikh_filename) > 0:
             self.solver_parikh = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, timeout=parikh_timeout, solver_pids=solver_pids)
         else:

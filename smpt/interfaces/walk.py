@@ -47,6 +47,10 @@ class Walk(Solver):
     ----------
     ptnet_filename : str
         A Petri net filename.
+    slice : bool
+        Slicing mode.
+    parikh_filename : str, optional
+        Path to an eventual Parikh file.
     solver : Popen, optional
         A walk process.
     timeout : int
@@ -59,13 +63,17 @@ class Walk(Solver):
         Debugging flag.
     """
 
-    def __init__(self, ptnet_filename: str, parikh_filename: Optional[str] = None, debug: bool = False, timeout: int = 0, solver_pids: Optional[Queue[int]] = None) -> None:
+    def __init__(self, ptnet_filename: str, slice: bool = False, parikh_filename: Optional[str] = None, debug: bool = False, timeout: int = 0, solver_pids: Optional[Queue[int]] = None) -> None:
         """ Initializer.
 
         Parameters
         ----------
         ptnet_filename : str
             A Petri net filename.
+        slice : bool, optional
+            Slicing mode.
+        parikh_filename : str, optional
+            Path to an eventual Parikh file.
         debug: bool, optional
             Debugging flag.
         timeout: int, optional
@@ -75,6 +83,9 @@ class Walk(Solver):
         """
         # Petri net
         self.ptnet_filename: str = ptnet_filename
+
+        # Slicing mode
+        self.slice: bool = slice
 
         # Parikh vector
         self.parikh_filename: Optional[str] = parikh_filename
@@ -151,6 +162,8 @@ class Walk(Solver):
 
         if self.parikh_filename:
             process += ['-favor', self.parikh_filename]
+        elif self.slice:
+            process += ["-reduce", "-rg,redundant,compact+,4ti2", "-redundant-limit", "650", "-redundant-time", "10"]
 
         if self.timeout:
             process += ['-t', str(self.timeout)]
