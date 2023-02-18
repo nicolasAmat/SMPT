@@ -221,12 +221,14 @@ class Parallelizer:
 
         # Petri net / Formula selection
         #
-        # WALK
+        # WALK / STATE-EQUATION
         # (ptnet_tfg + projected formula if possible, but in mcc mode keep only complete projections)
-        projection_walk: bool = ptnet_tfg is not None and projected_formula is not None and (not mcc or projected_formula.shadow_complete)
+        projection_walk: bool = ptnet_tfg is not None and projected_formula is not None and projected_formula.shadow_complete
         self.slice = not self.pre_run and not projection_walk and ptnet_reduced is not None
         self.ptnet_walk: PetriNet = ptnet_tfg if projection_walk else ptnet
         self.formula_walk: Formula = projected_formula if projection_walk else formula
+        self.ptnet_reduced_state_equation: Optional[PetriNet] = None if projection_walk else ptnet_reduced
+        self.system_state_equation: Optional[System] = None if projection_walk else system
         #
         # BMC / K-INDUCTION / PDR-COV
         # (ptnet_tfg + projected formula if possible, and in mcc mode only if the ratio > RATIO_LIMIT)
@@ -305,7 +307,7 @@ class Parallelizer:
             prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, slice=self.slice, parikh_timeout=self.parikh_timeout, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'STATE-EQUATION':
-            prover = StateEquation(self.ptnet, self.formula, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, ptnet_skeleton=self.ptnet_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = StateEquation(self.ptnet_walk, self.formula_walk, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'INITIAL-MARKING':
             prover = InitialMarking(self.ptnet_skeleton, self.formula)
