@@ -26,7 +26,6 @@ __version__ = "5.0"
 
 from abc import ABC, abstractmethod
 from collections import Counter, deque
-from copy import deepcopy
 from itertools import product
 from operator import eq, ge, gt, le, lt, ne
 from os import fsync, remove
@@ -2278,7 +2277,7 @@ class Atom(Expression):
                 elif self.operator in ['>', '>=']:
                     self.monotonic = isinstance(self.left_operand, TokenCount) and isinstance(self.right_operand, IntegerConstant)
 
-                return Atom(self.left_operand.dnf(), self.right_operand.dnf(), self.operator)
+                return self
 
     def eval(self, m: Marking) -> bool:
         """ Evaluate the Atom with marking m.
@@ -2950,11 +2949,8 @@ class TokenCount(SimpleExpression):
         SimpleExpression
             Generalization of the TokenCount.
         """
-        generalized_delta = self.delta + \
-            sum([delta.get(pl, 0) for pl in self.places]
-                ) if delta is not None else self.delta
-        generalized_saturated_delta = self.saturated_delta + sum([saturated_delta.get(
-            pl, []) for pl in self.places], []) if saturated_delta is not None else self.saturated_delta
+        generalized_delta = self.delta + sum([delta.get(pl, 0) for pl in self.places]) if delta is not None else self.delta
+        generalized_saturated_delta = self.saturated_delta + sum([saturated_delta.get(pl, []) for pl in self.places], []) if saturated_delta is not None else self.saturated_delta
 
         return TokenCount(self.places, delta=generalized_delta, saturated_delta=generalized_saturated_delta)
 
