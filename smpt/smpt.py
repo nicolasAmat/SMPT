@@ -377,7 +377,8 @@ def main():
             properties_skeleton.select_queries(results.queries)
 
     # Free useless data
-    ptnet.free_mappings()
+    if ptnet is not None:
+        ptnet.free_mappings()
 
     # Generate Walk files if mcc mode, projection or Walk methods enabled
     if results.mcc or (ptnet_tfg is not None and results.project) or 'WALK' in results.methods or 'TIPX' in results.methods:
@@ -411,7 +412,8 @@ def main():
             pool.join()
 
     # Free nupn
-    ptnet.free_nupn()
+    if ptnet is not None:
+        ptnet.free_nupn()
 
     # Iterate over properties
     computations = Queue()
