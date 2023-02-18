@@ -25,6 +25,7 @@ __version__ = "5.0"
 
 from logging import info
 from multiprocessing import Queue
+from os import fsync
 from sys import setrecursionlimit
 from typing import Optional
 
@@ -307,6 +308,7 @@ class StateEquation(AbstractChecker):
             parikh_set = self.solver.get_parikh(self.ptnet_reduced)
             with open(self.formula.parikh_filename, 'w') as fp:
                 fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
+                fsync(fp.fileno())
 
         info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints(parikh=self.parikh))
