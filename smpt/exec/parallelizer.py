@@ -329,7 +329,7 @@ class Parallelizer:
             prover = PDR(self.ptnet_switched, self.formula_switched, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=True, solver_pids=self.solver_pids)
 
         elif method == 'SMT':
-            prover = CP(self.ptnet_switched, self.formula_switched, self.system, show_model=self.show_model, debug=self.debug, minizinc=False, solver_pids=self.solver_pids)
+            prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=False, solver_pids=self.solver_pids)
 
         elif method == 'CP':
             prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=True, solver_pids=self.solver_pids)
