@@ -838,11 +838,14 @@ class Transition:
         smt_input += "\n\t\t"
 
         # Update input places
-        for pl, delta in self.delta.items():
-            if weight > 0:
+        for pl in self.connected_places:
+            delta = self.delta.get(pl, 0)
+            if delta > 0:
                 smt_input += "(= {}@{} (+ {}@{} {}))".format(pl.id, k + 1, pl.id, k, delta)
-            else:
+            elif delta < 0:
                 smt_input += "(= {}@{} (- {}@{} {}))".format(pl.id, k + 1, pl.id, k, -delta)
+            else:
+                smt_input += "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k)
         smt_input += "\n\t\t"
 
         # Unconnected places must not be changed
