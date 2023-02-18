@@ -35,7 +35,7 @@ along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 __author__ = "Nicolas AMAT, LAAS-CNRS"
 __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
-__version__ = "4.0.0"
+__version__ = "5.0"
 
 from copy import copy
 from logging import info
