@@ -48,7 +48,7 @@ def unfold_and_skeleton(path_ptnet: str, timeout_unfold: Optional[int] = None) -
     return result[0], result[1]
 
 
-def unfold(path_ptnet: str, timeout: Optional[int]) -> str:
+def unfold(path_ptnet: str, timeout: Optional[int] = None) -> str:
     """ Unfold colored Petri net.
 
     Parameters
