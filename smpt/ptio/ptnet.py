@@ -135,6 +135,8 @@ class PetriNet:
         self.nupn: Optional[NUPN] = None
         if pnml_filename is not None:
             self.nupn = NUPN(pnml_filename)
+            if self.nupn.root is None:
+                self.nupn = None
 
         # Parse the `.net` file
         self.parse_net(filename)
