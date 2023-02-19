@@ -243,6 +243,7 @@ class StateEquation(AbstractChecker):
             parikh_set = self.solver.get_parikh(ptnet)
             with open(self.formula.parikh_filename, 'w') as fp:
                 fp.write(' '.join(map(lambda tr: "{{{}}}".format(tr.id) if '-' in tr.id or '.' in tr.id else tr.id, parikh_set)))
+                fsync(fp.fileno())
 
         info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(ptnet) is not None:
@@ -304,11 +305,6 @@ class StateEquation(AbstractChecker):
         info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
-        elif self.parikh:
-            parikh_set = self.solver.get_parikh(self.ptnet_reduced)
-            with open(self.formula.parikh_filename, 'w') as fp:
-                fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
-                fsync(fp.fileno())
 
         info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints(parikh=self.parikh))
