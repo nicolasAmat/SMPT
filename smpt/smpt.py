@@ -140,7 +140,7 @@ def main():
     group_methods = parser.add_mutually_exclusive_group(required=True)
 
     methods = ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION',
-               'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP', 'TIPX', 'DUMMY']
+               'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED', 'SMT', 'CP', 'DUMMY']
 
     group_methods.add_argument('--methods',
                                default=methods,
@@ -160,7 +160,7 @@ def main():
 
     parser.add_argument('--project',
                         action='store_true',
-                        help='Use TFG projection for WALK, TIPX, BMC, K-INDUCTION')
+                        help='Use TFG projection for WALK, BMC, K-INDUCTION, PDR, STATE-EQUATION')
 
     parser.add_argument('--show-projection',
                         action='store_true',
@@ -247,7 +247,7 @@ def main():
     use_pnml_reduce = False
 
     # Check if colored net
-    ptnet_skeleton, properties_skeleton = None, None
+    ptnet_skeleton = None
     if results.colored:
         timeout_unfold = int(results.global_timeout * 0.75) if results.global_timeout else None
         if not results.fireability and (results.mcc or 'STATE-EQUATION' in results.methods):
@@ -347,7 +347,6 @@ def main():
 
     # Read properties and keep skeleton ones in not fully reducible
     properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc)
-    properties_skeleton = properties_skeleton if not fully_reducible else None
 
     # Parse .ltl file if there is one
     if results.path_ltl_formula:
@@ -373,15 +372,18 @@ def main():
     # Filter queries if option enabled
     if results.queries:
         properties.select_queries(results.queries)
-        if properties_skeleton is not None:
-            properties_skeleton.select_queries(results.queries)
 
     # Free useless data
     if ptnet is not None:
         ptnet.free_mappings()
 
+    # Check tautologies
+    if results.mcc or results.project:
+        for (property_id, verdict) in properties.tautologies():
+            print("\nFORMULA {} {} TECHNIQUES TAUTOLOGY".format(property_id, verdict))
+
     # Generate Walk files if mcc mode, projection or Walk methods enabled
-    if results.mcc or (ptnet_tfg is not None and results.project) or 'WALK' in results.methods or 'TIPX' in results.methods:
+    if results.mcc or (ptnet_tfg is not None and results.project) or 'WALK' in results.methods:
         properties.generate_walk_files()
 
     # Project formulas if enabled
@@ -448,7 +450,7 @@ def main():
 
             if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
                 # Use BMC and PDR methods in parallel
-                methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED', 'TIPX', 'TIPX-WALK']
+                methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
 
                 if not formula.non_monotonic:
                     methods.append('PDR-COV')
@@ -475,7 +477,7 @@ def main():
             methods = ["WALK" for _ in range(4)]
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, parikh_timeout=int(timeout / 2), check_proof=results.check_proof, path_proof=results.path_proof, mcc=results.mcc)
+        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, timeout=timeout, check_proof=results.check_proof, path_proof=results.path_proof, mcc=results.mcc)
 
         # If computation is uncompleted add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:

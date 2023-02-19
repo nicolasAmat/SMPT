@@ -242,7 +242,7 @@ class StateEquation(AbstractChecker):
         elif self.parikh and not skeleton:
             parikh_set = self.solver.get_parikh(ptnet)
             with open(self.formula.parikh_filename, 'w') as fp:
-                fp.write(' '.join(map(lambda tr: tr.id, parikh_set)))
+                fp.write(' '.join(map(lambda tr: "{{{}}}".format(tr.id) if '-' in tr.id or '.' in tr.id else tr.id, parikh_set)))
 
         info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(ptnet) is not None:

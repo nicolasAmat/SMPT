@@ -157,8 +157,7 @@ class Walk(Solver):
         if walk_filename is None:
             raise ValueError("Walk: no filename")
 
-        process = ['walk', '-R', '-loop', '-seed',
-                   self.ptnet_filename, '-ff', walk_filename]
+        process = ['walk', '-R', '-loop', '-seed', self.ptnet_filename, '-ff', walk_filename]
 
         if self.parikh_filename:
             process += ['-favor', self.parikh_filename]

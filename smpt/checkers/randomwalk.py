@@ -33,8 +33,8 @@ from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
-from smpt.interfaces.tipx import Tipx
 from smpt.interfaces.walk import Walk
+from smpt.ptio.formula import Formula
 from smpt.ptio.ptnet import PetriNet
 from smpt.ptio.verdict import Verdict
 
@@ -43,24 +43,35 @@ class RandomWalk(AbstractChecker):
     """ Random walk method.
     """
 
-    def __init__(self, ptnet: PetriNet, formula, tipx: bool = False, slice: bool = False, parikh_timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_slicing: Optional[PetriNet] = None, formula_slicing: Optional[Formula] = None, parikh: bool = False, slice: bool = False, timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
         """ Initializer.
         """
-        # Initial Petri net
+        # Initial Petri net and formula
         self.ptnet = ptnet
-
-        # Formula to study
         self.formula = formula
 
-        # Timeout for Parikh walking
-        self.parikh_timeout = parikh_timeout
+        # Petri net and formula for slicing
+        self.ptnet_slicing = ptnet_slicing
+        self.formula_slicing = formula_slicing
+
+        # Parikh
+        self.parikh = parikh
+
+        # Slicing
+        self.slice = slice
+
+        # Timeout
+        self.timeout = (timeout / 2) if slice and timeout else None
 
         # Walkers
-        self.solver = Tipx(ptnet.filename, debug=debug, solver_pids=solver_pids) if tipx else Walk(ptnet.filename, slice=slice, debug=debug, solver_pids=solver_pids)
-        if self.parikh_timeout and self.formula.parikh_filename is not None and getsize(self.formula.parikh_filename) > 0:
-            self.solver_parikh = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, timeout=parikh_timeout, solver_pids=solver_pids)
+        if  parikh and self.formula.parikh_filename is not None and getsize(self.formula.parikh_filename) > 0:
+            self.solver = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids)
         else:
-            self.solver_parikh = None
+            self.solver = Walk(ptnet.filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids)
+        if slice and self.ptnet_slicing is not None and self.formula_slicing is not None:
+            self.solver_slicing = Walk(ptnet_slicing.filename, slice=slice, debug=debug, solver_pids=solver_pids)
+        else:
+            self.solver_slicing = None
 
         # Additional techniques queue
         self.additional_techniques = additional_techniques
@@ -72,17 +83,21 @@ class RandomWalk(AbstractChecker):
 
         sat = None
 
-        if self.solver_parikh:
+        if self.parikh:
             info("[RANDOM-WALK] Parikh walk")
-            sat = self.solver_parikh.check_sat(self.formula.walk_filename)
-            sat = sat and not self.solver_parikh.aborted
-            if sat and self.additional_techniques is not None:
-                self.additional_techniques.put('PARIKH')
-
-        if not sat:
+        else:
             info("[RANDOM-WALK] Walk")
-            sat = self.solver.check_sat(self.formula.walk_filename)
-            sat = sat and not self.solver.aborted
+        sat = self.solver.check_sat(self.formula.walk_filename)
+        sat = sat and not self.solver.aborted
+        if sat and self.parikh and self.additional_techniques is not None:
+            self.additional_techniques.put('PARIKH')
+
+        if not sat and self.solver_slicing:
+            info("[RANDOM-WALK] Walk slicing")
+            sat = self.solver_slicing.check_sat(self.formula_slicing.walk_filename)
+            sat = sat and not self.solver_slicing.aborted
+            if sat and self.additional_techniques is not None and self.slice:
+                self.additional_techniques.put('SLICING')
 
         # Kill the solver
         self.solver.kill()

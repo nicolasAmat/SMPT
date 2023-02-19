@@ -27,7 +27,6 @@ __version__ = "5.0"
 from multiprocessing import Process, Queue
 from time import time
 from typing import Optional
-
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.checkers.bmc import BMC
 from smpt.checkers.cp import CP
@@ -44,7 +43,7 @@ from smpt.ptio.ptnet import Marking, PetriNet
 from smpt.ptio.system import System
 from smpt.ptio.verdict import Verdict
 
-PRE_TIMEOUT = 120
+PRE_TIMEOUT = 180
 RATIO_LIMIT = 0.8
 
 
@@ -79,8 +78,8 @@ class Parallelizer:
         Debugging flag.
     path_markings : str, optional
         Path to the list of markings (.aut format).
-    parikh_timeout : int, optional
-        Timeout for Parikh walking (if not None).
+    timeout : int, optional
+        Timeout.
     check_proof : bool, optional
         Check proof flag.
     path_proof : str, optional
@@ -113,7 +112,7 @@ class Parallelizer:
         Formulas used for BMC / K-INDUCTION.
     """
 
-    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, parikh_timeout: Optional[int] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False,  pre_run: bool = False):
+    def __init__(self, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, timeout: Optional[int] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False, pre_run: bool = False):
         """ Initializer.
 
         Parameters
@@ -148,8 +147,8 @@ class Parallelizer:
             Debugging flag.
         path_markings : str, optional
             Path to the list of markings (.aut format).
-        parikh_timeout : int, optional
-            Timeout for Parikh walking (if not None).
+        timeout : int, optional
+            Timeout.
         check_proof : bool, optional
             Check proof flag.
         path_proof : str, optional
@@ -183,8 +182,8 @@ class Parallelizer:
         # Path to markings
         self.path_markings: Optional[str] = path_markings
 
-        # Parikh timeout
-        self.parikh_timeout: Optional[int] = parikh_timeout
+        # Timeout
+        self.timeout: Optional[int] = timeout
 
         # Proof
         self.check_proof: bool = check_proof
@@ -221,14 +220,21 @@ class Parallelizer:
 
         # Petri net / Formula selection
         #
-        # WALK / STATE-EQUATION
+        # WALK
         # (ptnet_tfg + projected formula if possible, but in mcc mode keep only complete projections)
         projection_walk: bool = ptnet_tfg is not None and projected_formula is not None and projected_formula.shadow_complete
-        self.slice = not self.pre_run and not projection_walk and ptnet_reduced is not None
+        self.slice = not self.pre_run and ptnet_reduced is not None
         self.ptnet_walk: PetriNet = ptnet_tfg if projection_walk else ptnet
         self.formula_walk: Formula = projected_formula if projection_walk else formula
-        self.ptnet_reduced_state_equation: Optional[PetriNet] = None if projection_walk else ptnet_reduced
-        self.system_state_equation: Optional[System] = None if projection_walk else system
+        technique_projection_walk = ['STRUCTURAL_REDUCTION', 'PROJECTION'] if projection_walk else []
+        #
+        # STATE-EQUATION
+        projection_state_equation: bool = projection_walk and not ptnet.nupn
+        self.ptnet_state_equation: PetriNet = ptnet_tfg if projection_state_equation else ptnet
+        self.formula_state_equation: Formula = projected_formula if projection_state_equation else formula
+        self.ptnet_reduced_state_equation: Optional[PetriNet] = None if projection_state_equation else ptnet_reduced
+        self.system_state_equation: Optional[System] = None if projection_state_equation else system
+        technique_projection_state_equation = ['PROJECTION'] if projection_state_equation else []
         #
         # BMC / K-INDUCTION / PDR-COV
         # (ptnet_tfg + projected formula if possible, and in mcc mode only if the ratio > RATIO_LIMIT)
@@ -240,45 +246,43 @@ class Parallelizer:
         # Optional reductions
         self.optional_ptnet_reduced: Optional[PetriNet] = None if projection else ptnet_reduced
         self.optional_system: Optional[System] = None if projection else system
+        technique_projection = ['PROJECTION'] if projection else []
 
         # Initialize methods
         for method in methods:
 
             if method == 'WALK':
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['WALK'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['WALK'] + technique_projection_walk)
 
             elif method == 'STATE-EQUATION':
-                self.techniques.append(collateral_processing + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
+                self.techniques.append(collateral_processing + structural_reduction + technique_projection_state_equation + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
 
             elif method == 'INITIAL-MARKING':
-                self.techniques.append(collateral_processing + ['INITIAL-MARKING'])
+                self.techniques.append(collateral_processing + ['INITIAL_MARKING'])
 
             elif method == 'INDUCTION':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
 
             elif method == 'BMC':
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + technique_projection + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             elif method == 'K-INDUCTION':
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + technique_projection + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
 
             elif method == 'PDR-COV':
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'PDR-COV'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + technique_projection + ['IMPLICIT', 'SAT-SMT', 'PDR_COV'])
 
             elif method == 'PDR-REACH':
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR_REACH'])
 
             elif method == 'PDR-REACH-SATURATED':
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR-REACH-SATURATED'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR_REACH_SATURATED'])
 
             elif method == 'SMT':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
 
             elif method == 'CP':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
-
-            elif method == 'TIPX':
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['TIPX'])
 
             elif method == 'ENUM':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT-SMT'])
@@ -304,10 +308,10 @@ class Parallelizer:
         prover : Optional[AbstractChecker] = None
 
         if method == 'WALK':
-            prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=False, slice=self.slice, parikh_timeout=self.parikh_timeout, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = RandomWalk(self.ptnet_walk, self.formula_walk, ptnet_slicing=self.ptnet, formula_slicing=self.formula, slice=self.slice, timeout=self.timeout, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'STATE-EQUATION':
-            prover = StateEquation(self.ptnet_walk, self.formula_walk, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = StateEquation(self.ptnet_state_equation, self.formula_state_equation, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'INITIAL-MARKING':
             prover = InitialMarking(self.ptnet_skeleton, self.formula)
@@ -335,9 +339,6 @@ class Parallelizer:
 
         elif method == 'CP':
             prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=True, solver_pids=self.solver_pids)
-
-        elif method == 'TIPX':
-            prover = RandomWalk(self.ptnet_walk, self.formula_walk, tipx=True, debug=self.debug, solver_pids=self.solver_pids)
 
         elif method == 'ENUM':
             prover = Enumerative(self.path_markings, self.ptnet, self.formula, self.ptnet_reduced, self.system, self.debug, solver_pids=self.solver_pids)
@@ -408,8 +409,7 @@ class Parallelizer:
             if not result_method.empty():
 
                 verdict, model = result_method.get()
-                output = "\nFORMULA {} {}".format(
-                    self.property_id, self.formula.result(verdict))
+                output = "\nFORMULA {} {}".format(self.property_id, self.formula.result(verdict))
 
                 # Show techniques
                 if self.show_techniques:

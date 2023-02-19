@@ -29,7 +29,7 @@ from itertools import repeat
 from logging import warning
 from multiprocessing import Queue
 from multiprocessing.pool import ThreadPool
-from subprocess import PIPE, Popen, TimeoutExpired, check_output
+from subprocess import PIPE, CalledProcessError, Popen, TimeoutExpired, check_output
 from sys import exit
 from typing import TYPE_CHECKING, Optional
 
@@ -205,22 +205,19 @@ class Tipx(Solver):
         list of tuple of str, bool
             Projected formula and its corresponding shadow-completeness flag.
         """
-        process = ['tipx.exe', 'tfgload', self.ptnet_filename]
+        process = ['tipx.exe', 'smt-format', 'tfgload', self.ptnet_filename]
 
         if show_time:
             process.append('time')
 
         if show_time:
-            process += ['load-forms', formula.walk_filename,
-                        'project', 'time', 'fprint']
+            process += ['load-forms', formula.walk_filename, 'project', 'time', 'fprint']
         else:
-            process += ['load-forms',
-                        formula.walk_filename, 'project', 'fprint']
+            process += ['load-forms', formula.walk_filename, 'project', 'fprint']
 
         try:
-            output = check_output(process, timeout=PROJECT_TIMEOUT).decode(
-                'utf-8').splitlines()
-        except TimeoutExpired:
+            output = check_output(process, timeout=PROJECT_TIMEOUT).decode('utf-8').splitlines()
+        except (TimeoutExpired, CalledProcessError):
             return (None, False)
 
         time_information, completeness_information = "", ""
@@ -232,17 +229,14 @@ class Tipx(Solver):
 
             else:
                 projected_formula, complementary_data = line.split(' # ')
-                str_completeness, ratio_cubes = complementary_data.split(
-                    ' ', 1)
+                str_completeness, ratio_cubes = complementary_data.split(' ', 1)
                 completeness = str_completeness == 'complete'
 
                 if show_shadow_completeness:
-                    completeness_information = ' | shadow-complete: ' + \
-                        str(completeness) + ' | ratio: ' + ratio_cubes
+                    completeness_information = ' | shadow-complete: ' + str(completeness) + ' | ratio: ' + ratio_cubes
 
                 if show_time or show_shadow_completeness:
-                    print("# Projection of " + formula.identifier +
-                          time_information + completeness_information)
+                    print("# Projection of " + formula.identifier + time_information + completeness_information)
 
                 return (projected_formula, completeness)
         return (None, False)
