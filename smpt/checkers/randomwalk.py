@@ -61,7 +61,7 @@ class RandomWalk(AbstractChecker):
         self.slice = slice
 
         # Timeout
-        self.timeout = (timeout / 2) if slice and timeout else None
+        self.timeout = int(timeout / 2) if slice and timeout else None
 
         # Walkers
         if  parikh and self.formula.parikh_filename is not None and getsize(self.formula.parikh_filename) > 0:
