@@ -356,6 +356,31 @@ class Properties:
         for formula in self.formulas.values():
             formula.remove_parikh_file()
 
+
+    def tautologies(self) -> list[tuple[str, str]]:
+        """ Returns tautologies (or contractions) and remove them.
+
+        Returns
+        -------
+        list of tuple of str, str
+            Tautologies (identifier, verdict)
+        """
+        verdicts: list[tuple[str, str]] = []
+        to_remove: list[int] = []
+
+        for index, (property_id, formula) in enumerate(self.formulas.items()):
+            result = formula.R.tautology()
+            if result is not None:
+                to_remove.append(index)
+                if result == True:
+                    verdicts.append((property_id, formula.result(Verdict.CEX)))
+                elif result == False:
+                    verdicts.append((property_id, formula.result(Verdict.INV)))
+
+        self.formulas = {property_id: formula for index, (property_id, formula) in enumerate(self.formulas.items()) if index not in to_remove}
+
+        return verdicts
+
     def project(self, ptnet_tfg: PetriNet, drop_incomplete: bool = False, show_projection: bool = False, save_projection: Optional[str] = None, show_time: bool = False, show_shadow_completeness: bool = False, debug: bool = False) -> None:
         """ Generate projection formulas (.ltl format).
 
@@ -389,25 +414,27 @@ class Properties:
                 continue
 
             # Create new formula
-            projected_formula = Formula(ptnet_tfg, property_id)
+            projected_formula = Formula(ptnet_tfg, identifier=property_id)
 
             # Set shadow-completeness
             projected_formula.shadow_complete = complete
 
-            # Write the projected formula into a temporary file
-            fp_projected_formula = NamedTemporaryFile('w', suffix='.ltl', delete=False)
-            projected_formula.walk_filename = fp_projected_formula.name
-            fp_projected_formula.write(projection)
-            fp_projected_formula.flush()
-            fsync(fp_projected_formula.fileno())
-            fp_projected_formula.close()
+            # Simplification query
+            support = {var for var in set(projection.replace('(', ' ').replace(')', ' ').split()) if not var.isnumeric()} - {'and', 'or', 'not', '>=', '<=', '>', '<', '+', '-', '*', 'distinct', 'false', 'true'}
+            declaration = ''.join(map(lambda pl: "(declare-const {} Int)\n(assert (>= {} 0))\n".format(pl, pl), support))
 
             # Parse and add the projected formula
-            projected_formula.parse_ltl(projection)
+            projected_formula.P = projected_formula.parse_smt(Z3().simplify("{}(assert {})".format(declaration, projection).replace('{', '').replace('}', '')))
+            projected_formula.R = StateFormula([projected_formula.P], 'not')
             projected_formula.identifier = formula.identifier
             projected_formula.property_def = formula.property_def
+            # projected_formula.non_monotonic = not projected_formula.R.is_monotonic()
             self.projected_formulas[property_id] = projected_formula
 
+            # Generate walk file
+            projected_formula.generate_walk_file()
+
+            # Show and save projected formula options
             if show_projection or save_projection:
                 output_projection = "<> " + projected_formula.R.walk() if projected_formula.property_def == 'finally' else "[] " + projected_formula.P.walk()
                 # Show projected formula if option enabled
@@ -562,7 +589,7 @@ class Formula:
             
             if skeleton:
                 # skeleton `.net` input Petri net
-                transitions = [self.ptnet.transitions[tr] for tr in formula_xml]
+                transitions = [self.ptnet.transitions[tr.text] for tr in formula_xml]
 
             elif self.ptnet.colored:
                 # colored `.pnml` input Petri net
@@ -706,13 +733,13 @@ class Formula:
         else:
             raise ValueError("Invalid .xml node")
 
-    def smt_expand_helper(self, l: list[str], predicates: dict[str, SimpleExpression], skeleton: bool = False):
-        """ Helper for parsing simplified formula (SMT-LIB format).
+    def smt_expand_fireability(self, tr: str, predicates: dict[str, SimpleExpression], skeleton: bool = False) -> SimpleExpression:
+        """ Helper for parsing simplified formula (fireability part).
 
         Parameters
         ----------
-        l : list of str
-            List to parse.
+        tr : str
+            Transition to parse.
         lets : dict of str: SimpleExpression
             Lets associations.
         predicates : dict of str: SimpleExpression
@@ -721,73 +748,108 @@ class Formula:
             Parsing skeleton property.
         """
         # Check if memoized
-        if len(l) == 1 and l[0] in predicates:
-            return predicates[l[0]]
+        if tr in predicates:
+            return predicates[tr]
 
-        if self.fireability:
-            clauses: list[Expression] = []
+        clauses: list[Expression] = []
 
-            if skeleton:
-                # skeleton `.net` input Petri net
-                transitions = [self.ptnet_skeleton.transitions[tr] for tr in l]
+        if skeleton:
+            # skeleton `.net` input Petri net
+            transitions = [self.ptnet_skeleton.transitions[tr]]
 
-            elif self.ptnet.colored:
-                # colored `.pnml` input Petri net
-                transitions = []
-                for colored_transition in l:
-                    transitions += [self.ptnet.transitions[tr] for tr in self.ptnet.colored_transitions_mapping[colored_transition]]
+        elif self.ptnet.colored:
+            # colored `.pnml` input Petri net
+            transitions = [self.ptnet.transitions[tr_blind] for tr_blind in self.ptnet.colored_transitions_mapping[tr]]
 
-            elif self.ptnet.pnml_mapping:
-                # `.pnml` input Petri net
-                transitions = [self.ptnet.transitions[self.ptnet.pnml_transitions_mapping[tr]] for tr in l]
-
-            else:
-                # `.net` input Petri net
-                transitions = [self.ptnet.transitions[tr.replace('#', '.').replace(',', '.')] for tr in l]
-
-            for tr in transitions:
-                inequalities = []
-                for pl, weight in tr.pre.items():
-                    inequality = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
-                    inequalities.append(inequality)
-
-                if not inequalities:
-                    clauses.append(BooleanConstant(True))
-                elif len(inequalities) == 1:
-                    clauses.append(inequalities[0])
-                else:
-                    clauses.append(StateFormula(inequalities, 'and'))
-
-            predicate: SimpleExpression = clauses[0] if len(clauses) == 1 else StateFormula(clauses, 'or')
+        elif self.ptnet.pnml_mapping:
+            # `.pnml` input Petri net
+            transitions = [self.ptnet.transitions[self.ptnet.pnml_transitions_mapping[tr]]]
 
         else:
-            if skeleton:
-                # skeleton `.net` input Petri net
-                places = [self.ptnet_skeleton.places[place] for place in l]
+            # `.net` input Petri net
+            transitions = [self.ptnet.transitions[tr.replace('#', '.').replace(',', '.')]]
 
-            elif self.ptnet.colored:
-                # colored `.pnml` input Petri net
-                places = []
+        for transition in transitions:
+            inequalities = []
+            for pl, weight in transition.pre.items():
+                inequality = Atom(TokenCount([pl]), IntegerConstant(weight), '>=')
+                inequalities.append(inequality)
 
-                for colored_place in l:
-                    places += [self.ptnet.places[pl] for pl in self.ptnet.colored_places_mapping[colored_place.replace('#', '.')]]
-
-            elif self.ptnet.pnml_mapping:
-                # `.pnml` input Petri net
-                places = [self.ptnet.places[self.ptnet.pnml_places_mapping[place]] for place in l]
-
+            if not inequalities:
+                clauses.append(BooleanConstant(True))
+            elif len(inequalities) == 1:
+                clauses.append(inequalities[0])
             else:
-                # `.net` input Petri net
-                places = [self.ptnet.places[place.replace('#', '.')] for place in l]
+                clauses.append(StateFormula(inequalities, 'and'))
 
-            predicate = TokenCount(places)
+        predicate: SimpleExpression = clauses[0] if len(clauses) == 1 else StateFormula(clauses, 'or')
         
         # Memoize and returns
-        if len(l) == 1:
-            predicates[l[0]] = predicate
+        if tr not in predicates:
+            predicates[tr] = predicate
         return predicate
 
-    def parse_smt(self, simplified_formula: list[Any], lets: dict[str, SimpleExpression] = {}, predicates: dict[str, SimpleExpression] = {}, skeleton: bool = False) -> Optional[Expression]:
+    def smt_expand_cardinality(self, l: Any, lets: dict[str, SimpleExpression], predicates: dict[str, SimpleExpression], places: Optional[list[Place]] = None, multipliers: Optional[dict[Place, int]] = None, constants: Optional[list[int]] = None, skeleton: bool = False) -> Optional[SimpleExpression]:
+            """ Helper for parsing simplified formula (cardinality part).
+            """
+            if places is None:
+                places, multipliers, constants = [], {}, []
+                instantiate = True
+            else:
+                instantiate = False
+
+            if type(l) is not list:
+                element = str(l)
+                if element in lets:
+                    return lets[element]
+                elif element.isnumeric():
+                    constants.append(int(element))
+                else:
+                    if skeleton:
+                        # skeleton `.net` input Petri net
+                        places.append(self.ptnet_skeleton.places[element])
+
+                    elif self.ptnet.colored:
+                        # colored `.pnml` input Petri net
+                        places += [self.ptnet.places[pl] for pl in self.ptnet.colored_places_mapping[element.replace('#', '.')]]
+
+                    elif self.ptnet.pnml_mapping:
+                        # `.pnml` input Petri net
+                        places.append(self.ptnet.places[self.ptnet.pnml_places_mapping[element]])
+
+                    else:
+                        # `.net` input Petri net
+                        places.append(self.ptnet.places[element.replace('#', '.')])
+
+            elif str(l[0]) == '+':
+                for expr in l[1:]:
+                    self.smt_expand_cardinality(expr, lets, predicates, places=places, multipliers=multipliers, constants=constants, skeleton=skeleton)
+
+            elif str(l[0]) == '*':
+                multipliers_place: list[Place] = []
+                multipliers_constant: list[int] = []
+                for expr in l[1:]:
+                    self.smt_expand_cardinality(expr, lets, predicates, places=multipliers_place, multipliers=None, constants=multipliers_constant, skeleton=skeleton)
+                coefficient = 1
+                for num in multipliers_constant:
+                    coefficient *= num
+                for place in multipliers_place:
+                    multipliers[place] = coefficient
+
+            elif str(l[0]) == '-':
+                constants.append(- int(l[1]))
+            else:
+                raise ValueError
+
+            if instantiate:
+                if places:
+                    return TokenCount(places, delta=sum(constants), multipliers=multipliers)
+                else:
+                    return IntegerConstant(sum(constants))
+            else:    
+                return None
+
+    def parse_smt(self, simplified_formula: Any, lets: dict[str, SimpleExpression] = {}, predicates: dict[str, SimpleExpression] = {}, skeleton: bool = False) -> Optional[Expression]:
         """ Parse simplified formula (SMT-LIB format).
 
         Parameters
@@ -801,25 +863,33 @@ class Formula:
         skeleton : bool, optional
             Parsing skeleton property.
         """
+        # Constant, let reference, boolean, transition predicate 
         if type(simplified_formula) is not list:
+
             element = str(simplified_formula)
+
             if element.isnumeric():
                 return IntegerConstant(int(element))
+
             elif element in lets:
                 return lets[element]
+
             elif element in ["true", "false"]:
                 return BooleanConstant(element == "true")
             else:
-                return self.smt_expand_helper([element], predicates, skeleton)
+                return self.smt_expand_fireability(element, predicates, skeleton)
 
+        # Nested list case
         if len(simplified_formula) == 1:
             return self.parse_smt(simplified_formula[0], lets, predicates, skeleton)
 
         operator = str(simplified_formula[0])
 
+        # Goals (entry point)
         if operator == "goals":
             return self.parse_smt(simplified_formula[1], lets, predicates, skeleton)
 
+        # Goal or boolean operator
         elif operator in ["goal", "and", "or", "not"]:
 
             if operator == "goal":
@@ -832,6 +902,18 @@ class Formula:
 
             for expr in to_parse:
                 parsed_expr = self.parse_smt(expr, lets, predicates, skeleton)
+
+                # Boolean simplification
+                if isinstance(parsed_expr, BooleanConstant):
+                    if operator == 'not':
+                        return BooleanConstant(not parsed_expr.value)
+                    elif (parsed_expr.value == True and operator == 'and') or (parsed_expr.value == False and operator == 'or'):
+                        parsed_expr = None
+                    elif (parsed_expr.value == True and operator == 'or'):
+                        return BooleanConstant(True)
+                    elif (parsed_expr.value == False and operator == 'and'):
+                        return BooleanConstant(False)
+
                 if parsed_expr is not None:
                     operands.append(parsed_expr)
 
@@ -844,18 +926,21 @@ class Formula:
             else:
                 return StateFormula(operands, operator)
 
+        # Let declaration
         elif operator == "let":
             for lets_statement in simplified_formula[1]:
                 lets[str(lets_statement[0])] = self.parse_smt(lets_statement[1], lets, predicates, skeleton)
             return self.parse_smt(simplified_formula[2:], lets, predicates, skeleton)
 
+        # Comparisons
         elif operator in ["<=", ">=", '<', '>', "=", "distinct"]:
             if (operator == "<=" and str(simplified_formula[1]) == '0') or (operator == ">=" and str(simplified_formula[2]) == '0'):
                 return None
-            return Atom(self.parse_smt(simplified_formula[1], lets, predicates, skeleton), self.parse_smt(simplified_formula[2], lets, predicates, skeleton), operator)
+            return Atom(self.smt_expand_cardinality(simplified_formula[1], lets=lets, predicates=predicates, skeleton=skeleton), self.smt_expand_cardinality(simplified_formula[2], lets=lets, predicates=predicates, skeleton=skeleton), operator)
 
-        elif operator == '+':
-            return self.smt_expand_helper([str(element) for element in simplified_formula[1:]], predicates, skeleton)
+        # Arithmetic operation
+        elif operator in ["+", "*"]:
+            return self.smt_expand_cardinality(simplified_formula, lets=lets, predicates=predicates, skeleton=skeleton)
 
         else:
             raise ValueError
@@ -1221,7 +1306,7 @@ class Formula:
         Formula
             DNF of the Formula.
         """
-        formula = Formula(self.ptnet, self.identifier)
+        formula = Formula(self.ptnet, identifier=self.identifier)
         formula.non_monotonic, formula.property_def = self.non_monotonic, self.property_def
         formula.P, formula.R = self.P.dnf(), self.R.dnf()
         return formula
@@ -2207,8 +2292,23 @@ class Atom(Expression):
         str
             .ltl format.
         """
-        walk_input = "({} {} {})".format(self.left_operand.walk(
-        ), COMPARISON_OPERATORS_TO_WALK[self.operator], self.right_operand.walk())
+        left_no_integer, right_no_integer, left_shift, right_shift = False, False, 0, 0
+
+        if isinstance(self.left_operand, TokenCount) and self.left_operand.delta < 0:
+            left_no_integer = True
+            right_shift = - self.left_operand.delta
+        elif isinstance(self.left_operand, IntegerConstant) and self.left_operand.value < 0:
+            left_no_integer = True
+            right_shift = - self.left_operand.value
+
+        if isinstance(self.right_operand, TokenCount) and self.right_operand.delta < 0:
+            right_no_integer = True
+            left_shift = - self.right_operand.delta
+        elif isinstance(self.right_operand, IntegerConstant) and self.right_operand.value < 0:
+            right_no_integer = True
+            left_shift = - self.right_operand.value
+
+        walk_input = "({} {} {})".format(self.left_operand.walk(left_shift, left_no_integer), COMPARISON_OPERATORS_TO_WALK[self.operator], self.right_operand.walk(right_shift, right_no_integer))
 
         if self.operator == 'distinct':
             walk_input = "- {}".format(walk_input)
@@ -2897,8 +2997,7 @@ class TokenCount(SimpleExpression):
             minizinc_input = "({})".format(minizinc_input)
 
         if self.delta:
-            minizinc_input = "({} {} {})".format(
-                minizinc_input, self.sign(), self.delta)
+            minizinc_input = "({} {} {})".format(minizinc_input, self.sign(), abs(self.delta))
 
         return minizinc_input
 
@@ -2912,7 +3011,7 @@ class TokenCount(SimpleExpression):
         """
         return self.minizinc()
 
-    def walk(self) -> str:
+    def walk(self, shift: int = 0, no_integer: bool = False) -> str:
         """ Assert the TokenCount.
 
         Returns
@@ -2923,16 +3022,18 @@ class TokenCount(SimpleExpression):
         def place_id(pl):
             return "{{{}}}".format(pl.id) if '-' in pl.id or '.' in pl.id else pl.id
 
-        smt_input = ' + '.join(map(lambda pl: place_id(pl) if self.multipliers is None or pl not in self.multipliers else "{}*{}".format(
-            self.multipliers[pl], place_id(pl)), self.places))
+        walk_input = ' + '.join(map(lambda pl: place_id(pl) if self.multipliers is None or pl not in self.multipliers else "{}*{}".format(self.multipliers[pl], place_id(pl)), self.places))
 
         if len(self.places) > 1:
-            smt_input = "({})".format(smt_input)
+            walk_input = "({})".format(walk_input)
 
-        if self.delta:
-            smt_input = "({} {} {})".format(smt_input, self.sign(), self.delta)
+        if self.delta and not no_integer:
+            walk_input = "({} + {})".format(walk_input, self.delta)
 
-        return smt_input
+        if shift:
+            walk_input = "({} + {})".format(walk_input, shift)
+
+        return walk_input
 
     def generalize(self, delta: Optional[dict[Place, int]] = None, saturated_delta: Optional[dict[Place, list[Expression]]] = None) -> SimpleExpression:
         """ Generalize the TokenCount from a delta vector (or saturated_delta).
@@ -3088,7 +3189,7 @@ class IntegerConstant(SimpleExpression):
         """
         return str(self)
 
-    def walk(self) -> str:
+    def walk(self, shift: int = 0, no_integer: bool = False) -> str:
         """ Assert the IntegerConstant.
 
         Returns
@@ -3096,7 +3197,11 @@ class IntegerConstant(SimpleExpression):
         str
             .ltl format.
         """
-        return str(self)
+        value = self.value if not no_integer else 0
+        if shift:
+            value += shift
+
+        return str(value)
 
     def generalize(self, delta: Optional[dict[Place, int]] = None, saturated_delta: Optional[dict[Place, list[Expression]]] = None) -> SimpleExpression:
         """ Generalize the IntegerConstant from a delta vector (or saturated_delta).
