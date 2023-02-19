@@ -229,7 +229,7 @@ class Parallelizer:
         technique_projection_walk = ['STRUCTURAL_REDUCTION', 'PROJECTION'] if projection_walk else []
         #
         # STATE-EQUATION
-        projection_state_equation: bool = projection_walk and not ptnet.nupn
+        projection_state_equation: bool = projection_walk and ptnet.nupn is None
         self.ptnet_state_equation: PetriNet = ptnet_tfg if projection_state_equation else ptnet
         self.formula_state_equation: Formula = projected_formula if projection_state_equation else formula
         self.ptnet_reduced_state_equation: Optional[PetriNet] = None if projection_state_equation else ptnet_reduced
@@ -308,7 +308,7 @@ class Parallelizer:
         prover : Optional[AbstractChecker] = None
 
         if method == 'WALK':
-            prover = RandomWalk(self.ptnet_walk, self.formula_walk, ptnet_slicing=self.ptnet, formula_slicing=self.formula, slice=self.slice, timeout=self.timeout, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = RandomWalk(self.ptnet_walk, self.formula_walk, ptnet_slicing=self.ptnet, formula_slicing=self.formula, parikh=not self.pre_run, slice=self.slice, timeout=self.timeout, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'STATE-EQUATION':
             prover = StateEquation(self.ptnet_state_equation, self.formula_state_equation, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
