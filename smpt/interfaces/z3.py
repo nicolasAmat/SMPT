@@ -239,9 +239,10 @@ class Z3(Solver):
             if order is None:
                 place = place_content[1]
             else:
-                place_content = place_content[1].rsplit('@', 1)
-                if int(place_content[1]) == order:
-                    place = place_content[0]
+                if '@' in place_content[1]:
+                    place_content = place_content[1].rsplit('@', 1)
+                    if int(place_content[1]) == order:
+                        place = place_content[0]
             if place_marking and place in ptnet.places:
                 marking[ptnet.places[place]] = int(place_marking)
 
