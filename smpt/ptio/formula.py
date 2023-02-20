@@ -393,7 +393,7 @@ class Properties:
         self.formulas = {property_id: formula for property_id, formula in self.formulas.items() if property_id not in to_remove}
 
         if projection:
-            self.formulas = {property_id: formula for property_id, formula in self.projected_formulas.items() if property_id not in to_remove}
+            self.formulas_projected = {property_id: formula for property_id, formula in self.projected_formulas.items() if property_id not in to_remove}
 
         return verdicts
 
