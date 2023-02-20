@@ -132,7 +132,7 @@ class Properties:
         Set of projected formulas.
     """
 
-    def __init__(self, ptnet: PetriNet, ptnet_tfg: Optional[PetriNet] = None, ptnet_skeleton: Optional[PetriNet] = None, xml_filename: Optional[str] = None, fireability: bool = False, simplify: bool = False) -> None:
+    def __init__(self, ptnet: PetriNet, ptnet_tfg: Optional[PetriNet] = None, ptnet_skeleton: Optional[PetriNet] = None, xml_filename: Optional[str] = None, fireability: bool = False, simplify: bool = False, answered: Optional[set[str]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -149,6 +149,8 @@ class Properties:
             Fireability mode.
         simplify : bool, optional
             Enable simplification formula using z3.
+        answered : set of str
+            Skip already answered queries (used after running hwalk).
         """
         self.ptnet: PetriNet = ptnet
         self.ptnet_tfg: Optional[PetriNet] = ptnet_tfg
@@ -158,7 +160,7 @@ class Properties:
         self.projected_formulas: dict[str, Formula] = {}
 
         if xml_filename is not None:
-            self.parse_xml(xml_filename, fireability=fireability, simplify=simplify)
+            self.parse_xml(xml_filename, fireability=fireability, simplify=simplify, answered=answered)
 
     def __str__(self) -> str:
         """ Properties to textual format.
@@ -213,7 +215,7 @@ class Properties:
 
         return minizinc_input
 
-    def parse_xml(self, filename: str, fireability: bool = False, simplify: bool = False) -> None:
+    def parse_xml(self, filename: str, fireability: bool = False, simplify: bool = False, answered: Optional[set[str]]= None) -> None:
         """ Properties parser.
 
         Parameters
@@ -224,12 +226,18 @@ class Properties:
             Fireability mode.
         simplify : bool, optional
             Enable simplification formula using z3.
+        answered : set of str
+            Skip already answered queries (used after running hwalk).
         """
         tree = parse(filename)
         properties_xml = tree.getroot()
 
         for property_xml in properties_xml:
             property_id = property_xml[0].text
+
+            if answered is not None and property_id in answered:
+                continue
+
             formula_xml = property_xml[2]
             self.add_formula(Formula(self.ptnet, ptnet_skeleton=self.ptnet_skeleton, formula_xml=formula_xml, fireability=fireability, simplify=simplify), property_id)
 
@@ -357,8 +365,13 @@ class Properties:
             formula.remove_parikh_file()
 
 
-    def tautologies(self) -> list[tuple[str, str]]:
+    def tautologies(self, projection: bool = False) -> list[tuple[str, str]]:
         """ Returns tautologies (or contractions) and remove them.
+
+        Parameters
+        ----------
+        projection : bool, optional
+            Check projected formulas.
 
         Returns
         -------
@@ -366,18 +379,21 @@ class Properties:
             Tautologies (identifier, verdict)
         """
         verdicts: list[tuple[str, str]] = []
-        to_remove: list[int] = []
+        to_remove: set[str] = set()
 
-        for index, (property_id, formula) in enumerate(self.formulas.items()):
+        for property_id, formula in self.projected_formulas.items():
             result = formula.R.tautology()
             if result is not None:
-                to_remove.append(index)
+                to_remove.add(property_id)
                 if result == True:
                     verdicts.append((property_id, formula.result(Verdict.CEX)))
                 elif result == False:
                     verdicts.append((property_id, formula.result(Verdict.INV)))
+        
+        self.formulas = {property_id: formula for property_id, formula in self.formulas.items() if property_id not in to_remove}
 
-        self.formulas = {property_id: formula for index, (property_id, formula) in enumerate(self.formulas.items()) if index not in to_remove}
+        if projection:
+            self.formulas = {property_id: formula for property_id, formula in self.projected_formulas.items() if property_id not in to_remove}
 
         return verdicts
 

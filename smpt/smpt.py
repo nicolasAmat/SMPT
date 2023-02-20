@@ -389,6 +389,8 @@ def main():
     # Project formulas if enabled
     if results.project and ptnet_tfg is not None and not (results.mcc and fully_reducible):
         properties.project(ptnet_tfg, drop_incomplete=results.mcc, show_projection=results.show_projection, save_projection=results.path_projection_directory, show_time=results.show_time, show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
+        for (property_id, verdict) in properties.tautologies(projection=True):
+            print("\nFORMULA {} {} TECHNIQUES STRUCTURAL-REDUCTION PROJECTION TAUTOLOGY".format(property_id, verdict))
 
     # Generate Parikh files
     if parikh:
