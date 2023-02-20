@@ -435,6 +435,9 @@ class PDR(AbstractChecker):
             smt_input = self.oars[i][0].smtlib(0, assertion=True)
         else:
             smt_input = self.oars[i][0].smtlib(self.reduction * 10, assertion=True)
+            smt_input += self.ptnet_current.smtlib_declare_transitions()
+            smt_input += self.ptnet_current.smtlib_state_equation(0)
+            smt_input += self.ptnet_current.smtlib_read_arc_constraints()
 
         for clause in self.oars[i][1:]:
             smt_input += clause.smtlib(0, assertion=True)
