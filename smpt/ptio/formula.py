@@ -130,6 +130,14 @@ class Properties:
         Set of formulas.
     projected_formulas : dict of str: Formula
         Set of projected formulas.
+    invariant : list of Expression
+        Formulas found as invariant.
+    reachables : list of Expression
+        Formulas found as reachable.
+    duplicates : dict of str: list of tuple of str, bool
+        Duplicate formulas.
+    hashes : dict of str: str, optional
+        Formula hashes (normal form).
     """
 
     def __init__(self, ptnet: PetriNet, ptnet_tfg: Optional[PetriNet] = None, ptnet_skeleton: Optional[PetriNet] = None, xml_filename: Optional[str] = None, fireability: bool = False, simplify: bool = False, answered: Optional[set[str]] = None) -> None:
@@ -158,6 +166,12 @@ class Properties:
 
         self.formulas: dict[str, Formula] = {}
         self.projected_formulas: dict[str, Formula] = {}
+
+        self.invariant: list[Expression] = []
+        self.reachable: list[Expression] = []
+
+        self.duplicates: dict[str, list[tuple[str, bool]]] = {}
+        self.hashes: Optional[dict[str, str]] = None 
 
         if xml_filename is not None:
             self.parse_xml(xml_filename, fireability=fireability, simplify=simplify, answered=answered)
@@ -239,9 +253,12 @@ class Properties:
                 continue
 
             formula_xml = property_xml[2]
-            self.add_formula(Formula(self.ptnet, ptnet_skeleton=self.ptnet_skeleton, formula_xml=formula_xml, fireability=fireability, simplify=simplify), property_id)
+            self.add_formula(Formula(self.ptnet, ptnet_skeleton=self.ptnet_skeleton, formula_xml=formula_xml, fireability=fireability, simplify=simplify), property_id, check_duplicates=simplify)
 
-    def add_formula(self, formula: Formula, property_id: Optional[str] = None) -> None:
+        # Free hashes
+        self.hashes = None
+
+    def add_formula(self, formula: Formula, property_id: Optional[str] = None, check_duplicates: bool = False, projection: bool = False) -> None:
         """ Add a formula.
 
         Note
@@ -254,12 +271,57 @@ class Properties:
             Formula to add.
         property_id : str, optional
             Property id.
+        check_duplicates : bool, optional
+            Check duplicates.
+        projection : bool, optional
+            Add projection.
         """
         if property_id is None:
             property_id = str(uuid4())
 
         formula.identifier = property_id
-        self.formulas[property_id] = formula
+
+        if check_duplicates:
+
+            # Initialize hashes dictionary
+            if self.hashes is None:
+                self.hashes = {}
+
+            # Compute hash
+            nf_hash = formula.P.normal_form_hash()
+
+            # Check if already exists
+            if nf_hash in self.hashes:
+                # Get equivalent id and if it its negation
+                equivalent_id = self.hashes[nf_hash]
+                negation = formula.property_def != self.formulas[equivalent_id].property_def
+                
+                if property_id in self.duplicates:
+                    equivalences = [(prev_property_id, prev_negation ^ negation) for (prev_property_id, prev_negation) in self.duplicates[property_id]]
+                    equivalences.append((property_id, negation))
+                    del self.duplicates[property_id]
+                else:
+                    equivalences = [(property_id, negation)]
+
+                if equivalent_id in self.duplicates:
+                    self.duplicates[equivalent_id] += equivalences
+                else:
+                    self.duplicates[equivalent_id] = equivalences
+
+                # Delete from formulas
+                if property_id in self.formulas:
+                    del self.formulas[property_id]
+                # Exit (not add to formulas)
+                return
+            
+            else:
+                # Add hash
+                self.hashes[nf_hash] = property_id
+
+        if not projection:
+            self.formulas[property_id] = formula
+        else:
+            self.projected_formulas[property_id] = formula
 
     def add_ltl_formula(self, ltl_formulas: str) -> None:
         """ Parse and add reachability formula (.ltl format).
@@ -364,7 +426,6 @@ class Properties:
         for formula in self.formulas.values():
             formula.remove_parikh_file()
 
-
     def tautologies(self, projection: bool = False) -> list[tuple[str, str]]:
         """ Returns tautologies (or contractions) and remove them.
 
@@ -381,14 +442,15 @@ class Properties:
         verdicts: list[tuple[str, str]] = []
         to_remove: set[str] = set()
 
-        for property_id, formula in self.projected_formulas.items():
+        formulas_to_check = self.projected_formulas if projection else self.formulas
+        for property_id, formula in formulas_to_check.items():
             result = formula.R.tautology()
             if result is not None:
                 to_remove.add(property_id)
                 if result == True:
-                    verdicts.append((property_id, formula.result(Verdict.CEX)))
+                    verdicts.append((property_id, self.result(property_id, Verdict.CEX, tautology=True)))
                 elif result == False:
-                    verdicts.append((property_id, formula.result(Verdict.INV)))
+                    verdicts.append((property_id, self.result(property_id, Verdict.INV, tautology=True)))
         
         self.formulas = {property_id: formula for property_id, formula in self.formulas.items() if property_id not in to_remove}
 
@@ -424,10 +486,13 @@ class Properties:
         projections = tipx.project(list(self.formulas.values()), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
 
         # Iterate over projections
-        for (projection, complete), (property_id, formula) in zip(projections, self.formulas.items()):
+        for (projection, complete), property_id in zip(projections, list(self.formulas)):
 
             if projection is None or (drop_incomplete and not complete):
                 continue
+
+            # Get original formula
+            formula = self.formulas[property_id]
 
             # Create new formula
             projected_formula = Formula(ptnet_tfg, identifier=property_id)
@@ -444,12 +509,13 @@ class Properties:
             projected_formula.R = StateFormula([projected_formula.P], 'not')
             projected_formula.identifier = formula.identifier
             projected_formula.property_def = formula.property_def
-            # projected_formula.non_monotonic = not projected_formula.R.is_monotonic()
-            self.projected_formulas[property_id] = projected_formula
 
             # Generate walk file
             projected_formula.generate_walk_file()
 
+            # Add formula
+            self.add_formula(projected_formula, property_id=property_id, check_duplicates=complete, projection=True)
+            
             # Show and save projected formula options
             if show_projection or save_projection:
                 output_projection = "<> " + projected_formula.R.walk() if projected_formula.property_def == 'finally' else "[] " + projected_formula.P.walk()
@@ -460,6 +526,48 @@ class Properties:
                 if save_projection:
                     with open(save_projection + "/" + property_id + ".ltl", 'w') as fp:
                         fp.write(output_projection)
+
+        # Free hashes
+        self.hashes = None
+        
+    def result(self, property_id: str, verdict: Verdict, tautology: bool = False) -> str:
+        """ Return the result (and manage equivalent formulas if there is some).
+
+        Parameters
+        ----------
+        property_id : str
+            Id of the formula.
+        verdict : Verdict
+            Verdict of the formula.
+        tautology : bool, optional
+            Is a tautology (do not add to invariant / reachable).
+
+        Returns
+        -------
+        str
+            "TRUE" or "FALSE".
+        """
+        formula = self.formulas[property_id]
+        result = formula.result(verdict)
+
+        if not tautology:
+            if result == True:
+                if formula.property_def == 'finally':
+                    self.reachable.append(formula.R)
+                else:
+                    self.invariant.append(formula.P)
+
+            elif result == False:
+                if formula.property_def == 'finally':
+                    self.invariant.append(formula.P)
+                else:
+                    self.reachable.append(formula.R)
+
+        if property_id in self.duplicates:
+            for (equivalent_id, negation) in self.duplicates[property_id]:
+                print("\nFORMULA {} {} TECHNIQUES DUPLICATE".format(equivalent_id, str(result ^ negation).upper()))
+
+        return str(result).upper()
 
 
 class Formula:
@@ -938,6 +1046,9 @@ class Formula:
 
             elif operator != "not" and len(operands) == 1:
                 return operands[0]
+            
+            elif operator == 'not' and isinstance(operands[0], StateFormula) and operands[0].operator == 'not':
+                return operands[0]
 
             else:
                 return StateFormula(operands, operator)
@@ -1327,7 +1438,7 @@ class Formula:
         formula.P, formula.R = self.P.dnf(), self.R.dnf()
         return formula
 
-    def result(self, verdict: Verdict) -> str:
+    def result(self, verdict: Verdict) -> bool:
         """ Return the result according to the reachability of the feared events R.
 
         Parameters
@@ -1337,23 +1448,22 @@ class Formula:
 
         Returns
         -------
-        str
-            "TRUE" or "FALSE".
+        bool
+            Result.
         """
         if self.property_def == 'finally':
             if verdict == Verdict.CEX:
-                return "TRUE"
+                return True
             elif verdict == Verdict.INV:
-                return "FALSE"
+                return False
 
         if self.property_def == 'globally':
             if verdict == Verdict.CEX:
-                return "FALSE"
+                return False
             elif verdict == Verdict.INV:
-                return "TRUE"
+                return True
 
-        return ""
-
+        return None
 
 class SimpleExpression(ABC):
     """ Simple Expression.
@@ -1496,6 +1606,21 @@ class SimpleExpression(ABC):
         -------
         int
             Evaluation of the SimpleExpression at marking m.
+        """
+        pass
+
+    def normal_form_hash(self, negation: bool = False) -> str:
+        """ Hash the SimpleExpression into a normal form (no negation, places sorted, and only <, <=, = , distinct comparators).
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Propagate negation.
+
+        Returns
+        -------
+        str
+            Hash.
         """
         pass
 
@@ -2113,6 +2238,30 @@ class StateFormula(Expression):
 
         else:
             return None
+        
+    def normal_form_hash(self, negation: bool = False) -> str:
+        """ Hash the StateFormula into a normal form (no negation).
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Propagate negation.
+
+        Returns
+        -------
+        str
+            Hash.
+        """
+        if self.operator == 'not':
+            if negation:
+                return self.operands[0].normal_form_hash()
+            else:
+                return self.operands[0].normal_form_hash(negation=True)
+        else:
+            if negation:
+                return '({})'.format(' {} '.format(NEGATION_BOOLEAN_OPERATORS[self.operator]).join(sorted(map(lambda operand: operand.normal_form_hash(negation=True), self.operands))))
+            else:
+                return '({})'.format(' {} '.format(self.operator).join(sorted(map(lambda operand: operand.normal_form_hash(), self.operands))))
 
 
 class Atom(Expression):
@@ -2308,23 +2457,40 @@ class Atom(Expression):
         str
             .ltl format.
         """
-        left_no_integer, right_no_integer, left_shift, right_shift = False, False, 0, 0
+        def place_id(pl):
+            return "{{{}}}".format(pl.id) if '-' in pl.id or '.' in pl.id else pl.id
 
-        if isinstance(self.left_operand, TokenCount) and self.left_operand.delta < 0:
-            left_no_integer = True
-            right_shift = - self.left_operand.delta
-        elif isinstance(self.left_operand, IntegerConstant) and self.left_operand.value < 0:
-            left_no_integer = True
-            right_shift = - self.left_operand.value
+        def walk_token_count(operand):
+            self_literals, opposite_literals = [], []
+            
+            for pl in operand.places:
+                if operand.multipliers is None or pl not in operand.multipliers:
+                    self_literals.append(place_id(pl))
+                elif operand.multipliers[pl] > 0:
+                    self_literals.append("{}*{}".format(operand.multipliers[pl], place_id(pl)))
+                else:
+                    opposite_literals.append("{}*{}".format(- operand.multipliers[pl], place_id(pl)))
 
-        if isinstance(self.right_operand, TokenCount) and self.right_operand.delta < 0:
-            right_no_integer = True
-            left_shift = - self.right_operand.delta
-        elif isinstance(self.right_operand, IntegerConstant) and self.right_operand.value < 0:
-            right_no_integer = True
-            left_shift = - self.right_operand.value
+            if operand.delta > 0:
+                self_literals.append(str(operand.delta))
+            elif operand.delta < 0:
+                opposite_literals.append(str(- operand.delta))
 
-        walk_input = "({} {} {})".format(self.left_operand.walk(left_shift, left_no_integer), COMPARISON_OPERATORS_TO_WALK[self.operator], self.right_operand.walk(right_shift, right_no_integer))
+            return (self_literals, opposite_literals)
+
+        def walk_integer_constant(operand):
+            return ([str(operand.value)], []) if operand.value >= 0 else ([], [str(- operand.value)])
+
+        def addition(l):
+            return l[0] if len(l) == 1 else "({})".format(' + '.join(l))
+
+        (self_left, opposite_left) = walk_token_count(self.left_operand) if isinstance(self.left_operand, TokenCount) else walk_integer_constant(self.left_operand)
+        (self_right, opposite_right) = walk_token_count(self.right_operand) if isinstance(self.right_operand, TokenCount) else walk_integer_constant(self.right_operand)
+
+        left = self_left + opposite_right
+        right = self_right + opposite_left
+
+        walk_input = "({} {} {})".format(addition(left), COMPARISON_OPERATORS_TO_WALK[self.operator], addition(right))
 
         if self.operator == 'distinct':
             walk_input = "- {}".format(walk_input)
@@ -2499,6 +2665,26 @@ class Atom(Expression):
             return self.operator in [">=", "<=", "="]
         
         return None
+
+    def normal_form_hash(self, negation: bool = False) -> str:
+        """ Hash the Atom into a normal form (only <, <=, = , distinct comparators).
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Propagate negation.
+
+        Returns
+        -------
+        str
+            Hash.
+        """
+        operator = NEGATION_COMPARISON_OPERATORS[self.operator] if negation else self.operator
+        
+        if operator in ['>', '>=']:
+            return '{} {} {}'.format(self.right_operand.normal_form_hash(), COMMUTATION_COMPARISON_OPERATORS[operator], self.left_operand.normal_form_hash())
+        else:
+            return '{} {} {}'.format(self.left_operand.normal_form_hash(), operator, self.right_operand.normal_form_hash())
 
 
 class BooleanConstant(Expression):
@@ -2732,6 +2918,21 @@ class BooleanConstant(Expression):
             `True` if tautology, `False` if contraction, and `None` otherwise.
         """
         return self.value
+    
+    def normal_form_hash(self, negation: bool = False) -> str:
+        """ Hash the StateFormula into a normal form (no negation).
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Propagate negation.
+
+        Returns
+        -------
+        str
+            Hash.
+        """
+        return str(not self.value) if negation else self.value
 
 
 class UniversalQuantification(Expression):
@@ -2863,6 +3064,9 @@ class UniversalQuantification(Expression):
         raise NotImplementedError
     
     def tautology(self) -> Optional[bool]:
+        raise NotImplementedError
+    
+    def normal_form_hash(self, negation: bool = False) -> str:
         raise NotImplementedError
 
 
@@ -3027,7 +3231,7 @@ class TokenCount(SimpleExpression):
         """
         return self.minizinc()
 
-    def walk(self, shift: int = 0, no_integer: bool = False) -> str:
+    def walk(self) -> str:
         """ Assert the TokenCount.
 
         Returns
@@ -3043,11 +3247,8 @@ class TokenCount(SimpleExpression):
         if len(self.places) > 1:
             walk_input = "({})".format(walk_input)
 
-        if self.delta and not no_integer:
+        if self.delta:
             walk_input = "({} + {})".format(walk_input, self.delta)
-
-        if shift:
-            walk_input = "({} + {})".format(walk_input, shift)
 
         return walk_input
 
@@ -3112,6 +3313,24 @@ class TokenCount(SimpleExpression):
             Satisfiability of the TokenCount at marking m.
         """
         return sum([m.tokens[pl] if self.multipliers is None or pl not in self.multipliers else self.multipliers[pl] * m.tokens[pl] for pl in self.places]) + self.delta
+    
+    def normal_form_hash(self, negation: bool = False) -> str:
+        """ Hash the TokenCount into a normal form (places sorted).
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Propagate negation.
+
+        Returns
+        -------
+        str
+            Hash.
+        """
+        if self.delta:
+            return "{} {}".format(' '.join(map(str, sorted(self.places, key=lambda pl: pl.id))), self.delta)
+        else:
+            ' '.join(map(str, sorted(self.places, key=lambda pl: pl.id)))
 
 
 class IntegerConstant(SimpleExpression):
@@ -3205,7 +3424,7 @@ class IntegerConstant(SimpleExpression):
         """
         return str(self)
 
-    def walk(self, shift: int = 0, no_integer: bool = False) -> str:
+    def walk(self) -> str:
         """ Assert the IntegerConstant.
 
         Returns
@@ -3213,11 +3432,7 @@ class IntegerConstant(SimpleExpression):
         str
             .ltl format.
         """
-        value = self.value if not no_integer else 0
-        if shift:
-            value += shift
-
-        return str(value)
+        return str(self.value)
 
     def generalize(self, delta: Optional[dict[Place, int]] = None, saturated_delta: Optional[dict[Place, list[Expression]]] = None) -> SimpleExpression:
         """ Generalize the IntegerConstant from a delta vector (or saturated_delta).
@@ -3261,6 +3476,21 @@ class IntegerConstant(SimpleExpression):
             Evaluation of the IntegerConstant at marking m.
         """
         return self.value
+    
+    def normal_form_hash(self, negation: bool = False) -> str:
+        """ Hash the IntegerConstant into a normal form.
+
+        Parameters
+        ----------
+        negation : bool, optional
+            Propagate negation.
+
+        Returns
+        -------
+        str
+            Hash.
+        """
+        return str(self.value)
 
 
 class ArithmeticOperation(SimpleExpression):
@@ -3386,6 +3616,9 @@ class ArithmeticOperation(SimpleExpression):
 
     def eval(self, m: Marking) -> int:
         raise NotImplementedError
+    
+    def normal_form_hash(self, negation: bool = False) -> str:
+        raise NotImplementedError
 
 
 class FreeVariable(SimpleExpression):
@@ -3509,4 +3742,7 @@ class FreeVariable(SimpleExpression):
         raise NotImplementedError
 
     def eval(self, m: Marking) -> int:
+        raise NotImplementedError
+
+    def normal_form_hash(self, negation: bool = False) -> str:
         raise NotImplementedError

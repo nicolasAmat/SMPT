@@ -43,7 +43,7 @@ class RandomWalk(AbstractChecker):
     """ Random walk method.
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_slicing: Optional[PetriNet] = None, formula_slicing: Optional[Formula] = None, parikh: bool = False, slice: bool = False, timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_slicing: Optional[PetriNet] = None, formula_slicing: Optional[Formula] = None, parikh: bool = False, slice: bool = False, timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None, solver_pids_bis: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
         """ Initializer.
         """
         # Initial Petri net and formula
@@ -55,7 +55,7 @@ class RandomWalk(AbstractChecker):
         self.formula_slicing = formula_slicing
 
         # Parikh
-        self.parikh = parikh
+        self.parikh = parikh and self.formula.parikh_filename is not None and getsize(self.formula.parikh_filename) > 0
 
         # Slicing
         self.slice = slice
@@ -64,12 +64,12 @@ class RandomWalk(AbstractChecker):
         self.timeout = int(timeout / 2) if slice and timeout else None
 
         # Walkers
-        if  parikh and self.formula.parikh_filename is not None and getsize(self.formula.parikh_filename) > 0:
-            self.solver = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids)
+        if self.parikh:
+            self.solver = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids, solver_pids_bis=solver_pids_bis)
         else:
-            self.solver = Walk(ptnet.filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids)
+            self.solver = Walk(ptnet.filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids, solver_pids_bis=solver_pids_bis)
         if slice and self.ptnet_slicing is not None and self.formula_slicing is not None:
-            self.solver_slicing = Walk(ptnet_slicing.filename, slice=slice, debug=debug, solver_pids=solver_pids)
+            self.solver_slicing = Walk(ptnet_slicing.filename, slice=slice, debug=debug, solver_pids=solver_pids, solver_pids_bis=solver_pids_bis)
         else:
             self.solver_slicing = None
 

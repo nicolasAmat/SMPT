@@ -329,7 +329,7 @@ class PDR(AbstractChecker):
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False,  check_proof=False, path_proof=None, method='REACH', saturation=False, unsat_core=True, solver_pids=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False,  check_proof=False, path_proof=None, method='REACH', saturation=False, unsat_core=True, solver_pids=None, solver_pids_bis=None):
         """ Initializer.
 
             By default the PDR method uses the unsat core of the solver.
@@ -360,7 +360,7 @@ class PDR(AbstractChecker):
         self.feared_states = []
 
         # SMT solver
-        self.solver = Z3(debug=debug, solver_pids=solver_pids)
+        self.solver = Z3(debug=debug, solver_pids=solver_pids, solver_pids_bis=solver_pids_bis)
 
         # Used method to obtain minimal inductive cubes
         if unsat_core:
@@ -825,6 +825,7 @@ class PDR(AbstractChecker):
         """ Helper function to put the result to the output queue,
             and stop the concurrent method if there is one.
         """
+        print("OOKK")
         # Kill the solver
         self.solver.kill()
 

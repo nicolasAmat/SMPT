@@ -270,7 +270,7 @@ def main():
         path_pnml = path_net
         path_net, use_pnml_reduce = convert(path_pnml)
     # State equation method enabled
-    state_equation = results.mcc or 'STATE-EQUATION' in results.methods or 'K-INDUCTION' in results.methods 
+    state_equation = results.mcc or any(method in ['STATE-EQUATION', 'K-INDUCTION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED'] for method in results.methods)
 
     # Parikh computation enabled
     parikh = results.mcc or ('STATE-EQUATION' in results.methods and 'WALK' in results.methods)
@@ -346,7 +346,7 @@ def main():
         results.path_markings = fp_markings.name
 
     # Read properties and keep skeleton ones in not fully reducible
-    properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc)
+    properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc and not results.queries)
 
     # Parse .ltl file if there is one
     if results.path_ltl_formula:
@@ -392,13 +392,17 @@ def main():
         for (property_id, verdict) in properties.tautologies(projection=True):
             print("\nFORMULA {} {} TECHNIQUES STRUCTURAL-REDUCTION PROJECTION TAUTOLOGY".format(property_id, verdict))
 
+    # Exit if no formula anymore
+    if not properties.formulas:
+        exit()
+
     # Generate Parikh files
     if parikh:
         properties.generate_parikh_files()
 
     # Set timeout value
     if results.global_timeout is not None:
-        timeout = results.global_timeout / len(properties.formulas)
+        timeout = int((results.global_timeout - (time() - start_time)) / len(properties.formulas))
         global_timeout = results.global_timeout
     else:
         timeout = results.timeout
@@ -409,7 +413,7 @@ def main():
     if results.mcc and not fully_reducible:
         try:
             pool = ThreadPool(processes=2)
-            parallelizers = [Parallelizer(property_id, ptnet, formula, ['WALK', 'STATE-EQUATION'], ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True, pre_run=True) for property_id, formula in properties.formulas.items()]
+            parallelizers = [Parallelizer(properties, property_id, ptnet, formula, ['WALK-NO-PARIKH', 'STATE-EQUATION'], ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True, pre_run=True) for property_id, formula in properties.formulas.items()]
             pre_results = pool.starmap(worker, zip(parallelizers, repeat(timeout)))
         finally:
             pool.close()
@@ -432,7 +436,7 @@ def main():
     while not computations.empty() and time() - start_time < global_timeout:
 
         # Update the timeout
-        timeout = (global_timeout - (time() - start_time)) / nb_properties
+        timeout = (global_timeout - (time() - start_time)) / computations.qsize()
 
         # Get property
         property_id, formula = computations.get()
@@ -440,46 +444,50 @@ def main():
         # List of methods
         methods = []
 
-        # Add ENUM method if markings were generated
-        if results.path_markings is not None:
-            methods.append('ENUM')
+        # Methods management are very different in mcc mode
+        if not results.mcc:
+            # Add ENUM method if markings were generated
+            if results.path_markings is not None:
+                methods.append('ENUM')
 
-        # Check non-monotonic analysis
-        if results.skip_non_monotonic and formula.non_monotonic:
-            print('FORMULA', property_id, 'SKIPPED')
-
-        else:
-
-            if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places)):
-                # Use BMC and PDR methods in parallel
-                methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
-
-                if not formula.non_monotonic:
-                    methods.append('PDR-COV')
-                    if results.mcc:
-                        methods.remove('PDR-REACH-SATURATED')
+            # Check non-monotonic analysis
+            if results.skip_non_monotonic and formula.non_monotonic:
+                print('FORMULA', property_id, 'SKIPPED')
 
             else:
-                # Run SMT / CP methods
-                methods = ['SMT', 'CP']
+                if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places) > 0):
+                    # Use BMC and PDR methods in parallel
+                    methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
 
-        # Keep only enabled methods
-        methods = list(set(methods) & set(results.methods))
+                    if not formula.non_monotonic:
+                        methods.append('PDR-COV')
+                        if results.mcc:
+                            methods.remove('PDR-REACH-SATURATED')
 
-        # Add BMC if K-INDUCTION enabled
-        if 'K-INDUCTION' in methods and 'BMC' not in methods:
-            methods.append('BMC')
+                else:
+                    # Run SMT / CP methods
+                    methods = ['SMT', 'CP']
 
-        # Add three walkers when fully reducible and mcc mode enabled
-        if results.mcc and ptnet_reduced and not ptnet_reduced.places:
-            methods += ["WALK" for _ in range(3)]
+            # Keep only enabled methods
+            methods = list(set(methods) & set(results.methods))
 
-        # If second round then run only walkers
-        if results.mcc and counter >= nb_properties:
-            methods = ["WALK" for _ in range(4)]
+            # Add BMC if K-INDUCTION enabled
+            if 'K-INDUCTION' in methods and 'BMC' not in methods:
+                methods.append('BMC')
+        else:
+            # Methods for second round differ
+            if counter < nb_properties:
+                # Add three walkers when fully reducible and mcc mode enabled
+                if ptnet_reduced and not ptnet_reduced.places:
+                    methods = ['SMT'] + ['WALK' for _ in range(3)]
+                else:
+                    methods = ['WALK', 'BMC', 'K-INDUCTION', 'BULK-PDR-COMPOUND-WALK']
+            else:
+                # If second round then run only walkers (and BULK without PDR)
+                methods = ['WALK', 'WALK', 'WALK-NO-PARIKH', 'BULK-COMPOUND-WALK']
 
         # Run methods in parallel and get results
-        parallelizer = Parallelizer(property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, timeout=timeout, check_proof=results.check_proof, path_proof=results.path_proof, mcc=results.mcc)
+        parallelizer = Parallelizer(properties, property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, timeout=timeout, check_proof=results.check_proof, path_proof=results.path_proof, mcc=results.mcc, pre_run=(counter >= nb_properties))
 
         # If computation is uncompleted add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:
@@ -509,4 +517,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    exit()

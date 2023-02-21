@@ -60,7 +60,7 @@ class Z3(Solver):
         Debugging flag.
     """
 
-    def __init__(self, debug: bool = False, timeout: int = 0, solver_pids: Queue = None) -> None:
+    def __init__(self, debug: bool = False, timeout: int = 0, strong_memory_limit: bool = False, solver_pids: Queue = None, solver_pids_bis: Queue = None) -> None:
         """ Initializer.
 
         Parameters
@@ -69,18 +69,28 @@ class Z3(Solver):
             Debugging flag.
         timeout : int, optional
             Timeout of the solver.
+        strong_memory_limit : bool, optional
+            Strong_memory_limit (7 GiB instead of 14GiB)
         solver_pids : Queue of int, optional
             Queue of solver pids.
+        solver_pids_bis : Queue of int, optional
+            Other queue of solver pids (for BULK meta method).
         """
         # Solver
         process = ['z3', '-in']
         if timeout:
             process.append('-T:{}'.format(timeout))
-        self.solver: Popen = Popen(process, stdin=PIPE,
-                                   stdout=PIPE, start_new_session=True)
+        if strong_memory_limit:
+            process.append('-memory:7000')
+        else:
+            process.append('-memory:14000')
+        self.solver: Popen = Popen(process, stdin=PIPE, stdout=PIPE, start_new_session=True)
 
         if solver_pids is not None:
             solver_pids.put(self.solver.pid)
+
+        if solver_pids_bis is not None:
+            solver_pids_bis.put(self.solver.pid)
 
         # Flags
         self.aborted: bool = False
@@ -450,4 +460,4 @@ class Z3(Solver):
         self.write(input)
         self.write("(apply (then simplify ctx-solver-simplify))")
         self.solver.stdin.close()
-        return loads(self.solver.stdout.read().decode('ascii'))
+        return loads(self.solver.stdout.read().decode('ascii'), nil=None, true=None, false=None)
