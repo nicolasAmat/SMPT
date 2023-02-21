@@ -2932,7 +2932,7 @@ class BooleanConstant(Expression):
         str
             Hash.
         """
-        return str(not self.value) if negation else self.value
+        return str(not self.value) if negation else str(self.value)
 
 
 class UniversalQuantification(Expression):
@@ -3330,7 +3330,7 @@ class TokenCount(SimpleExpression):
         if self.delta:
             return "{} {}".format(' '.join(map(str, sorted(self.places, key=lambda pl: pl.id))), self.delta)
         else:
-            ' '.join(map(str, sorted(self.places, key=lambda pl: pl.id)))
+            return ' '.join(map(str, sorted(self.places, key=lambda pl: pl.id)))
 
 
 class IntegerConstant(SimpleExpression):
