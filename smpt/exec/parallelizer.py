@@ -241,8 +241,8 @@ class Parallelizer:
         projection_state_equation: bool = projection_walk_pdr and ptnet.nupn is None
         self.ptnet_state_equation: PetriNet = ptnet_tfg if projection_state_equation else ptnet
         self.formula_state_equation: Formula = projected_formula if projection_state_equation else formula
-        self.ptnet_reduced_state_equation: Optional[PetriNet] = ptnet_reduced if ptnet.nupn is None else None
-        self.system_state_equation: Optional[System] = system if ptnet.nupn is None else None
+        self.ptnet_reduced_state_equation: Optional[PetriNet] = None if projection_state_equation else ptnet_reduced
+        self.system_state_equation: Optional[System] = None if projection_state_equation else system
         technique_projection_state_equation = ['PROJECTION'] if projection_state_equation else []
         #
         # BMC / K-INDUCTION / PDR-COV
