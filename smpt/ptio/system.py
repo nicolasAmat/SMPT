@@ -107,69 +107,6 @@ class System:
 
         return smt_input
 
-    def smtlib_kinduction(self, k: Optional[int] = None, k_initial: Optional[int] = None) -> str:
-        """ Declare the additional variables and assert the equations.
-
-        Parameters
-        ----------
-        k : int, optional
-            Order for the current net (reduced one).
-        k_initial : int, optional
-            Order for the initial net (used by PDR).
-
-        Returns
-        --------
-        str
-            SMT-LIB format.
-        """
-        smt_input = ""
-
-        for place in self.removed_vars:
-            if k is None:
-                smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(place, place)
-            else:
-                smt_input += "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(place, k, place, k)
-
-        for var in self.additional_vars.values():
-            if not var.in_reduced:
-                if k is None:
-                    smt_input += "(declare-const {} Int)\n(assert (>= {} 0))\n".format(var.id, var.id)
-                else:
-                    smt_input += "(declare-const {}@{} Int)\n(assert (>= {}@{} 0))\n".format(var.id, k, var.id, k)
-
-
-        if k is None and k_initial is None:
-            smt_input += '\n'.join(map(lambda eq: eq.smtlib(), self.equations)) + '\n'
-        else:
-            smt_input += '\n'.join(map(lambda eq: eq.smtlib_with_order(k, k_initial), self.equations)) + '\n'
-
-        return smt_input
-
-    def smtlib_no_assert(self, k: Optional[int] = None) -> str:
-        """ Declare the additional variables and assert the equations.
-
-        Parameters
-        ----------
-        k : int, optional
-            Order for the current net (reduced one).
-
-        Returns
-        --------
-        str
-            SMT-LIB format.
-        """
-        smt_input = ""
-
-        if k is None:
-            smt_input += '\n'.join(map(lambda eq: eq.smtlib_no_assert(), self.equations)) + '\n'
-        else:
-            smt_input += '\n'.join(map(lambda eq: eq.smtlib_with_order_no_assert(k, k), self.equations)) + '\n'
-
-        if len(self.equations) > 1:
-            smt_input = "(and \n{})".format(smt_input)
-
-        return smt_input
-
     def minizinc(self) -> str:
         """ Declare the additional variables and assert the equations.
 
@@ -219,29 +156,6 @@ class System:
                 smt_input += "(declare-const {} Int)\n".format(var_name)
 
         return smt_input
-
-    def smtlib_forall_declare_variables_without_places_from_reduced_net(self, k) -> tuple[str, str]:
-        """ Declare the additional variables for a forall statement.
-        
-        Returns
-        --------
-        tuple of str, str
-            Declarations and non-negative constraints (SMT-LIB format).
-        """
-        declarations, non_negative_constraints = "", ""
-
-        for var in self.additional_vars.values():
-            if not var.in_reduced:
-                declarations += "({}@{} Int)".format(var.id, k)
-
-        for var_id in self.removed_vars:                
-            declarations += "({}@{} Int)".format(var_id, k)
-            non_negative_constraints += "(>= {}@{} 0)".format(var_id, k) 
-        
-        if len(self.removed_vars) > 1:
-            non_negative_constraints = "(and {})".format(non_negative_constraints)
-
-        return declarations, non_negative_constraints
 
     def smtlib_equations_without_places_from_reduced_net(self, k_initial: Optional[int] = None) -> str:
         """ Assert equations not involving places in the reduced net.
@@ -438,24 +352,6 @@ class Equation:
             smt_input = " (+{})".format(smt_input)
 
         return smt_input
-
-    def smtlib_no_assert(self, k_initial: Optional[int] = None) -> str:
-        """ Equations.
-
-        Parameters
-        ----------
-        k_initial : int, optional
-            Order for the initial net (used by PDR).
-
-        Returns
-        -------
-        str
-            SMT-LIB format.
-        """
-        return "({}".format(self.operator) \
-               + self.member_smtlib(self.left, k_initial) \
-               + self.member_smtlib(self.right, k_initial) \
-               + ")"
 
     def member_minizinc(self, member: list[Variable]) -> str:
         """ Helper to assert a member (left or right).
