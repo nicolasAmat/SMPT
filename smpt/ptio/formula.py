@@ -2482,7 +2482,12 @@ class Atom(Expression):
             return ([str(operand.value)], []) if operand.value >= 0 else ([], [str(- operand.value)])
 
         def addition(l):
-            return l[0] if len(l) == 1 else "({})".format(' + '.join(l))
+            if not l:
+                return "0"
+            elif len(l) == 1:
+                return l[0]
+            else:
+                return "({})".format(' + '.join(l))
 
         (self_left, opposite_left) = walk_token_count(self.left_operand) if isinstance(self.left_operand, TokenCount) else walk_integer_constant(self.left_operand)
         (self_right, opposite_right) = walk_token_count(self.right_operand) if isinstance(self.right_operand, TokenCount) else walk_integer_constant(self.right_operand)
