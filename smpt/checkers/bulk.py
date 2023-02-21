@@ -60,7 +60,7 @@ class Bulk(AbstractChecker):
         self.additional_techniques = additional_techniques
 
         # Local queue of solver pids (for PDR)
-        self.solver_pids_bis: Queue[int] = Queue() if pdr else None
+        self.solver_pids_bis: Queue[int] = Queue()
 
         # Methods
         self.pdr = PDR(ptnet, formula, debug=debug, method='REACH', saturation=True, solver_pids=solver_pids, solver_pids_bis=self.solver_pids_bis) if pdr else None
