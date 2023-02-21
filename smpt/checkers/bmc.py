@@ -180,13 +180,11 @@ class BMC(AbstractChecker):
         smt_input += self.ptnet.smtlib_initial_marking(0)
 
         for i in range(k):
-            smt_input += "; Declaration of the places from the Petri net (order: {})\n".format(
-                i + 1)
+            smt_input += "; Declaration of the places from the Petri net (order: {})\n".format(i + 1)
             smt_input += self.ptnet.smtlib_declare_places(i + 1, non_negative=False)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet.smtlib_transition_relation(
-                i, eq=False, tr=self.proof_enabled)
+            smt_input += self.ptnet.smtlib_transition_relation(i, eq=False, tr=self.proof_enabled)
 
         smt_input += "; Formula to check the satisfiability\n"
         smt_input += self.formula.R.smtlib(k + 1, assertion=True)
@@ -231,12 +229,10 @@ class BMC(AbstractChecker):
             smt_input += self.ptnet_reduced.smtlib_declare_places(i + 1, non_negative=False)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet_reduced.smtlib_transition_relation(
-                i, eq=False, tr=self.proof_enabled)
+            smt_input += self.ptnet_reduced.smtlib_transition_relation(i, eq=False, tr=self.proof_enabled)
 
         smt_input += "; Reduction equations\n"
-        smt_input += self.system.smtlib_equations_with_places_from_reduced_net(
-            k)
+        smt_input += self.system.smtlib_equations_with_places_from_reduced_net(k)
 
         smt_input += "; Link initial and reduced Petri nets\n"
         smt_input += self.system.smtlib_link_nets(k)
@@ -327,8 +323,7 @@ class BMC(AbstractChecker):
             self.solver.write(self.ptnet.smtlib_declare_places(k, non_negative=False))
 
             info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
-            self.solver.write(self.ptnet.smtlib_transition_relation(
-                k - 1, eq=False, tr=self.proof_enabled))
+            self.solver.write(self.ptnet.smtlib_transition_relation(k - 1, eq=False, tr=self.proof_enabled))
 
             info("[BMC] > Push")
             self.solver.push()
@@ -374,8 +369,7 @@ class BMC(AbstractChecker):
         self.solver.push()
 
         info("[BMC] > Reduction equations")
-        self.solver.write(
-            self.system.smtlib_equations_with_places_from_reduced_net(0))
+        self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(0))
 
         info("[BMC] > Link initial and reduced Petri nets")
         self.solver.write(self.system.smtlib_link_nets(0))
@@ -403,15 +397,13 @@ class BMC(AbstractChecker):
             self.solver.write(self.ptnet_reduced.smtlib_declare_places(k, non_negative=False))
 
             info("[BMC] > Transition relation: {} -> {}".format(k - 1, k))
-            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(
-                k - 1, eq=False, tr=self.proof_enabled))
+            self.solver.write(self.ptnet_reduced.smtlib_transition_relation(k - 1, eq=False, tr=self.proof_enabled))
 
             info("[BMC] > Push")
             self.solver.push()
 
             info("[BMC] > Reduction equations")
-            self.solver.write(
-                self.system.smtlib_equations_with_places_from_reduced_net(k))
+            self.solver.write(self.system.smtlib_equations_with_places_from_reduced_net(k))
 
             info("[BMC] > Link initial and reduced Petri nets")
             self.solver.write(self.system.smtlib_link_nets(k))
