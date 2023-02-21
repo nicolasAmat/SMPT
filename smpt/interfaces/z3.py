@@ -99,7 +99,10 @@ class Z3(Solver):
     def kill(self) -> None:
         """" Kill the process.
         """
-        self.solver.kill()
+        try:
+            self.solver.kill()
+        except ProcessLookupError:
+            pass
 
     def abort(self) -> None:
         """ Abort the solver.
