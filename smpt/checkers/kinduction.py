@@ -97,8 +97,8 @@ class KInduction(AbstractChecker):
         # Queue shared with BMC
         self.induction_queue: Optional[Queue[int]] = induction_queue
 
-        # SMT solver
-        self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
+        # SMT solver (with strong memory limit because BMC is more necessary and not k-induction)
+        self.solver: Z3 = Z3(strong_memory_limit=True, debug=debug, solver_pids=solver_pids)
 
     def smtlib(self, k: int) -> str:
         """ Output for understanding.
@@ -144,8 +144,7 @@ class KInduction(AbstractChecker):
             smt_input += "; Assert states safes (iteration:{})\n".format(i)
             smt_input += self.formula.P.smtlib(i, assertion=True)
 
-            smt_input += "; Declaration of the places from the Petri net (iteration: {})\n".format(
-                1)
+            smt_input += "; Declaration of the places from the Petri net (iteration: {})\n".format(1)
             smt_input += self.ptnet.smtlib_declare_places(i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
@@ -182,19 +181,16 @@ class KInduction(AbstractChecker):
             smt_input += "; Assert safe states (iteration: {})\n".format(i)
             smt_input += self.formula.P.smtlib(i, assertion=True)
 
-            smt_input += "; Declaration of the places from the initial net (iteration: {})\n".format(
-                i + 1)
+            smt_input += "; Declaration of the places from the initial net (iteration: {})\n".format(i + 1)
             smt_input += self.ptnet.smtlib_declare_places(i + 1)
 
             smt_input += "; Assert reduction equations\n"
             smt_input += self.system.smtlib(i + 1, i + 1)
 
             smt_input += "; Transition relation: {} -> {}\n".format(i, i + 1)
-            smt_input += self.ptnet_reduced.smtlib_transition_relation(
-                i, eq=False)
+            smt_input += self.ptnet_reduced.smtlib_transition_relation(i, eq=False)
 
-        smt_input += "; Formula to check the satisfiability (iteration: {})\n".format(
-            k)
+        smt_input += "; Formula to check the satisfiability (iteration: {})\n".format(k)
         smt_input += self.formula.R.smtlib(k, assertion=True)
 
         return smt_input
