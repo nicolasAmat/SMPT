@@ -3332,10 +3332,10 @@ class TokenCount(SimpleExpression):
         str
             Hash.
         """
+        nf_hash = ' + '.join(map(lambda place: "{}*{}".format(self.multipliers[place], place.id) if self.multipliers is not None and place in self.multipliers else place.id, sorted(self.places, key=lambda pl: pl.id)))
         if self.delta:
-            return "{} {}".format(' '.join(map(str, sorted(self.places, key=lambda pl: pl.id))), self.delta)
-        else:
-            return ' '.join(map(str, sorted(self.places, key=lambda pl: pl.id)))
+            nf_hash += ' {}'.format(self.delta)
+        return nf_hash
 
 
 class IntegerConstant(SimpleExpression):
