@@ -108,7 +108,7 @@ class Z3(Solver):
         """ Abort the solver.
         """
         warning("z3 process has been aborted")
-        self.solver.kill()
+        self.kill()
         self.aborted = True
         exit()
 
