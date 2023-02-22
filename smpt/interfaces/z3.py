@@ -104,10 +104,13 @@ class Z3(Solver):
         except ProcessLookupError:
             pass
 
-    def abort(self) -> None:
+    def abort(self, failed: bool = False) -> None:
         """ Abort the solver.
         """
-        warning("z3 process has been aborted")
+        if failed:
+            warning("z3 process has failed")
+        else:
+            warning("z3 process has been aborted")
         self.kill()
         self.aborted = True
         exit()
@@ -212,7 +215,7 @@ class Z3(Solver):
         elif sat == 'unsat':
             return False
         elif not no_check:
-            self.abort()
+            self.abort(failed=True)
 
         return None
 
