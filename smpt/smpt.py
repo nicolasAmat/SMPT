@@ -40,8 +40,9 @@ from time import time
 
 from smpt.exec.parallelizer import Parallelizer, worker
 from smpt.interfaces.convert import convert
+from smpt.interfaces.hwalk import hwalk
 from smpt.interfaces.reduce import reduce
-from smpt.interfaces.unfold import unfold, unfold_and_skeleton
+from smpt.interfaces.unfold import skeleton, unfold
 from smpt.ptio.formula import Properties
 from smpt.ptio.ptnet import PetriNet
 from smpt.ptio.system import System
@@ -248,22 +249,38 @@ def main():
 
     # Check if colored net
     ptnet_skeleton = None
+    answered: set[str] = set()
+
     if results.colored:
-        timeout_unfold = int(results.global_timeout * 0.75) if results.global_timeout else None
+        
         if not results.fireability and (results.mcc or 'STATE-EQUATION' in results.methods):
-            path_net, path_skeleton = unfold_and_skeleton(path_net, timeout_unfold=timeout_unfold)
+            # If not fireability compute skeleton, try unfolding, and if unfolding failed do INITIAL-MARKING, STATE-EQUATION, and then hwalk
+            path_skeleton = skeleton(path_net)
+            path_net = unfold(path_net, timeout=int((results.global_timeout - (time() - start_time)) * 0.3) if results.global_timeout and results.mcc else None)
             ptnet_skeleton = PetriNet(path_skeleton, skeleton=True, state_equation=True)
 
-            # In mcc mode, run STATE-EQUATION on the skeleton if unfolding failed
-            if results.mcc and path_net is None:
-                properties = Properties(None, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc)
-                pool = ThreadPool(processes=2)
-                parallelizers = [Parallelizer(property_id, None, formula, ['INITIAL-MARKING', 'STATE-EQUATION'], ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug) for property_id, formula in properties.formulas.items()]
-                pool.starmap(worker, zip(parallelizers, repeat((results.global_timeout - start_time) / 8 if results.global_timeout else results.timeout)))
-                remove(path_skeleton)
-                exit()
+            # In mcc mode, run INITIAL-MARKING, STATE-EQUATION and hwalk on the skeleton if unfolding failed
+            if results.mcc:
+                if path_net is None:
+                    properties = Properties(None, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc, answered=answered)
+                    pool = ThreadPool(processes=2)
+                    parallelizers = [Parallelizer(properties, property_id, None, formula, ['INITIAL-MARKING', 'STATE-EQUATION'], ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug) for property_id, formula in properties.formulas.items()]
+                    pre_results = pool.starmap(worker, zip(parallelizers, repeat(int((results.global_timeout - (time() - start_time)) / 8) if results.global_timeout else results.timeout)))
+
+                    queries = []
+                    for index, (property_id, formula) in enumerate(properties.formulas.items()):
+                        if pre_results is None or property_id not in pre_results:
+                            queries.append(index)
+
+                    hwalk(path_net, results.path_properties, queries=queries)
+
+                    remove(path_skeleton)
+                    exit()
+
         else:
-            path_net = unfold(path_net)
+            path_net = unfold(path_net, timeout=int((results.global_timeout - (time() - start_time)) * 0.4) if results.global_timeout else None)
+
+        answered = hwalk(results.net, results.path_properties, fireability=results.fireability)
 
     # Check if extension is `.pnml`
     elif path_net.lower().endswith('.pnml'):

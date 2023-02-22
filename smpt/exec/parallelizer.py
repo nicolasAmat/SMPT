@@ -178,6 +178,7 @@ class Parallelizer:
 
         # Skeleton Petri net
         self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
+        self.formula_skeleton: Optional[PetriNet] = formula if ptnet_skeleton is not None else None
 
         # Methods
         self.methods: list[str] = methods
@@ -322,7 +323,7 @@ class Parallelizer:
             prover = RandomWalk(self.ptnet_walk_pdr, self.formula_walk_pdr, ptnet_slicing=self.ptnet, formula_slicing=self.formula, parikh=False, slice=self.slice, timeout=self.timeout, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'STATE-EQUATION':
-            prover = StateEquation(self.ptnet_state_equation, self.formula_state_equation, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = StateEquation(self.ptnet_state_equation, self.formula_state_equation, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'INDUCTION':
             prover = Induction(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, show_model=self.show_model, debug=self.debug, solver_pids=self.solver_pids)

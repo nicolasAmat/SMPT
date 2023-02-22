@@ -75,7 +75,7 @@ class StateEquation(AbstractChecker):
         Engine to compute some trap constraints.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, pre_run=False, debug=False, solver_pids=None, additional_techniques=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, formula_skeleton=None, pre_run=False, debug=False, solver_pids=None, additional_techniques=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -92,6 +92,7 @@ class StateEquation(AbstractChecker):
 
         # Skeleton Petri net
         self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
+        self.formula_skeleton: Optional[Formula] = formula_skeleton
 
         # Generate Parikh vector
         self.parikh = formula.parikh_filename is not None
@@ -213,7 +214,7 @@ class StateEquation(AbstractChecker):
         """ Prover for non-reduced Petri Net.
         """
         ptnet: PetriNet =  self.ptnet_skeleton if skeleton else self.ptnet
-        R_current: Expression = self.formula.R_skeleton if skeleton else self.formula.R
+        R_current: Expression = self.formula_skeleton.R_skeleton if skeleton else self.formula.R
 
         info("[STATE-EQUATION] > Declaration of the places from the Petri net")
         self.solver.write(ptnet.smtlib_declare_places())
