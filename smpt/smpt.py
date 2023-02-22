@@ -278,6 +278,7 @@ def main():
         if results.mcc:
             answered |= hwalk(path_net, results.path_properties, select_queries=remaining_queries)
             if len(answered) == 16:
+                print("# Bye bye")
                 exit()
 
         path_net = unfold(path_net)
@@ -340,9 +341,9 @@ def main():
     # Show net information
     if results.show_reduction_ratio:
         if ptnet_reduced is not None:
-            print("# Reduction Ratio (Full) ~ {}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100)))
+            print("# Reduction ratio (Full) ~ {}%".format(int((len(ptnet.places) - len(ptnet_reduced.places)) / len(ptnet.places) * 100)))
         if ptnet_tfg is not None:
-            print("# Reduction Ratio (TFG) ~ {}%".format(int((len(ptnet.places) - len(ptnet_tfg.places)) / len(ptnet.places) * 100)))
+            print("# Reduction ratio (TFG) ~ {}%".format(int((len(ptnet.places) - len(ptnet_tfg.places)) / len(ptnet.places) * 100)))
 
     # Disable reduction if the Petri net is not reducible
     if system is not None and not system.equations:
@@ -412,6 +413,7 @@ def main():
 
     # Exit if no formula anymore
     if not properties.formulas:
+        print("# Bye bye")
         exit()
 
     # Generate Parikh files
@@ -531,6 +533,8 @@ def main():
     # Remove Walk files if Walk or mcc mode enabled
     if 'WALK' in results.methods or results.project or results.mcc:
         properties.remove_walk_files()
+
+    print("# Bye bye")
 
 
 if __name__ == '__main__':
