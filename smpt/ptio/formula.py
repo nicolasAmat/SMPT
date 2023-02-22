@@ -281,7 +281,7 @@ class Properties:
 
         formula.identifier = property_id
 
-        if check_duplicates:
+        if check_duplicates and self.ptnet is not None:
 
             # Initialize hashes dictionary
             if self.hashes is None:
