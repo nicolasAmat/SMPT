@@ -26,10 +26,10 @@ __license__ = "GPLv3"
 __version__ = "5.0"
 
 from os import environ
-from subprocess import check_output
+from subprocess import PIPE, Popen
 
 
-def hwalk(path_net, path_xml, select_queries = None, fireability = False, timeout = None) -> set[str]:
+def hwalk(path_net, path_xml, select_queries = None, fireability = False) -> set[str]:
     """ Run hwalk.
     """
     environ["GOMEMLIMIT"] = "14GiB"
@@ -47,10 +47,10 @@ def hwalk(path_net, path_xml, select_queries = None, fireability = False, timeou
         process.append('--select-queries')
         process.append(','.join(map(str, select_queries)))
 
-    hwalk = check_output(process, timeout=timeout).decode('utf-8')
+    hwalk = Popen(process, stdout=PIPE)
 
-    for line in hwalk.splitlines():
-
+    for line in hwalk.stdout:
+        line = line.decode('utf-8').strip()
         if 'FORMULA' in line:
             print('\n{} TECHNIQUES COLORED_WALK'.format(line))
             answered.add(line.split(' ')[1])
