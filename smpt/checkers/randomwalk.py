@@ -43,7 +43,7 @@ class RandomWalk(AbstractChecker):
     """ Random walk method.
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_slicing: Optional[PetriNet] = None, formula_slicing: Optional[Formula] = None, parikh: bool = False, slice: bool = False, timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None, solver_pids_bis: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_slicing: Optional[PetriNet] = None, formula_slicing: Optional[Formula] = None, parikh: bool = False, slice: bool = False, timeout: Optional[int] = None, debug: bool = False, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
         """ Initializer.
         """
         # Initial Petri net and formula
@@ -65,11 +65,11 @@ class RandomWalk(AbstractChecker):
 
         # Walkers
         if self.parikh:
-            self.solver = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids, solver_pids_bis=solver_pids_bis)
+            self.solver = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids)
         else:
-            self.solver = Walk(ptnet.filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids, solver_pids_bis=solver_pids_bis)
+            self.solver = Walk(ptnet.filename, debug=debug, timeout=self.timeout, solver_pids=solver_pids)
         if slice and self.ptnet_slicing is not None and self.formula_slicing is not None:
-            self.solver_slicing = Walk(ptnet_slicing.filename, slice=slice, debug=debug, solver_pids=solver_pids, solver_pids_bis=solver_pids_bis)
+            self.solver_slicing = Walk(ptnet_slicing.filename, slice=slice, debug=debug, solver_pids=solver_pids)
         else:
             self.solver_slicing = None
 
@@ -109,5 +109,4 @@ class RandomWalk(AbstractChecker):
         result.put((Verdict.CEX, None))
 
         # Terminate concurrent methods
-        if not concurrent_pids.empty():
-            send_signal_pids(concurrent_pids.get(), STOP)
+        send_signal_pids(concurrent_pids.get(), STOP)

@@ -41,7 +41,7 @@ class Compound(AbstractChecker):
     Compound method.
     """
 
-    def __init__(self, formula: Formula, properties: Properties, debug: bool = False, solver_pids: Optional[Queue[int]] = None, solver_pids_bis: Optional[Queue[int]] = None):
+    def __init__(self, formula: Formula, properties: Properties, debug: bool = False, solver_pids: Optional[Queue[int]] = None):
         """ Initializer.
         """
         # Formula
@@ -51,7 +51,7 @@ class Compound(AbstractChecker):
         self.properties = properties
 
         # SMT solver
-        self.solver = Z3(debug=debug, solver_pids=solver_pids, solver_pids_bis=solver_pids_bis)
+        self.solver = Z3(debug=debug, solver_pids=solver_pids)
 
     def smtlib(self):
         """ SMT-LIB format for debugging.
@@ -93,8 +93,7 @@ class Compound(AbstractChecker):
         result.put((verdict, None))
 
         # Terminate concurrent methods
-        if not concurrent_pids.empty():
-            send_signal_pids(concurrent_pids.get(), STOP)
+        send_signal_pids(concurrent_pids.get(), STOP)
 
     def prove_invariant(self) -> Verdict:
         """ (/\ AG) /\ R UNSAT

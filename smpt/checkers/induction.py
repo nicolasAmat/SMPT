@@ -186,8 +186,7 @@ class Induction(AbstractChecker):
         result.put((verdict, None))
 
         # Terminate concurrent methods
-        if not concurrent_pids.empty():
-            send_signal_pids(concurrent_pids.get(), STOP)
+        send_signal_pids(concurrent_pids.get(), STOP)
 
     def prove_without_reduction(self):
         """ Prover for non-reduced Petri Net.

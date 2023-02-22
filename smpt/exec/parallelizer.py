@@ -211,6 +211,7 @@ class Parallelizer:
         if ptnet_reduced is not None:
             structural_reduction = ['STRUCTURAL_REDUCTION']
         self.additional_techniques: Queue[str] = Queue()
+        self.bulk_techniques: Optional[Queue[str]] = Queue() if 'BULK-PDR-COMPOUND-WALK' in methods or 'BULK-COMPOUND-WALK' in methods else None
 
         # Process information
         self.processes: list[Process] = []
@@ -294,7 +295,7 @@ class Parallelizer:
                 self.techniques.append(collateral_processing + ['INITIAL_MARKING'])
 
             elif method in ['BULK-PDR-COMPOUND-WALK', 'BULK-COMPOUND-WALK']:
-                self.techniques.append(collateral_processing + technique_projection_walk)
+                self.techniques.append(collateral_processing + technique_projection_walk + ['BULK'])
 
     def __getstate__(self):
         # Capture what is normally pickled
@@ -356,10 +357,10 @@ class Parallelizer:
             prover = InitialMarking(self.ptnet_skeleton, self.formula)
 
         elif method == 'BULK-PDR-COMPOUND-WALK':
-            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, pdr=True, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, pdr=True, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.bulk_techniques)
 
         elif method == 'BULK-COMPOUND-WALK':
-            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, pdr=False, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, pdr=False, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.bulk_techniques)
 
         if prover:
             prover.prove(result, concurrent_pids)
@@ -431,6 +432,9 @@ class Parallelizer:
 
                 # Show techniques
                 if self.show_techniques:
+                    if 'BULK' in techniques and self.bulk_techniques is not None:
+                        while not self.bulk_techniques.empty():
+                            techniques.append(self.bulk_techniques.get())    
                     if self.additional_techniques is not None:
                         while not self.additional_techniques.empty():
                             techniques.append(self.additional_techniques.get())

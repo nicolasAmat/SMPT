@@ -825,7 +825,6 @@ class PDR(AbstractChecker):
         """ Helper function to put the result to the output queue,
             and stop the concurrent method if there is one.
         """
-        print("OOKK")
         # Kill the solver
         self.solver.kill()
 
@@ -837,6 +836,5 @@ class PDR(AbstractChecker):
         result_output.put([verdict, None])
 
         # Terminate concurrent methods
-        if not concurrent_pids.empty():
-            send_signal_pids(concurrent_pids.get(), STOP)
+        send_signal_pids(concurrent_pids.get(), STOP)
 

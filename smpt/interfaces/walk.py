@@ -63,7 +63,7 @@ class Walk(Solver):
         Debugging flag.
     """
 
-    def __init__(self, ptnet_filename: str, slice: bool = False, parikh_filename: Optional[str] = None, debug: bool = False, timeout: int = 0, solver_pids: Optional[Queue[int]] = None, solver_pids_bis: Optional[Queue[int]] = None) -> None:
+    def __init__(self, ptnet_filename: str, slice: bool = False, parikh_filename: Optional[str] = None, debug: bool = False, timeout: int = 0, solver_pids: Optional[Queue[int]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -80,8 +80,6 @@ class Walk(Solver):
             Timeout of walk.
         solver_pids : Queue of int, optional
             Queue of solver pids.
-        solver_pids_bis : Queue of int, optional
-            Other queue of solver pids (for BULK meta method).
         """
         # Petri net
         self.ptnet_filename: str = ptnet_filename
@@ -96,8 +94,7 @@ class Walk(Solver):
         self.solver: Optional[Popen] = None
         self.timeout: int = timeout
         self.solver_pids: Queue[int] = solver_pids
-        self.solver_pids_bis: Queue[int] = solver_pids_bis
-        
+
         # Flags
         self.aborted: bool = False
         self.debug: bool = debug
@@ -173,9 +170,6 @@ class Walk(Solver):
 
         if self.solver_pids is not None:
             self.solver_pids.put(self.solver.pid)
-
-        if self.solver_pids_bis is not None:
-            self.solver_pids_bis.put(self.solver.pid)
 
         return not (self.readline() != 'FALSE')
 

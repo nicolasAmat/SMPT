@@ -135,8 +135,7 @@ class CP(AbstractChecker):
         results.put((verdict, model))
 
         # Terminate concurrent methods
-        if not concurrent_pids.empty():
-            send_signal_pids(concurrent_pids.get(), STOP)
+        send_signal_pids(concurrent_pids.get(), STOP)
 
     def prove_minizinc(self) -> bool:
         """ Solve constraints using MiniZinc.

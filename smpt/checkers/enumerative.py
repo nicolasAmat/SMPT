@@ -215,8 +215,7 @@ class Enumerative(AbstractChecker):
         result.put((verdict, model))
 
         # Terminate concurrent methods
-        if not concurrent_pids.empty():
-            send_signal_pids(concurrent_pids.get(), STOP)
+        send_signal_pids(concurrent_pids.get(), STOP)
 
     def prove_without_reduction(self) -> None:
         """ Prover for non-reduced Petri net.
