@@ -481,10 +481,10 @@ def main():
                 if ptnet_reduced and not ptnet_reduced.places:
                     methods = ['SMT'] + ['WALK' for _ in range(3)]
                 else:
-                    methods = ['WALK', 'BMC', 'K-INDUCTION', 'BULK-PDR-COMPOUND-WALK']
+                    methods = ['WALK', 'BMC', 'K-INDUCTION', 'WALK-NO-PARIKH']
             else:
                 # If second round then run only walkers (and BULK without PDR)
-                methods = ['WALK', 'WALK', 'WALK-NO-PARIKH', 'BULK-COMPOUND-WALK']
+                methods = ['WALK', 'WALK', 'WALK-NO-PARIKH', 'WALK-NO-PARIKH']
 
         # Run methods in parallel and get results
         parallelizer = Parallelizer(properties, property_id, ptnet, formula, methods, ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, path_markings=results.path_markings, timeout=timeout, check_proof=results.check_proof, path_proof=results.path_proof, mcc=results.mcc, pre_run=(counter >= nb_properties))
