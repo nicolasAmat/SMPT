@@ -232,18 +232,17 @@ class Parallelizer:
         # WALK / PDR-REACH / PDR-REACH-SATURATED
         # (ptnet_tfg + projected formula if possible, but in mcc mode keep only complete projections)
         projection_walk_pdr: bool = ptnet_tfg is not None and projected_formula is not None and projected_formula.shadow_complete
-        self.slice = not self.pre_run and ptnet_reduced is not None
+        self.slice = not self.pre_run and ptnet_reduced is not None and not projection_walk_pdr
         self.ptnet_walk_pdr: PetriNet = ptnet_tfg if projection_walk_pdr else ptnet
         self.formula_walk_pdr: Formula = projected_formula if projection_walk_pdr else formula
         technique_projection_walk = ['STRUCTURAL_REDUCTION', 'PROJECTION'] if projection_walk_pdr else []
         #
         # STATE-EQUATION
-        projection_state_equation: bool = projection_walk_pdr and ptnet.nupn is None
-        self.ptnet_state_equation: PetriNet = ptnet_tfg if projection_state_equation else ptnet
-        self.formula_state_equation: Formula = projected_formula if projection_state_equation else formula
-        self.ptnet_reduced_state_equation: Optional[PetriNet] = None if projection_state_equation else ptnet_reduced
-        self.system_state_equation: Optional[System] = None if projection_state_equation else system
-        technique_projection_state_equation = ['PROJECTION'] if projection_state_equation else []
+        self.ptnet_state_equation: PetriNet = ptnet_tfg if projection_walk_pdr else ptnet
+        self.formula_state_equation: Formula = projected_formula if projection_walk_pdr else formula
+        self.ptnet_reduced_state_equation: Optional[PetriNet] = None
+        self.system_state_equation: Optional[System] = None
+        technique_projection_state_equation = ['PROJECTION'] if projection_walk_pdr else []
         #
         # BMC / K-INDUCTION / PDR-COV
         # (ptnet_tfg + projected formula if possible, and in mcc mode only if the ratio > RATIO_LIMIT)
