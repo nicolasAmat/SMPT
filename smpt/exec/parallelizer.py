@@ -357,10 +357,10 @@ class Parallelizer:
             prover = InitialMarking(self.ptnet_skeleton, self.formula)
 
         elif method == 'BULK-PDR-COMPOUND-WALK':
-            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, pdr=True, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.bulk_techniques)
+            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, self.formula, pdr=True, debug=self.debug, solver_pids=self.solver_pids, bulk_techniques=self.bulk_techniques)
 
         elif method == 'BULK-COMPOUND-WALK':
-            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, pdr=False, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.bulk_techniques)
+            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, self.formula, pdr=False, debug=self.debug, solver_pids=self.solver_pids, bulk_techniques=self.bulk_techniques)
 
         if prover:
             prover.prove(result, concurrent_pids)
