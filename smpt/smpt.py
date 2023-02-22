@@ -269,7 +269,8 @@ def main():
             remaining_queries = []
 
             for index, (property_id, formula) in enumerate(properties.formulas.items()):
-                answered.add(property_id)
+                if property_id in pre_results:
+                    answered.add(property_id)
                 if pre_results is None or property_id not in pre_results:
                     remaining_queries.append(index)
 
