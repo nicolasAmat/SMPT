@@ -75,14 +75,17 @@ class Bulk(AbstractChecker):
         found_verdict = False
 
         if self.pdr:
-            found_verdict = self.run_helper(self.pdr.prove, 20, ['IMPLICIT', 'SAT-SMT', 'PDR_REACH_SATURATED'], result, concurrent_pids)
+            found_verdict = self.run_helper(self.pdr.prove, 10, ['IMPLICIT', 'SAT-SMT', 'PDR_REACH_SATURATED'], result, concurrent_pids)
+            self.pdr = None
 
         if not found_verdict:
             found_verdict = self.run_helper(self.compound.prove, None, ['COMPOUND'], result, concurrent_pids)
+            self.compound = None
 
         if not found_verdict:
             self.run_helper(self.walk.prove, None, ['WALK'], result, concurrent_pids)
-        
+            self.walk = None
+
     def run_helper(self, prover, timeout, techniques, result, concurrent_pids):
         """ Run and manage methods.
         """
