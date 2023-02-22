@@ -37,6 +37,7 @@ from subprocess import run
 from sys import exit
 from tempfile import NamedTemporaryFile
 from time import time
+from typing import Optional
 
 from smpt.exec.parallelizer import Parallelizer, worker
 from smpt.interfaces.convert import convert
@@ -252,40 +253,39 @@ def main():
     answered: set[str] = set()
 
     if results.colored:
+        remaining_queries: Optional[list[int]] = None
         
-        if not results.fireability and (results.mcc or 'STATE-EQUATION' in results.methods):
-            # If not fireability compute skeleton, try unfolding, and if unfolding failed do INITIAL-MARKING, STATE-EQUATION, and then hwalk
+        if results.mcc and not results.fireability:
+            # If not fireability: INITIAL-MARKING and STATE-EQUATION on skeleton
             path_skeleton = skeleton(path_net)
-            path_net = unfold(path_net, timeout=int((results.global_timeout - (time() - start_time)) * 0.3) if results.global_timeout and results.mcc else None)
             ptnet_skeleton = PetriNet(path_skeleton, skeleton=True, state_equation=True)
 
             # In mcc mode, run INITIAL-MARKING, STATE-EQUATION and hwalk on the skeleton if unfolding failed
-            if results.mcc:
-                if path_net is None:
-                    properties = Properties(None, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc, answered=answered)
-                    pool = ThreadPool(processes=2)
-                    parallelizers = [Parallelizer(properties, property_id, None, formula, ['INITIAL-MARKING', 'STATE-EQUATION'], ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug) for property_id, formula in properties.formulas.items()]
-                    pre_results = pool.starmap(worker, zip(parallelizers, repeat(int((results.global_timeout - (time() - start_time)) / 8) if results.global_timeout else results.timeout)))
+            properties = Properties(None, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, simplify=True)
+            pool = ThreadPool(processes=2)
+            parallelizers = [Parallelizer(properties, property_id, None, formula, ['INITIAL-MARKING', 'STATE-EQUATION'], ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug) for property_id, formula in properties.formulas.items()]
+            pre_results = pool.starmap(worker, zip(parallelizers, repeat(int((results.global_timeout - (time() - start_time)) / 16) if results.global_timeout else results.timeout)))
 
-                    queries = []
-                    for index, (property_id, formula) in enumerate(properties.formulas.items()):
-                        if pre_results is None or property_id not in pre_results:
-                            queries.append(index)
+            remaining_queries = []
 
-                    hwalk(path_net, results.path_properties, queries=queries)
+            for index, (property_id, formula) in enumerate(properties.formulas.items()):
+                answered.add(property_id)
+                if pre_results is None or property_id not in pre_results:
+                    remaining_queries.append(index)
 
-                    remove(path_skeleton)
-                    exit()
+        # Hwalk (before unfolding for both fireability and cardinality)
+        if results.mcc:
+            answered |= hwalk(path_net, results.path_properties, select_queries=remaining_queries)
+            if len(answered) == 16:
+                exit()
 
-        else:
-            path_net = unfold(path_net, timeout=int((results.global_timeout - (time() - start_time)) * 0.4) if results.global_timeout else None)
+        path_net = unfold(path_net)
 
-        answered = hwalk(results.net, results.path_properties, fireability=results.fireability)
-
-    # Check if extension is `.pnml`
+    # If not colored check if extension is `.pnml`
     elif path_net.lower().endswith('.pnml'):
         path_pnml = path_net
         path_net, use_pnml_reduce = convert(path_pnml)
+
     # State equation method enabled
     state_equation = results.mcc or any(method in ['STATE-EQUATION', 'K-INDUCTION', 'PDR-COV', 'PDR-REACH', 'PDR-REACH-SATURATED'] for method in results.methods)
 
@@ -363,7 +363,7 @@ def main():
         results.path_markings = fp_markings.name
 
     # Read properties and keep skeleton ones in not fully reducible
-    properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc and not results.queries)
+    properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc and not results.queries, answered=answered)
 
     # Parse .ltl file if there is one
     if results.path_ltl_formula:
@@ -430,7 +430,7 @@ def main():
     if results.mcc and not fully_reducible:
         try:
             pool = ThreadPool(processes=2)
-            parallelizers = [Parallelizer(properties, property_id, ptnet, formula, ['WALK-NO-PARIKH', 'STATE-EQUATION'], ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True, pre_run=True) for property_id, formula in properties.formulas.items()]
+            parallelizers = [Parallelizer(properties, property_id, ptnet, formula, ['WALK-NO-PARIKH', 'STATE-EQUATION'], ptnet_reduced=ptnet_reduced, system=system, ptnet_tfg=ptnet_tfg, projected_formula=properties.projected_formulas.get(property_id, None), show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug, mcc=True, pre_run=True) for property_id, formula in properties.formulas.items()]
             pre_results = pool.starmap(worker, zip(parallelizers, repeat(timeout)))
         finally:
             pool.close()
