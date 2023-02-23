@@ -282,6 +282,9 @@ def main():
                 exit()
 
         path_net = unfold(path_net)
+        if path_net is None:
+            print("# Bye bye")
+            exit()
 
     # If not colored check if extension is `.pnml`
     elif path_net.lower().endswith('.pnml'):
