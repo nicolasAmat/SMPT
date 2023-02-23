@@ -26,7 +26,8 @@ __license__ = "GPLv3"
 __version__ = "5.0"
 
 from multiprocessing.pool import ThreadPool
-from subprocess import DEVNULL, CalledProcessError, check_output, TimeoutExpired
+from os import environ
+from subprocess import DEVNULL, CalledProcessError, TimeoutExpired, check_output
 from typing import Optional
 
 
@@ -64,10 +65,12 @@ def unfold(path_ptnet: str, timeout: Optional[int] = None) -> str:
         Path to the unfold Petri net (.net format).
     """
     new_filename = path_ptnet.replace('.pnml', '_unfolded')
+
     try:
         check_output('export GOMEMLIMIT="14000000KiB"; ulimit -Sv 14000000 ; mcc smpt -i {} -o {}'.format(path_ptnet, new_filename), timeout=timeout, stderr=DEVNULL, shell=True)
     except (TimeoutExpired, CalledProcessError):
         return None
+
     return new_filename + '.net'
 
 
@@ -87,5 +90,12 @@ def skeleton(path_ptnet: str, timeout: Optional[int] = None) -> str:
         Path to the skeleton (.net format).
     """
     new_filename = path_ptnet.replace('.pnml', '_skeleton')
-    check_output(["mcc", "skeleton", "-i", path_ptnet, '-o', new_filename])
+    
+    environ["GOMEMLIMIT"] = "14GiB"
+    
+    try:
+        check_output(["mcc", "skeleton", "-i", path_ptnet, '-o', new_filename])
+    except CalledProcessError:
+        return None
+
     return new_filename + '.net'

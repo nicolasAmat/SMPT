@@ -258,21 +258,29 @@ def main():
         if results.mcc and not results.fireability:
             # If not fireability: INITIAL-MARKING and STATE-EQUATION on skeleton
             path_skeleton = skeleton(path_net)
-            ptnet_skeleton = PetriNet(path_skeleton, skeleton=True, state_equation=True)
 
-            # In mcc mode, run INITIAL-MARKING, STATE-EQUATION and hwalk on the skeleton if unfolding failed
-            properties = Properties(None, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, simplify=True)
-            pool = ThreadPool(processes=2)
-            parallelizers = [Parallelizer(properties, property_id, None, formula, ['INITIAL-MARKING', 'STATE-EQUATION'], ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug) for property_id, formula in properties.formulas.items()]
-            pre_results = pool.starmap(worker, zip(parallelizers, repeat(int((results.global_timeout - (time() - start_time)) / 16) if results.global_timeout else results.timeout)))
+            if path_skeleton is not None:
+                # Skeleton Petri net and properties
+                ptnet_skeleton = PetriNet(path_skeleton, skeleton=True, state_equation=True)
+                properties = Properties(None, ptnet_skeleton=ptnet_skeleton, xml_filename=results.path_properties, simplify=True)
+                
+                # Initial marking and state-equation
+                pool = ThreadPool(processes=2)
+                parallelizers = [Parallelizer(properties, property_id, None, formula, ['INITIAL-MARKING', 'STATE-EQUATION'], ptnet_skeleton=ptnet_skeleton, show_techniques=results.show_techniques, show_time=results.show_time, show_model=results.show_model, debug=results.debug) for property_id, formula in properties.formulas.items()]
+                pre_results = pool.starmap(worker, zip(parallelizers, repeat(int((results.global_timeout - (time() - start_time)) / 16) if results.global_timeout else results.timeout)))
 
-            remaining_queries = []
+                # Compute answered queries (set of property ids) and remaining queries (list of indices)
+                remaining_queries = []
+                for index, (property_id, formula) in enumerate(properties.formulas.items()):
+                    if property_id in pre_results:
+                        answered.add(property_id)
+                    if pre_results is None or property_id not in pre_results:
+                        remaining_queries.append(index)
 
-            for index, (property_id, formula) in enumerate(properties.formulas.items()):
-                if property_id in pre_results:
-                    answered.add(property_id)
-                if pre_results is None or property_id not in pre_results:
-                    remaining_queries.append(index)
+                # If no remaining queries then exit
+                if not remaining_queries:
+                    print("# Bye bye")
+                    exit()
 
         # Hwalk (before unfolding for both fireability and cardinality)
         if results.mcc:
