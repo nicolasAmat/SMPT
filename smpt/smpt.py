@@ -470,20 +470,22 @@ def main():
 
     # Iterate over properties
     computations = Queue()
+    nb_remaining_properties = 0
     for property_id, formula in properties.formulas.items():
         if pre_results is None or property_id not in pre_results:
             computations.put((property_id, formula))
+            nb_remaining_properties += 1
 
     # Number of properties to be run, timeout and counter
-    nb_properties = computations.qsize()
-    timeout = (global_timeout - (time() - start_time)) / computations.qsize()
+    nb_properties = nb_remaining_properties
+    timeout = (global_timeout - (time() - start_time)) / nb_properties
     counter = 0
 
     while not computations.empty() and time() - start_time < global_timeout:
 
         # Update the timeout
         if counter >= nb_properties:
-            timeout = (global_timeout - (time() - start_time)) / computations.qsize()
+            timeout = (global_timeout - (time() - start_time)) / nb_remaining_properties
 
         # Get property
         property_id, formula = computations.get()
@@ -537,6 +539,8 @@ def main():
         # If computation is uncompleted add it to the queue
         if parallelizer.run(timeout) is None and results.global_timeout is not None:
             computations.put((property_id, formula))
+        else:
+            nb_remaining_properties -= 1
 
         counter += 1
 
