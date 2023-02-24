@@ -478,7 +478,7 @@ def main():
 
     # Number of properties to be run, timeout and counter
     nb_properties = nb_remaining_properties
-    timeout = (global_timeout - (time() - start_time)) / nb_properties
+    timeout = (global_timeout - (time() - start_time)) / nb_properties if nb_remaining_properties else None
     counter = 0
 
     while not computations.empty() and time() - start_time < global_timeout:
