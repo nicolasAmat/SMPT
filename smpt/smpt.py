@@ -379,7 +379,7 @@ def main():
 
     # Generate the state-space if '--auto-enumerative' enabled
     if results.auto_enumerative:
-        fp_markings = NamedTemporaryFile(suffix='.aut')
+        fp_markings = NamedTemporaryFile(suffix='.aut', delete=False)
         if path_ptnet_reduced is not None:
             net = path_ptnet_reduced
         else:

@@ -199,7 +199,8 @@ class Parallelizer:
         self.check_proof: bool = check_proof
         self.path_proof: str = path_proof
 
-        # Pre-run mode
+        # MCC and pre-run mode
+        self.mcc: bool = mcc
         self.pre_run: bool = pre_run
 
         # Common techniques
