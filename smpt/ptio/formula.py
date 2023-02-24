@@ -1319,6 +1319,7 @@ class Formula:
 
         walk_file.write(self.P.walk())
         walk_file.flush()
+
         fsync(walk_file.fileno())
         walk_file.close()
 

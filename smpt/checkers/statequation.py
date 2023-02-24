@@ -230,6 +230,8 @@ class StateEquation(AbstractChecker):
         info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
+        elif self.parikh and not skeleton:
+            self.generate_parikh(ptnet)
 
         info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(ptnet.smtlib_read_arc_constraints(parikh=self.parikh and not skeleton))
@@ -240,10 +242,7 @@ class StateEquation(AbstractChecker):
                 self.additional_techniques.put('TOPOLOGICAL')
             return Verdict.INV
         elif self.parikh and not skeleton:
-            parikh_set = self.solver.get_parikh(ptnet)
-            with open(self.formula.parikh_filename, 'w') as fp:
-                fp.write(' '.join(map(lambda tr: "{{{}}}".format(tr.id) if '-' in tr.id or '.' in tr.id else tr.id, parikh_set)))
-                fsync(fp.fileno())
+            self.generate_parikh(ptnet)
 
         info("[STATE-EQUATION] > Add useful trap constraints")
         if self.trap_constraints(ptnet) is not None:
@@ -254,6 +253,8 @@ class StateEquation(AbstractChecker):
         info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
+        elif self.parikh and not skeleton:
+            self.generate_parikh(ptnet)
 
         if ptnet.nupn is None or not ptnet.nupn.unit_safe or len(ptnet.nupn.units) > MAX_NUMBER_UNITS:
             info("[STATE-EQUATION] > Unknown")
@@ -354,6 +355,14 @@ class StateEquation(AbstractChecker):
             else:
                 # Stop if no more useful trap constraints are found
                 return None
+
+    def generate_parikh(self, ptnet):
+        """ Write a Parikh set from the state-equation.
+        """
+        parikh_set = self.solver.get_parikh(ptnet)
+        with open(self.formula.parikh_filename, 'w') as fp:
+            fp.write(' '.join(map(lambda tr: "{{{}}}".format(tr.id) if '-' in tr.id or '.' in tr.id else tr.id, parikh_set)))
+            fsync(fp.fileno())
 
 
 class TrapConstraints:

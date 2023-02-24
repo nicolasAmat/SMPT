@@ -27,8 +27,11 @@ __version__ = "5.0"
 
 from logging import warning
 from multiprocessing import Queue
+from os import system
+from random import random
 from subprocess import PIPE, Popen
 from sys import exit
+from time import sleep
 from typing import Optional
 
 from smpt.exec.utils import KILL, send_signal_pids
@@ -136,13 +139,15 @@ class Walk(Solver):
 
         return output
 
-    def check_sat(self, walk_filename: str = None) -> bool:
+    def check_sat(self, walk_filename: str = None, restart_counter: int = 0) -> bool:
         """ Check if a state violates the formula.
 
         Parameters
         ----------
         walk_filename : str, optional
             Path to the formula (.ltl formula).
+        restart_counter : int, optional
+            Maximum number of restarting.
 
         Returns
         -------
@@ -154,6 +159,9 @@ class Walk(Solver):
         ValueError
             No filename.
         """
+        if restart_counter == 10:
+            return False
+
         if walk_filename is None:
             raise ValueError("Walk: no filename")
 
@@ -166,12 +174,23 @@ class Walk(Solver):
 
         if self.timeout:
             process += ['-t', str(self.timeout)]
+
+        if not restart_counter:
+            system("sync")
+
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)
 
         if self.solver_pids is not None:
             self.solver_pids.put(self.solver.pid)
 
-        return not (self.readline() != 'FALSE')
+        self.solver.wait()
+        output = self.readline()
+
+        if self.solver.returncode and output != 'FALSE':
+            sleep(random())
+            return self.check_sat(walk_filename, restart_counter=restart_counter + 1)
+        else:
+            return not (output != 'FALSE')
 
     def write(self, input: str, debug: Optional[bool] = None) -> None:
         """ Write instructions.

@@ -36,7 +36,7 @@ def hwalk(path_net, path_xml, select_queries = None, fireability = False) -> set
 
     answered: set[str] = set()
 
-    process = ['hwalk', '-n', path_net, '--xml', path_xml, '-c', '500']
+    process = ['hwalk', '-n', path_net, '--xml', path_xml, '-c', '5000']
 
     if fireability:
         process.append('--fireability')

@@ -25,6 +25,7 @@ __contact__ = "namat@laas.fr"
 __license__ = "GPLv3"
 __version__ = "5.0"
 
+from os import fsync
 from subprocess import DEVNULL, PIPE, run
 from tempfile import NamedTemporaryFile
 
@@ -49,9 +50,11 @@ def convert(path_pnml: str) -> tuple[str, bool]:
 
     if run(["ndrio", path_pnml, fp_ptnet.name], stderr=DEVNULL).returncode:
         tina_output = run(["tina", "-p", path_pnml], stdout=PIPE).stdout.decode('utf-8').splitlines()
-        fp_ptnet.writelines("{}\n".format(line).encode()
-                            for line in tina_output[10:-5])
+        fp_ptnet.writelines("{}\n".format(line).encode() for line in tina_output[10:-5])
         fp_ptnet.flush()
         use_pnml_reduce = True
+
+    fsync(fp_ptnet.fileno())
+    fp_ptnet.close()
 
     return (fp_ptnet.name, use_pnml_reduce)

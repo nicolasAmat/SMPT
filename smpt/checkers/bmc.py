@@ -34,6 +34,7 @@ from typing import Optional
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.play import play
+from smpt.interfaces.walk import Walk
 from smpt.interfaces.z3 import Z3
 from smpt.ptio.formula import Formula
 from smpt.ptio.ptnet import Marking, PetriNet
@@ -56,6 +57,8 @@ class BMC(AbstractChecker):
         Reachability formula.
     debug : bool
         Debugging flag.
+    mcc : bool
+        MCC mode.
     check_proof : bool
         Check proof flag.
     path_proof : str, optional
@@ -70,7 +73,7 @@ class BMC(AbstractChecker):
         SMT solver (Z3).
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, check_proof: bool = False, path_proof: Optional[str] = None, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None) -> None:
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, show_model: bool = False, debug: bool = False, mcc: bool = False, check_proof: bool = False, path_proof: Optional[str] = None, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -87,6 +90,8 @@ class BMC(AbstractChecker):
             Show model flag.
         debug : bool, optional
             Debugging flag.
+        mcc : bool, optional
+            MCC mode.
         proof_enabled : bool
             Proof flag.
         check_proof : bool, optional
@@ -117,6 +122,9 @@ class BMC(AbstractChecker):
         # Debugging flag
         self.debug: bool = debug
 
+        # MCC mode
+        self.mcc: bool = mcc
+
         # Proof checking options
         self.proof_enabled: bool = check_proof or path_proof is not None
         self.check_proof: bool = check_proof
@@ -129,11 +137,13 @@ class BMC(AbstractChecker):
         self.show_model: bool = show_model
 
         # Additional techniques queue
-        self.additional_techniques: Optional[Queue[str]
-                                             ] = additional_techniques
+        self.additional_techniques: Optional[Queue[str]] = additional_techniques
 
         # SMT solver
         self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
+
+        # Solver pids
+        self.solver_pids: Optional[Queue[int]] = solver_pids
 
     def smtlib(self, k: int) -> str:
         """ Output for understanding.
@@ -258,11 +268,21 @@ class BMC(AbstractChecker):
 
         # Quit if the solver has aborted
         if self.solver.aborted:
-            return
+            if self.mcc:
+                walk = Walk(self.ptnet.filename, solver_pids=self.solver_pids)
+                if walk.check_sat(self.formula.walk_filename):
+                    order = -2
+                walk.kill()
+            else:
+                return
 
         # Put the result in the queue
         model = None
-        if order == -1:
+        if order == -2:
+            verdict = Verdict.CEX
+            if self.additional_techniques is not None:
+                self.additional_techniques.put('WALK')
+        elif order == -1:
             verdict = Verdict.INV
             if self.additional_techniques is not None:
                 self.additional_techniques.put('K-INDUCTION')
@@ -304,7 +324,7 @@ class BMC(AbstractChecker):
 
         k, k_induction_iteration = 0, float('inf')
 
-        while not self.solver.check_sat():
+        while not self.solver.check_sat() and not self.solver.aborted:
 
             if self.induction_queue is not None and not self.induction_queue.empty():
                 k_induction_iteration = self.induction_queue.get()
@@ -378,7 +398,7 @@ class BMC(AbstractChecker):
 
         k, k_induction_iteration = 0, float('inf')
 
-        while not self.solver.check_sat():
+        while not self.solver.check_sat() and not self.solver.aborted:
 
             if self.induction_queue is not None and not self.induction_queue.empty():
                 k_induction_iteration = self.induction_queue.get()

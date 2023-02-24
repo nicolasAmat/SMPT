@@ -47,8 +47,7 @@ def reduce(path_ptnet: str, path_ptnet_reduced: str, tfg: bool = False, show_tim
 
     reduce_start_time = time()
 
-    reduce_process = Popen(["reduce", option, "-redundant-limit", "650", "-redundant-time", "10",
-                           "-inv-limit", "1000", "-inv-time", "10", path_ptnet, path_ptnet_reduced], start_new_session=True)
+    reduce_process = Popen(["reduce", option, "-redundant-limit", "650", "-redundant-time", "10", "-inv-limit", "1000", "-inv-time", "10", path_ptnet, path_ptnet_reduced], start_new_session=True)
 
     reduce_process.wait()
 

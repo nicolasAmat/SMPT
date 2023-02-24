@@ -31,7 +31,7 @@ from itertools import repeat
 from logging import DEBUG, basicConfig
 from multiprocessing import Process
 from multiprocessing.pool import ThreadPool
-from os import remove
+from os import fsync, remove
 from queue import Queue
 from subprocess import run
 from sys import exit
@@ -54,6 +54,8 @@ def main():
     """
     # Start time
     start_time = time()
+
+    print("# Hello")
 
     # Arguments parser
     parser = ArgumentParser(description='SMPT: Satisfiability Modulo Petri Net')
@@ -319,14 +321,16 @@ def main():
 
     # Reduce the Petri net if '--auto-reduce' enabled
     path_ptnet_reduced = results.path_ptnet_reduced if ptnet is not None else None
+    fp_ptnet_reduced = None
     if ptnet is not None and results.auto_reduce and path_ptnet_reduced is None:
         extension = '.pnml' if path_pnml else '.net'
-        fp_ptnet_reduced = open(results.net.replace(extension, '_reduced.net'), 'w+') if results.save_reduced_net else NamedTemporaryFile(suffix='.net')
+        fp_ptnet_reduced = open(results.net.replace(extension, '_reduced.net'), 'w+') if results.save_reduced_net else NamedTemporaryFile(suffix='.net', delete=False)
         path_ptnet_reduced = fp_ptnet_reduced.name
         reduce_processes.append(Process(target=reduce, args=(reduce_source, path_ptnet_reduced, False, results.show_time,)))
         reduce_processes[-1].start()
 
     # Reduce the Petri net using TFG reductions if `--project` enabled
+    fp_ptnet_tfg = None
     if ptnet is not None and results.project:
         extension = '.pnml' if path_pnml else '.net'
         fp_ptnet_tfg = open(results.net.replace(extension, '_tfg.net'), 'w+') if results.save_reduced_net else NamedTemporaryFile(suffix='.net', delete=False)
@@ -338,6 +342,14 @@ def main():
     for proc in reduce_processes:
         proc.join()
 
+    # Fsync
+    if fp_ptnet_reduced is not None:
+        fsync(fp_ptnet_reduced.fileno())
+        fp_ptnet_reduced.close()
+    if fp_ptnet_tfg is not None:
+        fsync(fp_ptnet_tfg.fileno())
+        fp_ptnet_tfg.close()
+    
     # Read the reduced Petri net and the system of reduction equations
     fully_reducible = False
     if path_ptnet_reduced is not None:
@@ -374,6 +386,8 @@ def main():
             net = results.net
         run(["tina", "-aut", "-sp", "2", net, fp_markings.name])
         results.path_markings = fp_markings.name
+        fsync(fp_markings.fileno())
+        fp_markings.close()
 
     # Read properties and keep skeleton ones in not fully reducible
     properties = Properties(ptnet, ptnet_tfg=ptnet_tfg, xml_filename=results.path_properties, fireability=results.fireability, simplify=results.mcc and not results.queries, answered=answered)
@@ -460,14 +474,16 @@ def main():
         if pre_results is None or property_id not in pre_results:
             computations.put((property_id, formula))
 
-    # Number of properties to be run
+    # Number of properties to be run, timeout and counter
     nb_properties = computations.qsize()
+    timeout = (global_timeout - (time() - start_time)) / computations.qsize()
     counter = 0
 
     while not computations.empty() and time() - start_time < global_timeout:
 
         # Update the timeout
-        timeout = (global_timeout - (time() - start_time)) / computations.qsize()
+        if counter >= nb_properties:
+            timeout = (global_timeout - (time() - start_time)) / computations.qsize()
 
         # Get property
         property_id, formula = computations.get()
@@ -487,7 +503,6 @@ def main():
 
             else:
                 if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places) > 0):
-                    # Use BMC and PDR methods in parallel
                     methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
 
                     if not formula.non_monotonic:
@@ -498,7 +513,6 @@ def main():
                 else:
                     # Run SMT / CP methods
                     methods = ['SMT', 'CP']
-
             # Keep only enabled methods
             methods = list(set(methods) & set(results.methods))
 
@@ -512,7 +526,7 @@ def main():
                 if ptnet_reduced and not ptnet_reduced.places:
                     methods = ['SMT'] + ['WALK' for _ in range(3)]
                 else:
-                    methods = ['WALK', 'BMC', 'K-INDUCTION', 'BULK-COMPOUND-WALK']
+                    methods = ['WALK', 'BMC', 'K-INDUCTION', 'BULK-PDR-COMPOUND-WALK']
             else:
                 # If second round then run only walkers (and BULK without PDR)
                 methods = ['WALK', 'WALK', 'WALK-NO-PARIKH', 'BULK-COMPOUND-WALK']
