@@ -51,7 +51,9 @@ class Compound(AbstractChecker):
         self.properties = properties
 
         # SMT solver
-        self.solver = Z3(debug=debug, solver_pids=solver_pids)
+        self.debug = debug
+        self.solver_pids = solver_pids
+        self.solver = None
 
     def smtlib(self):
         """ SMT-LIB format for debugging.
@@ -73,6 +75,8 @@ class Compound(AbstractChecker):
         """ Prover.
         """
         info("[COMPOUND] RUNNING")
+        self.solver = Z3(debug=self.debug, solver_pids=self.solver_pids)
+
         self.solver.write(self.properties.ptnet.smtlib_declare_places())
 
         self.solver.push()

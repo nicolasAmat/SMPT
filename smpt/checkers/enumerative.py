@@ -98,7 +98,9 @@ class Enumerative(AbstractChecker):
         self.parse_markings(path_markings)
 
         # SMT solver
-        self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
+        self.debug = debug
+        self.solver_pids = solver_pids
+        self.solver: Optional[Z3] = None
 
     def __str__(self) -> str:
         """ Markings to textual format.
@@ -194,6 +196,7 @@ class Enumerative(AbstractChecker):
             Queue to get the PIDs of the concurrent methods.
         """
         info("[ENUMERATIVE] RUNNING")
+        self.solver = Z3(debug=self.debug, solver_pids=self.solver_pids)
 
         if self.ptnet_reduced is None:
             self.prove_without_reduction()
