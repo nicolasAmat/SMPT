@@ -59,10 +59,8 @@ class RandomWalk(AbstractChecker):
         # Walkers
         if self.parikh:
             self.solver = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, solver_pids=solver_pids)
-        elif self.slice:
-            self.solver = Walk(ptnet.filename, slice=slice, debug=debug, solver_pids=solver_pids)
         else:
-            self.solver = Walk(ptnet.filename, debug=debug, solver_pids=solver_pids)
+            self.solver = Walk(ptnet.filename, slice=self.slice, debug=debug, solver_pids=solver_pids)
 
         # Additional techniques queue
         self.additional_techniques = additional_techniques
