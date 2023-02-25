@@ -83,7 +83,7 @@ class Z3(Solver):
         if strong_memory_limit:
             process.append('-memory:7000')
         else:
-            process.append('-memory:14000')
+            process.append('-memory:12000')
         self.solver: Popen = Popen(process, stdin=PIPE, stdout=PIPE, start_new_session=True)
 
         if solver_pids is not None:
