@@ -27,7 +27,6 @@ __version__ = "5.0"
 
 from logging import warning
 from multiprocessing import Queue
-from os import system
 from random import random
 from subprocess import PIPE, Popen
 from sys import exit
@@ -174,9 +173,6 @@ class Walk(Solver):
 
         if self.timeout:
             process += ['-t', str(self.timeout)]
-
-        if not restart_counter:
-            system("sync")
 
         self.solver = Popen(process, stdout=PIPE, start_new_session=True)
 

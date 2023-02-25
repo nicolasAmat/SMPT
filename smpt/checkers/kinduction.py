@@ -36,8 +36,6 @@ from multiprocessing import Queue
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
-from smpt.exec.utils import STOP, send_signal_pids
-from smpt.interfaces.walk import Walk
 from smpt.interfaces.z3 import Z3
 from smpt.ptio.formula import Formula
 from smpt.ptio.ptnet import Marking, PetriNet
@@ -58,17 +56,13 @@ class KInduction(AbstractChecker):
         System of reduction equations.
     formula : Formula
         Reachability formula.
-    mcc : bool
-        MCC mode.
     induction_queue : Queue of int, optional
         Queue for the exchange with k-induction.
-    additional_techniques : Queue of str, optional
-        Queue to add some additional technique.
     solver : Z3
         SMT solver (Z3).
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, debug: bool = False, mcc : bool = False, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None) -> None:
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, debug: bool = False, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -83,14 +77,10 @@ class KInduction(AbstractChecker):
             System of reduction equations.
         debug : bool, optional
             Debugging flag.
-        mcc : bool, optional
-            MCC mode.
         induction_queue : Queue of int, optional
             Queue for the exchange with k-induction.
         solver_pids : Queue of int, optional
             Queue to share the current PID.
-        additional_techniques : Queue of str, optional
-            Queue to add some additional technique.
         """
         # Initial Petri net
         self.ptnet: PetriNet = ptnet
@@ -104,20 +94,13 @@ class KInduction(AbstractChecker):
         # Formula to study
         self.formula: Formula = formula
 
-        # MCC mode
-        self.mcc = mcc
-
         # Queue shared with BMC
         self.induction_queue: Optional[Queue[int]] = induction_queue
 
-        # Additional techniques queue
-        self.additional_techniques: Optional[Queue[str]] = additional_techniques
-
         # SMT solver (with strong memory limit because BMC is more necessary and not k-induction)
-        self.solver: Z3 = Z3(strong_memory_limit=True, debug=debug, solver_pids=solver_pids)
-
-        # Solver pids
-        self.solver_pids: Optional[Queue[int]] = solver_pids
+        self.solver: Optional[Z3] = None
+        self.debug = debug
+        self.solver_pids = solver_pids
 
     def smtlib(self, k: int) -> str:
         """ Output for understanding.
@@ -225,6 +208,7 @@ class KInduction(AbstractChecker):
             Not used.
         """
         info("[K-INDUCTION] RUNNING")
+        self.solver = Z3(strong_memory_limit=True, debug=self.debug, solver_pids=self.solver_pids)
 
         if self.ptnet_reduced is None:
             iteration = self.prove_without_reduction()
@@ -236,18 +220,6 @@ class KInduction(AbstractChecker):
 
         # Kill the solver
         self.solver.kill()
-
-        if self.solver.aborted and self.mcc:
-            walk = Walk(self.ptnet.filename, solver_pids=self.solver_pids)
-
-            if walk.check_sat(self.formula.walk_filename):
-                walk.kill()
-
-                result.put((Verdict.CEX, None))
-                self.additional_techniques.put('K-INDUCTION')
-
-                # Terminate concurrent methods
-                send_signal_pids(concurrent_pids.get(), STOP)
 
     def prove_without_reduction(self) -> int:
         """ Prover for non-reduced Petri Net.

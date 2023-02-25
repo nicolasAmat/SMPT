@@ -34,7 +34,6 @@ from typing import Optional
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.play import play
-from smpt.interfaces.walk import Walk
 from smpt.interfaces.z3 import Z3
 from smpt.ptio.formula import Formula
 from smpt.ptio.ptnet import Marking, PetriNet
@@ -140,10 +139,9 @@ class BMC(AbstractChecker):
         self.additional_techniques: Optional[Queue[str]] = additional_techniques
 
         # SMT solver
-        self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
-
-        # Solver pids
-        self.solver_pids: Optional[Queue[int]] = solver_pids
+        self.debug = debug
+        self.solver_pids = solver_pids
+        self.solver: Optional[Z3] = None 
 
     def smtlib(self, k: int) -> str:
         """ Output for understanding.
@@ -260,6 +258,7 @@ class BMC(AbstractChecker):
             Queue to get the PIDs of the concurrent methods.
         """
         info("[BMC] RUNNING")
+        self.solver = Z3(debug=self.debug, solver_pids=self.solver_pids)
 
         if self.ptnet_reduced is None:
             order = self.prove_without_reduction()
@@ -267,32 +266,23 @@ class BMC(AbstractChecker):
             order = self.prove_with_reduction()
 
         # Quit if the solver has aborted
-        if self.solver.aborted:
-            if self.mcc:
-                walk = Walk(self.ptnet.filename, solver_pids=self.solver_pids)
-                if walk.check_sat(self.formula.walk_filename):
-                    order = -2
-                walk.kill()
-            else:
-                return
+        if self.solver.aborted and not self.mcc:
+            return
 
         # Put the result in the queue
-        model = None
-        if order == -2:
-            verdict = Verdict.CEX
-            if self.additional_techniques is not None:
-                self.additional_techniques.put('WALK')
-        elif order == -1:
-            verdict = Verdict.INV
-            if self.additional_techniques is not None:
-                self.additional_techniques.put('K-INDUCTION')
-        else:
-            verdict = Verdict.CEX
-            if self.additional_techniques is not None:
-                self.additional_techniques.put('BMC')
-            if self.show_model:
-                model = self.solver.get_marking(self.ptnet, order)
-        result.put((verdict, model))
+        if not self.solver.aborted:
+            model = None
+            if order == -1:
+                verdict = Verdict.INV
+                if self.additional_techniques is not None:
+                    self.additional_techniques.put('K-INDUCTION')
+            else:
+                verdict = Verdict.CEX
+                if self.additional_techniques is not None:
+                    self.additional_techniques.put('BMC')
+                if self.show_model:
+                    model = self.solver.get_marking(self.ptnet, order)
+            result.put((verdict, model))
 
         # Kill the solver
         self.solver.kill()

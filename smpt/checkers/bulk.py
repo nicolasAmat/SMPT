@@ -44,7 +44,7 @@ class Bulk(AbstractChecker):
     Bulk meta method.
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, properties: Properties, formula_compound: Formula, pdr: bool = False, debug: bool = False, solver_pids: Optional[Queue[int]] = None, bulk_techniques: Optional[Queue[str]] = None):
+    def __init__(self, ptnet: PetriNet, formula: Formula, properties: Properties, formula_compound: Formula, pdr: bool = False, slice : bool = False, debug: bool = False, solver_pids: Optional[Queue[int]] = None, bulk_techniques: Optional[Queue[str]] = None):
         """ Initializer.
         """
         # Local queue of solver pids (for PDR)
@@ -56,7 +56,7 @@ class Bulk(AbstractChecker):
         # Methods
         self.pdr = PDR(ptnet, formula, debug=debug, method='REACH', saturation=True, solver_pids=solver_pids, solver_pids_bis=self.solver_pids_bis) if pdr else None
         self.compound = Compound(formula_compound, properties, debug=debug, solver_pids=solver_pids)
-        self.walk = RandomWalk(ptnet, formula, debug=debug, solver_pids=solver_pids)
+        self.walk = RandomWalk(ptnet, formula, slice=slice, debug=debug, solver_pids=solver_pids)
 
     def prove(self, result, concurrent_pids):
         """ Prover.
@@ -72,7 +72,7 @@ class Bulk(AbstractChecker):
         self.run_helper(self.compound.prove, None, ['COMPOUND'], result, concurrent_pids)
         self.compound = None
 
-        # Run WALK (no Parikh, no slicing)
+        # Run WALK
         self.run_helper(self.walk.prove, None, ['WALK'], result, concurrent_pids)
         self.walk = None
 

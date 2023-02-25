@@ -82,8 +82,6 @@ class Parallelizer:
         Debugging flag.
     path_markings : str, optional
         Path to the list of markings (.aut format).
-    timeout : int, optional
-        Timeout.
     check_proof : bool, optional
         Check proof flag.
     path_proof : str, optional
@@ -116,7 +114,7 @@ class Parallelizer:
         Formulas used for BMC / K-INDUCTION.
     """
 
-    def __init__(self, properties: Properties, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, timeout: Optional[int] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False, pre_run: bool = False):
+    def __init__(self, properties: Properties, property_id: str, ptnet: PetriNet, formula: Formula, methods: list[str], ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, ptnet_tfg: Optional[PetriNet] = None, projected_formula: Optional[Formula] = None, ptnet_skeleton: Optional[PetriNet] = None, show_techniques: bool = False, show_time: bool = False, show_model: bool = False, debug: bool = False, path_markings: Optional[str] = None, check_proof: bool = False, path_proof: Optional[str] = None, mcc: bool = False, pre_run: bool = False):
         """ Initializer.
 
         Parameters
@@ -153,8 +151,6 @@ class Parallelizer:
             Debugging flag.
         path_markings : str, optional
             Path to the list of markings (.aut format).
-        timeout : int, optional
-            Timeout.
         check_proof : bool, optional
             Check proof flag.
         path_proof : str, optional
@@ -191,9 +187,6 @@ class Parallelizer:
 
         # Path to markings
         self.path_markings: Optional[str] = path_markings
-
-        # Timeout
-        self.timeout: Optional[int] = timeout
 
         # Proof
         self.check_proof: bool = check_proof
@@ -319,10 +312,10 @@ class Parallelizer:
         prover : Optional[AbstractChecker] = None
 
         if method == 'WALK':
-            prover = RandomWalk(self.ptnet_walk_pdr, self.formula_walk_pdr, ptnet_slicing=self.ptnet, formula_slicing=self.formula, parikh=True, slice=self.slice, timeout=self.timeout, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = RandomWalk(self.ptnet_walk_pdr, self.formula_walk_pdr, parikh=True, slice=self.slice, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         if method == 'WALK-NO-PARIKH':
-            prover = RandomWalk(self.ptnet_walk_pdr, self.formula_walk_pdr, ptnet_slicing=self.ptnet, formula_slicing=self.formula, parikh=False, slice=self.slice, timeout=self.timeout, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = RandomWalk(self.ptnet_walk_pdr, self.formula_walk_pdr, parikh=False, slice=self.slice, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'STATE-EQUATION':
             prover = StateEquation(self.ptnet_state_equation, self.formula_state_equation, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
@@ -334,7 +327,7 @@ class Parallelizer:
             prover = BMC(self.ptnet_switched, self.formula_switched, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, show_model=self.show_model, debug=self.debug, mcc=self.mcc, check_proof=self.check_proof, path_proof=self.path_proof, induction_queue=self.induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'K-INDUCTION':
-            prover = KInduction(self.ptnet_switched, self.formula_switched, debug=self.debug, mcc=self.mcc, induction_queue=self.induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = KInduction(self.ptnet_switched, self.formula_switched, debug=self.debug, induction_queue=self.induction_queue, solver_pids=self.solver_pids)
 
         elif method == 'PDR-COV':
             prover = PDR(self.ptnet_switched, self.formula_switched, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, debug=self.debug, check_proof=self.check_proof, path_proof=self.path_proof, method='COV', solver_pids=self.solver_pids)
@@ -358,10 +351,10 @@ class Parallelizer:
             prover = InitialMarking(self.ptnet_skeleton, self.formula)
 
         elif method == 'BULK-PDR-COMPOUND-WALK':
-            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, self.formula, pdr=True, debug=self.debug, solver_pids=self.solver_pids, bulk_techniques=self.bulk_techniques)
+            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, self.formula, pdr=True, slice=self.slice, debug=self.debug, solver_pids=self.solver_pids, bulk_techniques=self.bulk_techniques)
 
         elif method == 'BULK-COMPOUND-WALK':
-            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, self.formula, pdr=False, debug=self.debug, solver_pids=self.solver_pids, bulk_techniques=self.bulk_techniques)
+            prover = Bulk(self.ptnet_walk_pdr, self.formula_walk_pdr, self.properties, self.formula, pdr=False, slice=self.slice, debug=self.debug, solver_pids=self.solver_pids, bulk_techniques=self.bulk_techniques)
 
         if prover:
             prover.prove(result, concurrent_pids)

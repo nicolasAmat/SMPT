@@ -101,9 +101,9 @@ class StateEquation(AbstractChecker):
         self.pre_run: bool = pre_run
 
         # SMT solver
-        self.solver: Z3 = Z3(debug=debug, solver_pids=solver_pids)
         self.debug: bool = debug
         self.solver_pids: Optional[Queue[int]] = solver_pids
+        self.solver: Optional[Z3] = None
 
         # Additional techniques queue
         self.additional_techniques: Optional[Queue[str]] = additional_techniques
@@ -170,6 +170,7 @@ class StateEquation(AbstractChecker):
         """ Prover.
         """
         info("[STATE-EQUATION] RUNNING")
+        self.solver =  Z3(debug=self.debug, solver_pids=self.solver_pids)
 
         verdict = Verdict.UNKNOWN
 
@@ -230,8 +231,6 @@ class StateEquation(AbstractChecker):
         info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
-        elif self.parikh and not skeleton:
-            self.generate_parikh(ptnet)
 
         info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(ptnet.smtlib_read_arc_constraints(parikh=self.parikh and not skeleton))
@@ -253,8 +252,6 @@ class StateEquation(AbstractChecker):
         info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
-        elif self.parikh and not skeleton:
-            self.generate_parikh(ptnet)
 
         if ptnet.nupn is None or not ptnet.nupn.unit_safe or len(ptnet.nupn.units) > MAX_NUMBER_UNITS:
             info("[STATE-EQUATION] > Unknown")

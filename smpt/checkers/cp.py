@@ -26,6 +26,7 @@ __version__ = "5.0"
 
 from logging import info
 from multiprocessing import Queue
+from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
@@ -93,11 +94,10 @@ class CP(AbstractChecker):
         self.minizinc: bool = minizinc
 
         # Solver
-        if minizinc:
-            self.solver: Solver = MiniZinc(
-                debug=debug, solver_pids=solver_pids)
-        else:
-            self.solver = Z3(debug=debug, solver_pids=solver_pids)
+        self.minizinc = minizinc
+        self.debug = debug
+        self.solver_pids = solver_pids
+        self.solver: Optional[Solver] = None
 
     def prove(self, results: Queue[tuple[Verdict, Marking]], concurrent_pids: Queue[list[int]]) -> None:
         """ Prover.
@@ -109,6 +109,11 @@ class CP(AbstractChecker):
         concurrent_pids : Queue of int
             Queue to get the PIDs of the concurrent methods.
         """
+        if self.minizinc:    
+            self.solver = MiniZinc(debug=self.debug, solver_pids=self.solver_pids)
+        else:
+            self.solver = Z3(debug=self.debug, solver_pids=self.solver_pids)
+
         model = None
 
         if self.minizinc:
