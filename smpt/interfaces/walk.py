@@ -27,10 +27,8 @@ __version__ = "5.0"
 
 from logging import warning
 from multiprocessing import Queue
-from random import random
 from subprocess import PIPE, Popen
 from sys import exit
-from time import sleep
 from typing import Optional
 
 from smpt.exec.utils import KILL, send_signal_pids
