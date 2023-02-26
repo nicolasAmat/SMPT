@@ -327,8 +327,7 @@ class StateEquation(AbstractChecker):
     def trap_constraints(self, ptnet):
         """ Add useful trap constraints.
         """
-        self.traps = TrapConstraints(
-            ptnet, debug=self.debug, solver_pids=self.solver_pids)
+        self.traps = TrapConstraints(ptnet, debug=self.debug, solver_pids=self.solver_pids)
         self.traps.assert_constraints()
 
         while True:

@@ -53,7 +53,7 @@ class Compound(AbstractChecker):
         # SMT solver
         self.debug = debug
         self.solver_pids = solver_pids
-        self.solver = None
+        self.solver: Optional[Z3] = None
 
     def smtlib(self):
         """ SMT-LIB format for debugging.

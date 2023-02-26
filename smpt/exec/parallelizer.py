@@ -174,7 +174,7 @@ class Parallelizer:
 
         # Skeleton Petri net
         self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
-        self.formula_skeleton: Optional[PetriNet] = formula if ptnet_skeleton is not None else None
+        self.formula_skeleton: Optional[Formula] = formula if ptnet_skeleton is not None else None
 
         # Methods
         self.methods: list[str] = methods

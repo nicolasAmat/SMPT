@@ -23,6 +23,7 @@ __license__ = "GPLv3"
 __version__ = "5.0"
 
 from logging import info
+from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
 from smpt.exec.utils import STOP, send_signal_pids
@@ -56,7 +57,7 @@ class Induction(AbstractChecker):
         # SMT solver
         self.debug = debug
         self.solver_pids = solver_pids
-        self.solver = None
+        self.solver: Optional[Z3] = None
 
     def smtlib(self):
         """ SMT-LIB format for debugging.

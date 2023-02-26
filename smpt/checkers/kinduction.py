@@ -97,7 +97,7 @@ class KInduction(AbstractChecker):
         # Queue shared with BMC
         self.induction_queue: Optional[Queue[int]] = induction_queue
 
-        # SMT solver (with strong memory limit because BMC is more necessary and not k-induction)
+        # SMT solver (with strong memory limit because BMC is necessary and not k-induction)
         self.solver: Optional[Z3] = None
         self.debug = debug
         self.solver_pids = solver_pids

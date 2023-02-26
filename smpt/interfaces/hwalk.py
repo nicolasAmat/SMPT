@@ -50,9 +50,9 @@ def hwalk(path_net, path_xml, select_queries = None, fireability = False) -> set
     hwalk = Popen(process, stdout=PIPE)
 
     for line in hwalk.stdout:
-        line = line.decode('utf-8').strip()
-        if 'FORMULA' in line:
-            print('\n{} TECHNIQUES COLORED_WALK'.format(line))
-            answered.add(line.split(' ')[1])
+        line_str = line.decode('utf-8').strip()
+        if 'FORMULA' in line_str:
+            print('\n{} TECHNIQUES COLORED_WALK'.format(line_str))
+            answered.add(line_str.split(' ')[1])
 
     return answered
