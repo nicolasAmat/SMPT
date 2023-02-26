@@ -53,6 +53,8 @@ class Walk(Solver):
         Path to an eventual Parikh file.
     solver : Popen, optional
         A walk process.
+    max_markings : int
+        Max markings to explore before restarting.
     timeout : int
         Timeout of walk.
     solver_pids : Queue of int
@@ -63,7 +65,7 @@ class Walk(Solver):
         Debugging flag.
     """
 
-    def __init__(self, ptnet_filename: str, slice: bool = False, parikh_filename: Optional[str] = None, debug: bool = False, timeout: int = 0, solver_pids: Optional[Queue[int]] = None) -> None:
+    def __init__(self, ptnet_filename: str, slice: bool = False, parikh_filename: Optional[str] = None, max_markings: int = 1000000, debug: bool = False, timeout: int = 0, solver_pids: Optional[Queue[int]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -74,6 +76,8 @@ class Walk(Solver):
             Slicing mode.
         parikh_filename : str, optional
             Path to an eventual Parikh file.
+        max_markings : int, optional
+            Max markings to explore before restarting.
         debug: bool, optional
             Debugging flag.
         timeout: int, optional
@@ -92,6 +96,7 @@ class Walk(Solver):
 
         # Solver
         self.solver: Optional[Popen] = None
+        self.max_markings: int = max_markings
         self.timeout: int = timeout
         self.solver_pids: Queue[int] = solver_pids
 
@@ -159,7 +164,7 @@ class Walk(Solver):
         if walk_filename is None:
             raise ValueError("Walk: no filename")
 
-        process = ['walk', '-R', '-loop', '-seed', self.ptnet_filename, '-ff', walk_filename]
+        process = ['walk', '-R', '-c', str(self.max_markings), '-loop', '-seed', self.ptnet_filename, '-ff', walk_filename]
 
         if self.parikh_filename:
             process += ['-favor', self.parikh_filename]
