@@ -29,6 +29,7 @@ __version__ = "5.0"
 from argparse import ArgumentParser
 from itertools import repeat
 from logging import DEBUG, basicConfig
+from math import ceil
 from multiprocessing import Process
 from multiprocessing.pool import ThreadPool
 from os import fsync, remove
@@ -485,7 +486,7 @@ def main():
 
         # Update the timeout
         if counter >= nb_properties:
-            timeout = (global_timeout - (time() - start_time)) / nb_remaining_properties
+            timeout = ceil((global_timeout - (time() - start_time)) / nb_remaining_properties)
 
         # Get property
         property_id, formula = computations.get()
