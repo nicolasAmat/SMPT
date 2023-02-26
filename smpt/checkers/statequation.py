@@ -252,6 +252,8 @@ class StateEquation(AbstractChecker):
         info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
             return Verdict.INV
+        elif self.parikh and not skeleton:
+            self.generate_parikh(ptnet)
 
         if ptnet.nupn is None or not ptnet.nupn.unit_safe or len(ptnet.nupn.units) > MAX_NUMBER_UNITS:
             info("[STATE-EQUATION] > Unknown")
