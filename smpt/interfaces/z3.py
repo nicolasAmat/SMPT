@@ -293,12 +293,12 @@ class Z3(Solver):
             if len(transition_content) < 2:
                 break
 
-            occurences = self.readline().replace(' ', '').replace(')', '')
+            occurrences = self.readline().replace(' ', '').replace(')', '')
             transition = ""
             transition_content = transition_content[1].rsplit('@', 1)
             if len(transition_content) > 1 and transition_content[1] == "t":
                 transition = transition_content[0]
-                if int(occurences) > 0:
+                if int(occurrences) > 0:
                     parikh.add(ptnet.transitions[transition])
 
         return parikh
