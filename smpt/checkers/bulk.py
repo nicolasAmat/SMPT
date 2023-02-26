@@ -101,7 +101,7 @@ class Bulk(AbstractChecker):
         proc.join(timeout=timeout)
 
         # Kill method
-        send_signal_pids([proc_id], KILL)
+        send_signal_pids([proc_id], STOP)
 
         # Kill local solvers
         if self.solver_pids_bis:

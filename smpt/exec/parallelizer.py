@@ -39,7 +39,7 @@ from smpt.checkers.kinduction import KInduction
 from smpt.checkers.pdr import PDR
 from smpt.checkers.randomwalk import RandomWalk
 from smpt.checkers.statequation import StateEquation
-from smpt.exec.utils import KILL, send_signal_group_pid, send_signal_pids
+from smpt.exec.utils import KILL, STOP, send_signal_group_pid, send_signal_pids
 from smpt.ptio.formula import Formula, Properties
 from smpt.ptio.ptnet import Marking, PetriNet
 from smpt.ptio.system import System
@@ -456,7 +456,7 @@ class Parallelizer:
         """ Stop the methods.
         """
         # Kill methods
-        send_signal_pids([proc.pid for proc in self.processes], KILL)
+        send_signal_pids([proc.pid for proc in self.processes], STOP)
         del self.methods
 
         # Kill solvers
