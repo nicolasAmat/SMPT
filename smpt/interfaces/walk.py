@@ -138,7 +138,7 @@ class Walk(Solver):
 
         return output
 
-    def check_sat(self, walk_filename: str = None, restart_counter: int = 0) -> bool:
+    def check_sat(self, walk_filename: str = None) -> bool:
         """ Check if a state violates the formula.
 
         Parameters
@@ -158,9 +158,6 @@ class Walk(Solver):
         ValueError
             No filename.
         """
-        if restart_counter == 10:
-            return False
-
         if walk_filename is None:
             raise ValueError("Walk: no filename")
 
@@ -179,14 +176,7 @@ class Walk(Solver):
         if self.solver_pids is not None:
             self.solver_pids.put(self.solver.pid)
 
-        self.solver.wait()
-        output = self.readline()
-
-        if self.solver.returncode and output != 'FALSE':
-            sleep(random())
-            return self.check_sat(walk_filename, restart_counter=restart_counter + 1)
-        else:
-            return not (output != 'FALSE')
+        return not (self.readline() != 'FALSE')
 
     def write(self, input: str, debug: Optional[bool] = None) -> None:
         """ Write instructions.
