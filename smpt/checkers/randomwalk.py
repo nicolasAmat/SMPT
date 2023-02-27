@@ -43,7 +43,7 @@ class RandomWalk(AbstractChecker):
     """ Random walk method.
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, parikh: bool = False, slice: bool = False, high_restart: bool = False, debug: bool = False, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
+    def __init__(self, ptnet: PetriNet, formula: Formula, parikh: bool = False, slice: bool = False, debug: bool = False, solver_pids: Optional[Queue[int]] = None, additional_techniques: Optional[Queue[str]] = None):
         """ Initializer.
         """
         # Initial Petri net and formula
@@ -56,13 +56,11 @@ class RandomWalk(AbstractChecker):
         # Slicing
         self.slice = not self.parikh and slice
 
-        max_markings = 100000 if high_restart else 1000000
-
         # Walkers
         if self.parikh:
-            self.solver = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, max_markings=max_markings, debug=debug, solver_pids=solver_pids)
+            self.solver = Walk(ptnet.filename, parikh_filename=formula.parikh_filename, debug=debug, solver_pids=solver_pids)
         else:
-            self.solver = Walk(ptnet.filename, slice=self.slice, max_markings=max_markings, debug=debug, solver_pids=solver_pids)
+            self.solver = Walk(ptnet.filename, slice=self.slice, debug=debug, solver_pids=solver_pids)
 
         # Additional techniques queue
         self.additional_techniques = additional_techniques
