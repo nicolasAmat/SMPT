@@ -34,7 +34,6 @@ from smpt.checkers.compound import Compound
 from smpt.checkers.pdr import PDR
 from smpt.checkers.randomwalk import RandomWalk
 from smpt.exec.utils import KILL, STOP, send_signal_group_pid, send_signal_pids
-from smpt.interfaces.walk import Walk
 from smpt.ptio.formula import Formula, Properties
 from smpt.ptio.ptnet import PetriNet
 
