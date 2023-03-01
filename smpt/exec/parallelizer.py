@@ -230,7 +230,7 @@ class Parallelizer:
         # WALK / PDR-REACH / PDR-REACH-SATURATED
         # (ptnet_tfg + projected formula if possible, but in mcc mode keep only complete projections)
         projection_walk_pdr: bool = ptnet_tfg is not None and projected_formula is not None and projected_formula.shadow_complete
-        self.slice = not self.pre_run and ptnet_reduced is not None and not projection_walk_pdr
+        self.slice = not self.pre_run and ptnet_reduced is not None and not projection_walk_pdr and 'SMT' not in methods
         self.ptnet_walk_pdr: PetriNet = ptnet_tfg if projection_walk_pdr else ptnet
         self.formula_walk_pdr: Formula = projected_formula if projection_walk_pdr else formula
         technique_projection_walk = ['STRUCTURAL_REDUCTION', 'PROJECTION'] if projection_walk_pdr else []
