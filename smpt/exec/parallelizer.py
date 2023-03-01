@@ -261,31 +261,31 @@ class Parallelizer:
                 self.techniques.append(collateral_processing + unfolding_to_pt + ['WALK'] + technique_projection_walk)
 
             elif method == 'STATE-EQUATION':
-                self.techniques.append(collateral_processing + structural_reduction + technique_projection_state_equation + ['IMPLICIT', 'SAT-SMT', 'STATE_EQUATION'])
+                self.techniques.append(collateral_processing + structural_reduction + technique_projection_state_equation + ['IMPLICIT', 'SAT_SMT', 'STATE_EQUATION'])
 
             elif method == 'INDUCTION':
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT', 'INDUCTION'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT_SMT', 'INDUCTION'])
 
             elif method in ['BMC', 'K-INDUCTION']:
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + technique_projection + ['IMPLICIT', 'SAT-SMT', 'NET_UNFOLDING'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + technique_projection + ['IMPLICIT', 'SAT_SMT', 'NET_UNFOLDING'])
 
             elif method == 'PDR-COV':
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + technique_projection + ['IMPLICIT', 'SAT-SMT', 'PDR_COV'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + technique_projection + ['IMPLICIT', 'SAT_SMT', 'PDR_COV'])
 
             elif method == 'PDR-REACH':
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR_REACH'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT_SMT', 'PDR_REACH'])
 
             elif method == 'PDR-REACH-SATURATED':
-                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT-SMT', 'PDR_REACH_SATURATED'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + ['IMPLICIT', 'SAT_SMT', 'PDR_REACH_SATURATED'])
 
             elif method == 'SMT':
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT-SMT'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'SAT_SMT'])
 
             elif method == 'CP':
                 self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['IMPLICIT', 'CONSTRAINT_PROGRAMMING'])
 
             elif method == 'ENUM':
-                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT-SMT'])
+                self.techniques.append(collateral_processing + unfolding_to_pt + structural_reduction + ['EXPLICIT', 'SAT_SMT'])
 
             elif method == 'INITIAL-MARKING':
                 self.techniques.append(collateral_processing + ['INITIAL_MARKING'])

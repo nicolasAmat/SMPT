@@ -64,11 +64,11 @@ class Bulk(AbstractChecker):
 
         # Run PDR (if enabled)
         if self.pdr:
-            self.run_helper(self.pdr.prove, 10, ['IMPLICIT', 'SAT-SMT', 'PDR_REACH_SATURATED'], result, concurrent_pids)
+            self.run_helper(self.pdr.prove, 10, ['IMPLICIT', 'SAT_SMT', 'PDR_REACH_SATURATED'], result, concurrent_pids)
             self.pdr = None
 
         # Run COMPOUND
-        self.run_helper(self.compound.prove, None, ['COMPOUND'], result, concurrent_pids)
+        self.run_helper(self.compound.prove, None, ['SAT_SMT', 'COMPOUND'], result, concurrent_pids)
         self.compound = None
 
         # Run WALK
