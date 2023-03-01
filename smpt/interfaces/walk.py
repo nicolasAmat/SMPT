@@ -169,7 +169,7 @@ class Walk(Solver):
         if self.parikh_filename:
             process += ['-favor', self.parikh_filename]
         elif self.slice:
-            process += ["-reduce", "-rg,redundant,compact+,4ti2", "-redundant-limit", "650", "-redundant-time", "10"]
+            process += ['-rg,redundant,compact+,4ti2', '-redundant-limit', '650', '-redundant-time', '10']
 
         if self.timeout:
             process += ['-t', str(self.timeout)]
