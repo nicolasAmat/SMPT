@@ -28,10 +28,10 @@ home=/home/mcc/BenchKit
 if [ -f large_marking ]
 then
     echoerr large_marking
-    export PATH=$home/bin:$home/bin/tina-int64/:$home/bin/latte/bin:$home/bin/z3/bin:$home/bin/tipx:$PATH
+    export PATH=/opt/python/3.11.2/bin:$home/bin:$home/bin/tina-int64/:$home/bin/latte/bin:$home/bin/z3/bin:$home/bin/tipx:$PATH
     project=""
 else
-    export PATH=$home/bin:$home/bin/tina/:$home/bin/latte/bin:$home/bin/z3/bin:$home/bin/tipx:$PATH
+    export PATH=/opt/python/3.11.2/bin:$home/bin:$home/bin/tina/:$home/bin/latte/bin:$home/bin/z3/bin:$home/bin/tipx:$PATH
     project="--project"
 fi
 
@@ -65,4 +65,6 @@ properties="--xml $(pwd)/$BK_EXAMINATION.xml"
 
 # main
 cd $home/bin/SMPT
-python3 -m smpt $model $colored $reduce $project $properties $fireability $timeout $methods $mcc $techniques
+while ! python3.11 -m smpt $model $colored $reduce $project $properties $fireability $timeout $methods $mcc $techniques ; do
+    echo "# RESTARTING SMPT"
+done
