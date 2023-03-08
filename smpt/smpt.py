@@ -56,14 +56,12 @@ def main():
     # Start time
     start_time = time()
 
-    print("# Hello")
-
     # Arguments parser
     parser = ArgumentParser(description='SMPT: Satisfiability Modulo Petri Net')
 
     parser.add_argument('--version',
                         action='version',
-                        version='%(prog)s 3.0.0',
+                        version='%(prog)s 5.0',
                         help="show the version number and exit")
 
     parser.add_argument('-v', '--verbose',
@@ -235,6 +233,8 @@ def main():
                         help="Reachability Fireability mode (Cardinality by default)")
 
     results = parser.parse_args()
+
+    print("# Hello")
 
     # Set the verbose level
     if results.verbose:
