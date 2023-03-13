@@ -274,10 +274,14 @@ def main():
 
                 # Compute answered queries (set of property ids) and remaining queries (list of indices)
                 remaining_queries = []
-                for index, (property_id, formula) in enumerate(properties.formulas.items()):
-                    if property_id in pre_results:
-                        answered.add(property_id)
-                    if pre_results is None or property_id not in pre_results:
+                for property_id in pre_results:
+                    answered.add(property_id)
+                    if property_id in properties.duplicates:
+                        for (duplicate, _) in properties.duplicates[property_id]:
+                            answered.add(duplicate)
+
+                for index, property_id in enumerate(properties.identifiers):
+                    if property_id not in answered:
                         remaining_queries.append(index)
 
                 # If no remaining queries then exit
