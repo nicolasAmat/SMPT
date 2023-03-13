@@ -126,8 +126,6 @@ class Properties:
         Associated reduced Petri net (TFG).
     ptnet_skeleton : PetriNet, optional
         Skeleton Petri net (if colored).
-    identifiers : list of str
-        List of formula identifiers.
     formulas : dict of str: Formula
         Set of formulas.
     projected_formulas : dict of str: Formula
@@ -165,8 +163,6 @@ class Properties:
         self.ptnet: PetriNet = ptnet
         self.ptnet_tfg: Optional[PetriNet] = ptnet_tfg
         self.ptnet_skeleton: Optional[PetriNet] = ptnet_skeleton
-
-        self.identifiers: list[str] = []
 
         self.formulas: dict[str, Formula] = {}
         self.projected_formulas: dict[str, Formula] = {}
@@ -283,7 +279,6 @@ class Properties:
         if property_id is None:
             property_id = str(uuid4())
 
-        self.identifiers.append(property_id)
         formula.identifier = property_id
 
         if check_duplicates and self.ptnet is not None:
