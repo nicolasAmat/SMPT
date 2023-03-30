@@ -327,13 +327,17 @@ class PetriNet:
 
         for place_node in root.iter(xmlns + 'place'):
             place_id = place_node.attrib['id']
-            place_name = place_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
-            self.pnml_places_mapping[place_id] = place_name
+            place_text = place_node.find(xmlns + 'name/' + xmlns + 'text')
+            if place_text is not None:
+                place_name = place_text.text.replace('#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
+                self.pnml_places_mapping[place_id] = place_name
 
         for transition_node in root.iter(xmlns + 'transition'):
             transition_id = transition_node.attrib['id']
-            transition_name = transition_node.find(xmlns + 'name/' + xmlns + 'text').text.replace('#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
-            self.pnml_transitions_mapping[transition_id] = transition_name
+            transition_text = transition_node.find(xmlns + 'name/' + xmlns + 'text')
+            if transition_text is not None:
+                transition_name = transition_text.text.replace('#', '.').replace(',', '.')  # '#' and ',' forbidden in SMT-LIB
+                self.pnml_transitions_mapping[transition_id] = transition_name
 
     def parse_net(self, filename: str) -> None:
         """ Petri net parser.
