@@ -1045,7 +1045,7 @@ class Formula:
                 return operands[0]
             
             elif operator == 'not' and isinstance(operands[0], StateFormula) and operands[0].operator == 'not':
-                return operands[0]
+                return operands[0].operands[0]
 
             else:
                 return StateFormula(operands, operator)
