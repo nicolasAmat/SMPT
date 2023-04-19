@@ -35,7 +35,7 @@ from typing import Any, Optional, Sequence
 from uuid import uuid4
 from xml.etree.ElementTree import Element, parse
 
-from smpt.interfaces.tipx import Tipx
+from smpt.interfaces.octant import project
 from smpt.interfaces.z3 import Z3
 from smpt.ptio.ptnet import Marking, PetriNet, Place
 from smpt.ptio.verdict import Verdict
@@ -479,11 +479,8 @@ class Properties:
         debug : bool, optional
             Debugging flag.
         """
-        # Create TiPX instance
-        tipx = Tipx(ptnet_tfg.filename, debug=debug)
-
         # Run projections
-        projections = tipx.project(list(self.formulas.values()), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
+        projections = project(ptnet_tfg.filename, list(self.formulas.values()), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
 
         # Iterate over projections
         for (projection, complete), property_id in zip(projections, list(self.formulas)):

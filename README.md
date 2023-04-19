@@ -16,7 +16,7 @@ problems that takes advantage of net reductions (*polyhedral reductions*).
 
 ### Requirements
 
-* Python >= 3.7 (we highly recommend version 3.7.12)
+* Python >= 3.7
   + (Optional) [cx_Freeze](https://pypi.org/project/psutil/) - standalone executables generator
   + (Optional) [mypy](http://mypy-lang.org/) - static type checker
   + (Optional) [sphinx](https://www.sphinx-doc.org/en/master/index.html) - Python documentation generator
@@ -30,23 +30,13 @@ problems that takes advantage of net reductions (*polyhedral reductions*).
   + (Optional) [tina](https://projects.laas.fr/tina/manuals/tina.html) - State space generator
   + (Optional) [play](https://projects.laas.fr/tina/manuals/play.html) - Stepper simulator
   + (Optional) [mcc](https://github.com/dalzilio/mcc) - Petri net unfolder
+* (Optional) [Octant](https://github.com/nicolasAmat/Octant) - Quantifier eliminator for polyhedral reductions
 * (Optional) [MiniZinc](https://www.minizinc.org/) - Constraint programming solver
 
 ### Installation script
 
 To automatically install dependencies (except Python packages and MiniZinc) you
 can run the `install_dependencies.sh` script.
-
-### Python setup
-
-It is highly recommended to use the Python 3.7.12 version. You can use
-[pyenv](https://github.com/pyenv/pyenv), a Python version management tool:
-
-```
-$ pyenv install 3.7.12
-$ pyenv local 3.7.12
-$ pyenv rehash 
-```
 
 ### Freezing
 
@@ -195,15 +185,17 @@ You can list all the options by using the *help* option:
 $ python3 -m smpt --help
 usage: __main__.py [-h] [--version] [-v] [--debug] -n ptnet [--colored]
                    [--xml PATH_PROPERTIES | --ltl-file PATH_LTL_FORMULA | --ltl LTL_FORMULA | --deadlock | --quasi-liveness QUASI_LIVE_TRANSITIONS | --reachability REACHABLE_PLACES]
+                   [--select-queries QUERIES]
                    [--auto-reduce | --reduced PATH_PTNET_REDUCED]
                    [--save-reduced-net]
-                   (--methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX,DUMMY} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX,DUMMY} ...]] | --auto-enumerative | --enumerative PATH_MARKINGS)
-                   [--project]
+                   (--methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,DUMMY} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,DUMMY} ...]] | --auto-enumerative | --enumerative PATH_MARKINGS)
+                   [--project] [--show-projection]
+                   [--save-projection PATH_PROJECTION_DIRECTORY]
                    [--timeout TIMEOUT | --global-timeout GLOBAL_TIMEOUT]
                    [--skip-non-monotonic] [--show-techniques] [--show-time]
                    [--show-reduction-ratio] [--show-shadow-completeness]
                    [--show-model] [--check-proof] [--export-proof PATH_PROOF]
-                   [--mcc]
+                   [--mcc] [--fireability]
 
 SMPT: Satisfiability Modulo Petri Net
 
@@ -211,7 +203,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --version             show the version number and exit
   -v, --verbose         increase output verbosity
-  --debug               print the SMT-LIB input/ouput
+  --debug               print the SMT-LIB input/output
   -n ptnet, --net ptnet
                         path to Petri Net (.net or .pnml format)
   --colored             colored input Petri net
@@ -227,18 +219,24 @@ optional arguments:
   --reachability REACHABLE_PLACES
                         reachability analysis (comma separated list of place
                         names)
+  --select-queries QUERIES
+                        verify queries of a given comma-separated list
   --auto-reduce         reduce automatically the Petri Net (using `reduce`)
   --reduced PATH_PTNET_REDUCED
                         path to reduced Petri Net (.net format)
   --save-reduced-net    save the reduced net
-  --methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX,DUMMY} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,TIPX,DUMMY} ...]]
+  --methods [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,DUMMY} [{WALK,STATE-EQUATION,INDUCTION,BMC,K-INDUCTION,PDR-COV,PDR-REACH,PDR-REACH-SATURATED,SMT,CP,DUMMY} ...]]
                         enable methods among WALK STATE-EQUATION INDUCTION BMC
                         K-INDUCTION PDR-COV PDR-REACH PDR-REACH-SATURATED SMT
-                        CP TIPX DUMMY
+                        CP DUMMY
   --auto-enumerative    enumerate automatically the states (using `tina`)
   --enumerative PATH_MARKINGS
                         path to the state-space (.aut format)
-  --project             Use TFG projection for WALK, TIPX, BMC, K-INDUCTION
+  --project             Use TFG projection for WALK, BMC, K-INDUCTION, PDR,
+                        STATE-EQUATION
+  --show-projection     Show projected formulas
+  --save-projection PATH_PROJECTION_DIRECTORY
+                        Save projected formulas
   --timeout TIMEOUT     a limit per property on execution time
   --global-timeout GLOBAL_TIMEOUT
                         a limit on execution time
@@ -255,6 +253,7 @@ optional arguments:
   --export-proof PATH_PROOF
                         export the proof of invariance if there is one
   --mcc                 Model Checking Contest mode
+  --fireability         Reachability Fireability mode (Cardinality by default)               Model Checking Contest mode
 ```
 
 ## Disk images
