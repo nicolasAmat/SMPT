@@ -90,6 +90,10 @@ def main():
                                   type=str,
                                   help='path to reachability formulas (.xml format)')
 
+    parser.add_argument('--fireability',
+                        action='store_true',
+                        help="Reachability Fireability mode (Cardinality by default)")
+
     group_properties.add_argument('--ltl-file',
                                   action='store',
                                   dest='path_ltl_formula',
@@ -227,10 +231,6 @@ def main():
     parser.add_argument('--mcc',
                         action='store_true',
                         help="Model Checking Contest mode")
-
-    parser.add_argument('--fireability',
-                        action='store_true',
-                        help="Reachability Fireability mode (Cardinality by default)")
 
     results = parser.parse_args()
 
