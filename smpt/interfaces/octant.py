@@ -80,7 +80,7 @@ def project_helper(ptnet_filename: str, formula: Formula, show_time: bool = Fals
     list of tuple of str, bool
         Projected formula and its corresponding shadow-completeness flag.
     """
-    process = ['octant.exe', 'smt-format', 'tfgload', ptnet_filename]
+    process = ['octant.exe', 'smt-format', 'load', ptnet_filename]
 
     if show_time:
         process.append('time')
