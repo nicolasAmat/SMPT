@@ -358,9 +358,10 @@ def main():
         system = System(path_ptnet_reduced, ptnet.places.keys(), ptnet_reduced.places.keys())
         # Set fully reducible flag
         fully_reducible = not ptnet_reduced.places
-        # Read the reduced Petri net using TFG reductions
-        if results.project and not (results.mcc and fully_reducible):
-            ptnet_tfg = PetriNet(path_ptnet_tfg, state_equation=state_equation)
+    
+    # Read the reduced Petri net using TFG reductions
+    if results.project and not (results.mcc and fully_reducible):
+        ptnet_tfg = PetriNet(path_ptnet_tfg, state_equation=state_equation)
 
     # Show net information
     if results.show_reduction_ratio:
