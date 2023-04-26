@@ -17,7 +17,7 @@ problems that takes advantage of net reductions (*polyhedral reductions*).
 ### Requirements
 
 * Python >= 3.7
-  + (Optional) [cx_Freeze](https://pypi.org/project/psutil/) - standalone executables generator
+  + (Optional) [cx_Freeze](https://cx-freeze.readthedocs.io/en/latest/) - standalone executables generator
   + (Optional) [mypy](http://mypy-lang.org/) - static type checker
   + (Optional) [sphinx](https://www.sphinx-doc.org/en/master/index.html) - Python documentation generator
 * [z3](https://github.com/Z3Prover/z3) - SMT solver
