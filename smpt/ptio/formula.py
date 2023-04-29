@@ -73,6 +73,7 @@ NEGATION_BOOLEAN_OPERATORS = {
 }
 
 BOOLEAN_OPERATORS_TO_MINIZINC_WALK = {
+    'not': '-',
     'and': '/\\',
     'or': '\\/'
 }
@@ -1136,6 +1137,14 @@ class Formula:
             else:
                 return IntegerConstant(integer_constant)
 
+        def _check_negation():
+            negate = True
+            while negate:
+                negate = False
+                if stack_operator and stack_operator[-1][0] == 'not' and stack_operator[-1][-1] == open_parenthesis:
+                    stack_operands[-1][-1] = StateFormula([stack_operands[-1][-1]], stack_operator.pop()[0])
+                    negate = True
+
         # Number of opened parenthesis (not close)
         open_parenthesis = 0
 
@@ -1169,16 +1178,18 @@ class Formula:
             if token in ['', ' ']:
                 continue
 
-            if token in ['-', '/\\', '\\/']:
+            if token == '-':
+                token_operator = LTL_TO_BOOLEAN_OPERATORS[token]
+                stack_operator.append((token_operator, open_parenthesis))
+
+            elif token in ['/\\', '\\/']:
                 # Get the current operator
                 token_operator = LTL_TO_BOOLEAN_OPERATORS[token]
 
-                if current_operator:
-                    # If the current operator is different from the previous one, construct the previous sub-formula
-                    if current_operator != token_operator:
-                        stack_operands[-1] = [StateFormula(
-                            stack_operands[-1], stack_operator.pop()[0])]
-                else:
+                if current_operator != token_operator:
+                    if current_operator:
+                        # If the current operator is different from the previous one, construct the previous sub-formula
+                        stack_operands[-1] = [StateFormula(stack_operands[-1], stack_operator.pop()[0])]
                     # Add the current operator to the stack
                     stack_operator.append((token_operator, open_parenthesis))
                     current_operator = token_operator
@@ -1204,32 +1215,30 @@ class Formula:
                 # Add to the previous list
                 operands = stack_operands.pop()
                 if current_operator:
-                    stack_operands[-1].append(StateFormula(operands,
-                                              stack_operator.pop()[0]))
+                    stack_operands[-1].append(StateFormula(operands, stack_operator.pop()[0]))
                 else:
                     stack_operands[-1].append(operands[0])
 
+                _check_negation()
                 current_operator = stack_operator[-1][0] if stack_operator and stack_operator[-1][-1] == open_parenthesis else None
 
             elif token in ['T', 'F']:
                 # Construct BooleanConstant
-                stack_operands[-1].append(BooleanConstant(
-                    XML_TO_BOOLEAN_CONSTANTS[token]))
+                stack_operands[-1].append(BooleanConstant(XML_TO_BOOLEAN_CONSTANTS[token]))
 
             else:
                 # Construct Atom
                 if search("(<=|>=|<|>|=)", token):
                     if parse_atom:
                         _, operator, right = split("(<=|>=|<|>|=)", token)
-                        stack_operands[-1].append(
-                            Atom(stack_operands[-1].pop(), _member_constructor(right), operator))
+                        stack_operands[-1].append(Atom(stack_operands[-1].pop(), _member_constructor(right), operator))
+                        _check_negation()
                         parse_atom = False
 
                     else:
-                        left, operator, right = split(
-                            "(<=|>=|<|>|=)", token)
-                        stack_operands[-1].append(Atom(_member_constructor(
-                            left), _member_constructor(right), operator))
+                        left, operator, right = split("(<=|>=|<|>|=)", token)
+                        stack_operands[-1].append(Atom(_member_constructor(left), _member_constructor(right), operator))
+                        _check_negation()
                 else:
                     stack_operands[-1].append(_member_constructor(token))
                     parse_atom = True
@@ -2482,10 +2491,8 @@ class Atom(Expression):
         def addition(l):
             if not l:
                 return "0"
-            elif len(l) == 1:
-                return l[0]
             else:
-                return "({})".format(' + '.join(l))
+                return "{}".format(' + '.join(l))
 
         (self_left, opposite_left) = walk_token_count(self.left_operand) if isinstance(self.left_operand, TokenCount) else walk_integer_constant(self.left_operand)
         (self_right, opposite_right) = walk_token_count(self.right_operand) if isinstance(self.right_operand, TokenCount) else walk_integer_constant(self.right_operand)
@@ -2493,7 +2500,7 @@ class Atom(Expression):
         left = self_left + opposite_right
         right = self_right + opposite_left
 
-        walk_input = "({} {} {})".format(addition(left), COMPARISON_OPERATORS_TO_WALK[self.operator], addition(right))
+        walk_input = "{} {} {}".format(addition(left), COMPARISON_OPERATORS_TO_WALK[self.operator], addition(right))
 
         if self.operator == 'distinct':
             walk_input = "- {}".format(walk_input)
