@@ -562,11 +562,15 @@ def main():
         remove(path_net)
     if results.auto_reduce:
         fp_ptnet_reduced.close()
+        if not results.save_reduced_net:
+            remove(fp_ptnet_reduced.name)
     if results.project:
         fp_ptnet_tfg.close()
-        remove(fp_ptnet_tfg.name)
+        if not results.save_reduced_net:
+            remove(fp_ptnet_tfg.name)
     if results.auto_enumerative:
         fp_markings.close()
+        remove(fp_markings.name)
 
     # Remove Parikh files if enabled
     if parikh:
