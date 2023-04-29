@@ -35,10 +35,8 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from smpt.ptio.formula import Formula
 
-PROJECT_TIMEOUT = 3
 
-
-def project(ptnet_filename: str, formulas: list[Formula], show_time: bool = False, show_shadow_completeness: bool = False) -> list[tuple[str, bool]]:
+def project(ptnet_filename: str, formulas: list[Formula], timeout: int = 3, show_time: bool = False, show_shadow_completeness: bool = False) -> list[tuple[str, bool]]:
     """ Project a list of formulas.
 
     Parameters
@@ -47,6 +45,8 @@ def project(ptnet_filename: str, formulas: list[Formula], show_time: bool = Fals
         A Petri net filename
     formulas : list of Formula
         List of formula to project.
+    timeout : int, optional
+        Projection timeout.
     show_time : bool, optional
         Show time flag.
     show_shadow_completeness: bool, optional
@@ -58,10 +58,10 @@ def project(ptnet_filename: str, formulas: list[Formula], show_time: bool = Fals
         List of projected formulas and their corresponding shadow-completeness flag.
     """
     pool = ThreadPool(processes=4)
-    return pool.starmap(project_helper, zip(repeat(ptnet_filename), formulas, repeat(show_time), repeat(show_shadow_completeness)))
+    return pool.starmap(project_helper, zip(repeat(ptnet_filename), formulas, repeat(timeout), repeat(show_time), repeat(show_shadow_completeness)))
 
 
-def project_helper(ptnet_filename: str, formula: Formula, show_time: bool = False, show_shadow_completeness: bool = False) -> tuple[Optional[str], bool]:
+def project_helper(ptnet_filename: str, formula: Formula, timeout: int = 3, show_time: bool = False, show_shadow_completeness: bool = False) -> tuple[Optional[str], bool]:
     """ Project a formula (helper).
 
     Parameters
@@ -70,6 +70,8 @@ def project_helper(ptnet_filename: str, formula: Formula, show_time: bool = Fals
         A Petri net filename
     formulas : Formula
         Formula to project.
+    timeout : int, optional
+        Projection timeout.
     show_time : bool, optional
         Show time flag.
     show_shadow_completeness: bool, optional
@@ -91,7 +93,7 @@ def project_helper(ptnet_filename: str, formula: Formula, show_time: bool = Fals
         process += ['load-forms', formula.walk_filename, 'project', 'fprint']
 
     try:
-        output = check_output(process, timeout=PROJECT_TIMEOUT).decode('utf-8').splitlines()
+        output = check_output(process, timeout=timeout).decode('utf-8').splitlines()
     except (TimeoutExpired, CalledProcessError):
         return (None, False)
 

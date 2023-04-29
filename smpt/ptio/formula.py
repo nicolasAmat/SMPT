@@ -460,7 +460,7 @@ class Properties:
 
         return verdicts
 
-    def project(self, ptnet_tfg: PetriNet, drop_incomplete: bool = False, show_projection: bool = False, save_projection: Optional[str] = None, show_time: bool = False, show_shadow_completeness: bool = False, debug: bool = False) -> None:
+    def project(self, ptnet_tfg: PetriNet, drop_incomplete: bool = False, timeout: int = 3, show_projection: bool = False, save_projection: Optional[str] = None, show_time: bool = False, show_shadow_completeness: bool = False, debug: bool = False) -> None:
         """ Generate projection formulas (.ltl format).
 
         Parameters
@@ -469,6 +469,8 @@ class Properties:
             Petri Net TFG.
         drop_incomplete : bool, optional
             Drop incomplete projections.
+        timeout : int, optional
+            Projection timeout.
         show_projection : bool, optional
             Show projected formulas.
         save_projection : str, optional
@@ -481,7 +483,7 @@ class Properties:
             Debugging flag.
         """
         # Run projections
-        projections = project(ptnet_tfg.filename, list(self.formulas.values()), show_time=show_time, show_shadow_completeness=show_shadow_completeness)
+        projections = project(ptnet_tfg.filename, list(self.formulas.values()), timeout=timeout, show_time=show_time, show_shadow_completeness=show_shadow_completeness)
 
         # Iterate over projections
         for (projection, complete), property_id in zip(projections, list(self.formulas)):

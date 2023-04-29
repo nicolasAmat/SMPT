@@ -168,6 +168,17 @@ def main():
     parser.add_argument('--project',
                         action='store_true',
                         help='Use TFG projection for WALK, BMC, K-INDUCTION, PDR, STATE-EQUATION')
+    
+    parser.add_argument('--drop-incomplete',
+                        action='store_true',
+                        help='Drop non shadow-complete projections')
+
+    parser.add_argument('--projection-timeout',
+                        action='store',
+                        dest='projection_timeout',
+                        type=int,
+                        default=3,
+                        help='a limit on projection time (per formula)')
 
     parser.add_argument('--show-projection',
                         action='store_true',
@@ -434,7 +445,7 @@ def main():
 
     # Project formulas if enabled
     if results.project and ptnet_tfg is not None and not (results.mcc and fully_reducible):
-        properties.project(ptnet_tfg, drop_incomplete=results.mcc, show_projection=results.show_projection, save_projection=results.path_projection_directory, show_time=results.show_time, show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
+        properties.project(ptnet_tfg, drop_incomplete=results.mcc or results.drop_incomplete, timeout=results.projection_timeout, show_projection=results.show_projection, save_projection=results.path_projection_directory, show_time=results.show_time, show_shadow_completeness=results.show_shadow_completeness, debug=results.debug)
         for (property_id, verdict) in properties.tautologies(projection=True):
             print("\nFORMULA {} {} TECHNIQUES STRUCTURAL-REDUCTION PROJECTION TAUTOLOGY".format(property_id, verdict))
 
