@@ -329,7 +329,7 @@ class PDR(AbstractChecker):
     Incremental Construction of Inductive Clauses for Indubitable Correctness method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, debug=False,  check_proof=False, path_proof=None, method='REACH', saturation=False, unsat_core=True, solver_pids=None, solver_pids_bis=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, state_equation=False, debug=False,  check_proof=False, path_proof=None, method='REACH', saturation=False, unsat_core=True, solver_pids=None, solver_pids_bis=None):
         """ Initializer.
 
             By default the PDR method uses the unsat core of the solver.
@@ -358,6 +358,9 @@ class PDR(AbstractChecker):
 
         # Feared states
         self.feared_states = []
+
+        # Use of state-equation
+        self.state_equation = state_equation
 
         # SMT solver
         self.debug = debug
@@ -438,9 +441,11 @@ class PDR(AbstractChecker):
             smt_input = self.oars[i][0].smtlib(0, assertion=True)
         else:
             smt_input = self.oars[i][0].smtlib(self.reduction * 10, assertion=True)
-            smt_input += self.ptnet_current.smtlib_declare_transitions()
-            smt_input += self.ptnet_current.smtlib_state_equation(0)
-            smt_input += self.ptnet_current.smtlib_read_arc_constraints()
+            
+            if self.state_equation:
+                smt_input += self.ptnet_current.smtlib_declare_transitions()
+                smt_input += self.ptnet_current.smtlib_state_equation(0)
+                smt_input += self.ptnet_current.smtlib_read_arc_constraints()
 
         for clause in self.oars[i][1:]:
             smt_input += clause.smtlib(0, assertion=True)

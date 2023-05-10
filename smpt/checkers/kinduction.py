@@ -56,13 +56,15 @@ class KInduction(AbstractChecker):
         System of reduction equations.
     formula : Formula
         Reachability formula.
+    state_equation : bool
+        Use of the state-equation.
     induction_queue : Queue of int, optional
         Queue for the exchange with k-induction.
     solver : Z3
         SMT solver (Z3).
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, debug: bool = False, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None) -> None:
+    def __init__(self, ptnet: PetriNet, formula: Formula, ptnet_reduced: Optional[PetriNet] = None, system: Optional[System] = None, state_equation: bool = False, debug: bool = False, induction_queue: Optional[Queue[int]] = None, solver_pids: Optional[Queue[int]] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -75,6 +77,8 @@ class KInduction(AbstractChecker):
             Reduced Petri net.
         system : System, optional
             System of reduction equations.
+        state_equation : bool, optional
+            Use of the state-equation.
         debug : bool, optional
             Debugging flag.
         induction_queue : Queue of int, optional
@@ -93,6 +97,9 @@ class KInduction(AbstractChecker):
 
         # Formula to study
         self.formula: Formula = formula
+
+        # Use of the state-equation
+        self.state_equation = state_equation
 
         # Queue shared with BMC
         self.induction_queue: Optional[Queue[int]] = induction_queue
@@ -251,7 +258,7 @@ class KInduction(AbstractChecker):
             info("[K-INDUCTION] > Assert states safe (iteration: {})".format(k))
             self.solver.write(self.formula.P.smtlib(k, assertion=True))
 
-            if not k:
+            if self.state_equation and not k:
                 info("[K-INDUCTION] > Declaration of the transitions from the Petri net")
                 self.solver.write(self.ptnet.smtlib_declare_transitions())
                 info("[K-INDUCTION] > State Equation")
@@ -315,7 +322,7 @@ class KInduction(AbstractChecker):
             info("[K-INDUCTION] > Assert safe states (iteration: {})".format(k))
             self.solver.write(self.formula.P.smtlib(k, assertion=True))
 
-            if not k:
+            if self.state_equation and not k:
                 info("[K-INDUCTION] > Declaration of the transitions from the Petri net")
                 self.solver.write(self.ptnet_reduced.smtlib_declare_transitions())
                 info("[K-INDUCTION] > State Equation")
