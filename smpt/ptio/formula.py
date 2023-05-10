@@ -524,7 +524,7 @@ class Properties:
                     print("# Projection of {}:".format(property_id), output_projection)
                 # Save projected formula if option enabled
                 if save_projection:
-                    with open(save_projection + "/" + property_id + ".ltl", 'w') as fp:
+                    with open(save_projection + "/" + property_id + "_projected.ltl", 'w') as fp:
                         fp.write(output_projection)
 
         # Free hashes
