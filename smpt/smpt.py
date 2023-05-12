@@ -435,7 +435,7 @@ def main():
         ptnet.free_mappings()
 
     # Check tautologies
-    if results.mcc or results.project:
+    if results.mcc:
         for (property_id, verdict) in properties.tautologies():
             print("\nFORMULA {} {} TECHNIQUES TAUTOLOGY".format(property_id, verdict))
 
