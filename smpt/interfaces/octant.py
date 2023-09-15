@@ -105,7 +105,11 @@ def project_helper(ptnet_filename: str, formula: Formula, timeout: int = 3, show
             time_information = ' | time: ' + line.split()[-2]
 
         else:
-            projected_formula, complementary_data = line.split(' # ')
+            split_line = line.split(' # ')
+            if len(split_line) < 2:
+                return (None, False)
+
+            projected_formula, complementary_data = split_line
             str_completeness, ratio_cubes = complementary_data.split(' ', 1)
             completeness = str_completeness == 'complete'
 
