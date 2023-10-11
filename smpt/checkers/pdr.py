@@ -277,9 +277,9 @@ class States:
         """
         literals = []
 
+        unsat_core = ['All'] if unsat_core == [''] else unsat_core
+  
         if self.saturation:
-            unsat_core = ['All'] if unsat_core == [''] else unsat_core
-
             if unsat_core != ['All']:
                 # Case unsat core engine dit not give up
                 # Get core of hurdles
@@ -309,10 +309,15 @@ class States:
                 clause = StateFormula(literals, 'or')
 
         else:
-            # Get core of hurdles
-            for literal in filter(lambda literal: 'lit@H' in literal, unsat_core):
-                place = ptnet.places[literal.split('@H')[1]]
-                literals.append(Atom(TokenCount([place]), IntegerConstant(self.hurdle[place]), '<'))
+            if unsat_core != ['All']:
+                # Get core of hurdles
+                for literal in filter(lambda literal: 'lit@H' in literal, unsat_core):
+                    place = ptnet.places[literal.split('@H')[1]]
+                    literals.append(Atom(TokenCount([place]), IntegerConstant(self.hurdle[place]), '<'))
+               
+            else:
+                for place, hurdle in self.hurdle.items():
+                    literals.append(Atom(TokenCount([place]), IntegerConstant(self.hurdle[place]), '<'))
 
             # Get core of the feared cube
             literals += self.cube.learned_clauses_from_unsat_core(list(filter(lambda lit: 'lit@c' in lit, unsat_core)), delta=self.delta)
