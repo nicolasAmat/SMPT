@@ -298,32 +298,32 @@ Contest 2022. It also obtained the 100% confidence award.
 
 + Amat, N, Berthomieu, B, Dal Zilio, S. [A Polyhedral Abstraction for Petri Nets
   and its Application to SMT-Based Model
-  Checking](https://doi.org/10.3233/FI-222134). *Fundamenta Informaticae (FI)*.
+  Checking](https://doi.org/10.3233/FI-222134). *Fundamenta Informaticae (FI)*. 2022.
 + Amat, N, Dal Zilio, S. [SMPT: A Testbed for Reachability Methods in
   Generalized Petri Nets](https://doi.org/10.1007/978-3-031-27481-7_25). *Formal
   Methods (FM 2023)*.
 + Amat, N, Dal Zilio, S, Hujsa, T. [Property Directed Reachability for
   Generalized Petri Nets](https://doi.org/10.1007/978-3-030-99524-9_28). *Tools
-  and Algorithms for the Construction and Analysis of Systems (TACAS 2022)*.
+  and Algorithms for the Construction and Analysis of Systems (TACAS)*. 2022.
 + Amat, N, Berthomieu, B, Dal Zilio, S. [On the Combination of Polyhedral
   Abstraction and SMT-Based Model Checking for Petri
   Nets](https://doi.org/10.1007/978-3-030-76983-3_9). *Application and Theory of
-  Petri Nets and Concurrency (Petri Nets 2021)*.
+  Petri Nets and Concurrency (Petri Nets)*. 2021.
 + F. Kordon and P. Bouvier and H. Garavel and F. Hulin-Hubard and N. Amat. and
   E. Amparore and B. Berthomieu and D Donatelli and S. Dal Zilio and P. G.
   Jensen and L. Jezequel and E. Paviot-Adet and J. Srba and Y. Thierry-Mieg.
-  Complete Results for the 2023 Edition of the Model Checking Contest. April
+ [Complete Results for the 2023 Edition of the Model Checking Contest](https://mcc.lip6.fr/2023/results.php).
   2023.
 + F. Kordon and P. Bouvier and H. Garavel and F. Hulin-Hubard and N. Amat. and
   E. Amparore and B. Berthomieu and D. Donatelli and S. Dal Zilio and P. G.
   Jensen and L. Jezequel and  C. He and S. Li and E. Paviot-Adet and J. Srba and
-  Y. Thierry-Mieg, Complete Results for the 2022 Edition of the Model Checking
-  Contest, June 2022
+  Y. Thierry-Mieg. [Complete Results for the 2022 Edition of the Model Checking
+  Contest](https://mcc.lip6.fr/2022/results.php). 2022.
 + F. Kordon and P. Bouvier and H. Garavel and L. M. Hillah and F. Hulin-Hubard
 	and N. Amat. and E. Amparore and B. Berthomieu and S. Biswal and D. Donatelli
 	and F. Galla and and S. Dal Zilio and P. G. Jensen and  C. He and D. Le Botlan
 	and S. Li and and J. Srba and . Thierry-Mieg and A. Walner and K. Wolf,
-	Complete Results for the 2021 Edition of the Model Checking Contest, June
+	[Complete Results for the 2021 Edition of the Model Checking Contest](https://mcc.lip6.fr/2021/results.php).
 	2021.
 
 ## Dependencies

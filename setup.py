@@ -17,14 +17,11 @@ You should have received a copy of the GNU General Public License
 along with SMPT. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from cx_Freeze import setup, Executable
+import setuptools
 
-
-setup(
-    name="SMPT",
-    version="4.0",
-    description="SMPT - an SMT-based model-checker that takes advantage of nets reduction",
-    author="Nicolas Amat, LAAS-CNRS",
-    author_email="namat@laas.fr",
-    executables=[Executable("smpt/__main__.py", targetName="smpt.exe")]
+setuptools.setup(
+     name='smpt',  
+     version='5.0',
+     scripts=['smpt/smpt.py'] ,
+     packages=setuptools.find_packages(),
 )
