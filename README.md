@@ -263,6 +263,7 @@ optional arguments:
 ## Disk images
 
 Complete installations of SMPT can be found in the MCC disk images (see the [Tool Submission Kit](https://mcc.lip6.fr/archives/SubmissionKit-2022.tar.gz) for more information):
++ MCC'2023: [smpt-2023.tar.gz](https://mcc.lip6.fr/2023/archives/smpt-2023.tar.gz)
 + MCC'2022: [smpt-2022.tar.gz](https://mcc.lip6.fr/archives/smpt-2022.tar.gz)
 + MCC'2021: [smpt-2021.vmdk.tar.gz](https://mcc.lip6.fr/2021/archives/smpt-2021.vmdk.tar.bz2)
 
