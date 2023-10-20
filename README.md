@@ -33,18 +33,22 @@ problems that takes advantage of net reductions (*polyhedral reductions*).
 * (Optional) [Octant](https://github.com/nicolasAmat/Octant) - Quantifier eliminator for polyhedral reductions
 * (Optional) [MiniZinc](https://www.minizinc.org/) - Constraint programming solver
 
-### Installation script
+### Commands
+
+The tool can be installed using `pip`:
+```
+$ python setup.py bdist_wheel
+$ python -m pip install --user dist/smpt-5.0-py3-none-any.whl
+```
+
+Note that the `wheel` package is required, you can install it using:
+```
+$ pip3 install --user wheel
+```
 
 To automatically install dependencies (except Python packages and MiniZinc) you
-can run the `install_dependencies.sh` script.
+can run the `dependencies/install.sh` script.
 
-### Freezing
-
-The tool can be freezed into standalone executables using
-[cx_Freeze](https://cx-freeze.readthedocs.io/en/latest/) by running:
-```
-$ python3 setup.py build
-```
 
 ### Type checking
 
@@ -269,26 +273,47 @@ the material to install the tool and reproduce the experiments:
 ## Awards
 
 SMPT, won a bronze medal in the “reachability” category of the Model Checking
-Contest 2022, an international competition of model checking tools for the
-verification of concurrent systems. It also obtains the 100% confidence award.
+Contest 2023, an international competition of model checking tools for the
+verification of concurrent systems.
 
 <br />
 <p align="center">
   <a href="https://mcc.lip6.fr/">
-    <img src="pics/mcc_2022.png" alt="Logo" width="512" height="305">
+    <img src="https://mcc.lip6.fr/certificates/2023/bronze-Reachability-2023.png" alt="Logo" width="25%" height="auto">
+  </a>
+</p>
+
+SMPT, won a bronze medal in the “reachability” category of the Model Checking
+Contest 2022. It also obtained the 100% confidence award.
+
+<br />
+<p align="center">
+  <a href="https://mcc.lip6.fr/">
+    <img src="https://mcc.lip6.fr/certificates/2022/bronze-Reachability-2022.png" alt="Logo" width="25%" height="auto">
+    <img src="https://mcc.lip6.fr/certificates/2022/conf100-smpt-2022.png" alt="Logo" width="25%" height="auto">
   </a>
 </p>
 
 ## References
 
-+ Nicolas Amat, Silvano Dal Zilio, Thomas Hujsa. Property Directed Reachability
-  for Generalized Petri Nets. *28th International Conference on Tools and
-  Algorithms for the Construction and Analysis of Systems. (TACAS 2022)*, Apr
-  2022, Munich, Germany.  
-+ Nicolas Amat, Bernard Berthomieu, Silvano Dal Zilio. On the Combination of
-  Polyhedral Abstraction and SMT-based Model Checking for Petri nets. *42rd
-  International Conference on Application and 
-  Theory of Petri Nets and Concurrency (Petri Nets 2021)*, Jun 2021, Paris (virtual), France. 
++ Amat, N, Berthomieu, B, Dal Zilio, S. [A Polyhedral Abstraction for Petri Nets
+  and its Application to SMT-Based Model
+  Checking](https://doi.org/10.3233/FI-222134). *Fundamenta Informaticae (FI)*.
++ Amat, N, Dal Zilio, S. [SMPT: A Testbed for Reachability Methods in
+  Generalized Petri Nets](https://doi.org/10.1007/978-3-031-27481-7_25). *Formal
+  Methods (FM 2023)*.
++ Amat, N, Dal Zilio, S, Hujsa, T. [Property Directed Reachability for
+  Generalized Petri Nets](https://doi.org/10.1007/978-3-030-99524-9_28). *Tools
+  and Algorithms for the Construction and Analysis of Systems (TACAS 2022)*.
++ Amat, N, Berthomieu, B, Dal Zilio, S. [On the Combination of Polyhedral
+  Abstraction and SMT-Based Model Checking for Petri
+  Nets](https://doi.org/10.1007/978-3-030-76983-3_9). *Application and Theory of
+  Petri Nets and Concurrency (Petri Nets 2021)*.
++ F. Kordon and P. Bouvier and H. Garavel and F. Hulin-Hubard and N. Amat. and
+  E. Amparore and B. Berthomieu and D Donatelli and S. Dal Zilio and P. G.
+  Jensen and L. Jezequel and E. Paviot-Adet and J. Srba and Y. Thierry-Mieg.
+  Complete Results for the 2023 Edition of the Model Checking Contest. April
+  2023.
 + F. Kordon and P. Bouvier and H. Garavel and F. Hulin-Hubard and N. Amat. and
   E. Amparore and B. Berthomieu and D. Donatelli and S. Dal Zilio and P. G.
   Jensen and L. Jezequel and  C. He and S. Li and E. Paviot-Adet and J. Srba and
