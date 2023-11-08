@@ -517,17 +517,15 @@ def main():
                 print('FORMULA', property_id, 'SKIPPED')
 
             else:
-                if ptnet_reduced is None or (ptnet_reduced is not None and len(ptnet_reduced.places) > 0):
-                    methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
+                methods += ['WALK', 'STATE-EQUATION', 'INDUCTION', 'BMC', 'K-INDUCTION', 'PDR-REACH', 'PDR-REACH-SATURATED']
 
-                    if not formula.non_monotonic:
-                        methods.append('PDR-COV')
-                        if results.mcc:
-                            methods.remove('PDR-REACH-SATURATED')
-
-                else:
+                if not formula.non_monotonic:
+                    methods.append('PDR-COV')
+                    
+                if fully_reducible:
                     # Run SMT / CP methods
-                    methods = ['SMT', 'CP']
+                    methods += ['SMT', 'CP']
+
             # Keep only enabled methods
             methods = list(set(methods) & set(results.methods))
 
