@@ -81,13 +81,13 @@ class MiniZinc(Solver):
         self.solver: Optional[Popen] = None
         self.solver_pids: Queue[int] = solver_pids
 
-        # Set integer bound
-        self.write("int: MAX = 1000000;\n")
-
         # Flags
         self.aborted: bool = False
         self.debug: bool = debug
         self.timeout: int = timeout
+
+        # Set integer bound
+        self.write("int: MAX = 1000000;\n")
 
         self.first_line: str = ""
 
