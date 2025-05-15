@@ -30,6 +30,7 @@ from sys import setrecursionlimit
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
+from smpt.exec.proof import certificate
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.z3 import Z3
 from smpt.ptio.formula import Expression, Formula
@@ -75,7 +76,7 @@ class StateEquation(AbstractChecker):
         Engine to compute some trap constraints.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, formula_skeleton=None, pre_run=False, debug=False, solver_pids=None, additional_techniques=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, ptnet_skeleton=None, formula_skeleton=None, pre_run=False, check_proof=False, path_proof= None, debug=False, solver_pids=None, additional_techniques=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -99,6 +100,10 @@ class StateEquation(AbstractChecker):
 
         # Pre-run mode
         self.pre_run: bool = pre_run
+
+        # Proof checking options
+        self.check_proof = check_proof
+        self.path_proof = path_proof
 
         # SMT solver
         self.debug: bool = debug
@@ -186,6 +191,9 @@ class StateEquation(AbstractChecker):
                 verdict = self.prove_without_reduction()
             else:
                 verdict = self.prove_with_reduction()
+
+            if verdict == Verdict.INV and (self.path_proof or self.check_proof):
+                self.manage_poof()
 
         if self.additional_techniques is not None:
             if self.ptnet is not None:
@@ -362,6 +370,17 @@ class StateEquation(AbstractChecker):
             fp.write(' '.join(map(lambda tr: "{{{}}}".format(tr.id) if '-' in tr.id or '.' in tr.id else tr.id, parikh_set)))
             fsync(fp.fileno())
 
+    def manage_poof(self) -> None:
+        """ Manage certificate of invariance.
+        """
+        ptnet_current = self.ptnet_reduced if self.ptnet_reduced is not None else self.ptnet
+
+        cert = "(exists ({}) (and {}))".format(ptnet_current.smtlib_declare_transitions_as_parameters(), ptnet_current.smtlib_state_equation(assertion=False))
+
+        if self.ptnet_reduced is not None:
+            cert = "(exists ({}) (and {} {}))".format(self.system.smtlib_declare_additional_variables_as_parameters(), self.system.smtlib_as_one_formula(), cert)
+
+        certificate(self.ptnet, self.formula, cert, path=self.path_proof, check=self.check_proof)
 
 class TrapConstraints:
     """ Compute trap constraints.

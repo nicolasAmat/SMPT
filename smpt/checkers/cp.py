@@ -29,6 +29,7 @@ from multiprocessing import Queue
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
+from smpt.exec.certificate import certificate
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.minizinc import MiniZinc
 from smpt.interfaces.solver import Solver
@@ -58,7 +59,7 @@ class CP(AbstractChecker):
         Solver (Z3 or MiniZinc).
     """
 
-    def __init__(self, ptnet: PetriNet, formula: Formula, system: System, show_model: bool = False, debug: bool = False, minizinc: bool = False, solver_pids: Queue[int] = None) -> None:
+    def __init__(self, ptnet: PetriNet, formula: Formula, system: System, show_model: bool = False, check_proof: bool = False, path_proof: Optional[str] = None, debug: bool = False, minizinc: bool = False, solver_pids: Queue[int] = None) -> None:
         """ Initializer.
 
         Parameters
@@ -93,10 +94,13 @@ class CP(AbstractChecker):
         # MiniZinc option
         self.minizinc: bool = minizinc
 
+        # Proof checking options
+        self.check_proof = check_proof
+        self.path_proof = path_proof
+
         # Solver
-        self.minizinc = minizinc
-        self.debug = debug
-        self.solver_pids = solver_pids
+        self.debug: bool = debug
+        self.solver_pids: Queue[int] = solver_pids
         self.solver: Optional[Solver] = None
 
     def prove(self, results: Queue[tuple[Verdict, Marking]], concurrent_pids: Queue[list[int]]) -> None:
@@ -128,6 +132,9 @@ class CP(AbstractChecker):
             verdict = Verdict.CEX
         else:
             verdict = Verdict.INV
+            if self.path_proof or self.check_proof:
+                self.manage_proof()
+
 
         # Kill the solver
         self.solver.kill()
@@ -179,3 +186,9 @@ class CP(AbstractChecker):
         self.solver.write(self.formula.R.smtlib(assertion=True))
 
         return self.solver.check_sat()
+
+    def manage_proof(self) -> None:
+            """ Manage certificate of invariance.
+            """
+            cert = "(exists ({}) {})".format(self.system.smtlib_declare_additional_variables_as_parameters(), self.system.smtlib_as_one_formula())
+            certificate(self.ptnet, self.formula, cert, path=self.path_proof, check=self.check_proof)

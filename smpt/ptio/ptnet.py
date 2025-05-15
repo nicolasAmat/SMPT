@@ -172,6 +172,37 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.smtlib_declare(k, non_negative=non_negative), self.places.values()))
 
+    def smtlib_declare_places_as_parameters(self, k: Optional[int] = None) -> str:
+        """ Declare places.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return ''.join(map(lambda pl: pl.smtlib_declare_as_parameter(k), self.places.values()))
+    
+    def smtlib_call_places_as_parameters(self, k: Optional[int] = None) -> str:
+        """ Call places.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return ' '.join(map(lambda pl: pl.smtlib(k), self.places.values()))
+
+
     def minizinc_declare_places(self) -> str:
         """ Declare places.
 
@@ -197,6 +228,16 @@ class PetriNet:
         """
         return ''.join(map(lambda tr: tr.smtlib_declare(parikh), self.transitions.values()))
 
+    def smtlib_declare_transitions_as_parameters(self) -> str:
+        """ Declare transitions.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return ''.join(map(lambda tr: tr.smtlib_declare_as_parameter(), self.transitions.values()))
+
     def smtlib_initial_marking(self, k: Optional[int] = None) -> str:
         """ Assert the initial marking.
         
@@ -211,6 +252,21 @@ class PetriNet:
             SMT-LIB format.
         """
         return self.initial_marking.smtlib(k)
+    
+    def smtlib_initial_marking_as_formula(self, k: Optional[int] = None) -> str:
+        """ Assert the initial marking.
+        
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return self.initial_marking.smtlib_as_formula(k)
 
     def smtlib_transition_relation(self, k: int, eq: bool = True, tr: bool = False) -> str:
         """ Transition relation from places at order k to order k + 1.
@@ -253,7 +309,25 @@ class PetriNet:
 
         return smt_input
 
-    def smtlib_state_equation(self, k: Optional[int] = None, parikh: bool = False) -> str:
+    def smtlib_transition_relation_without_assertion(self, k: int) -> str:
+        """ Transition relation from places at order k to order k + 1.
+        
+        Parameters
+        ----------
+        k : int
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        if not self.places:
+            return ""
+
+        return"(or " + ''.join(map(lambda tr: tr.smtlib(k), self.transitions.values())) + ")"
+
+    def smtlib_state_equation(self, k: Optional[int] = None, parikh: bool = False, assertion: bool = True) -> str:
         """ Assert the state equation (potentially reachable markings).
 
         Parameters
@@ -266,7 +340,7 @@ class PetriNet:
         str
             SMT-LIB format.
         """
-        return ''.join(map(lambda pl: pl.smtlib_state_equation(k, parikh), self.places.values()))
+        return ''.join(map(lambda pl: pl.smtlib_state_equation(k, parikh, assertion), self.places.values()))
 
     def smtlib_read_arc_constraints(self, parikh: bool = False) -> str:
         """ Assert read arc constraints.
@@ -653,6 +727,21 @@ class Place:
         """
         return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(self.smtlib(k), self.smtlib(k)) if non_negative else "(declare-const {} Int)\n".format(self.smtlib(k))
 
+    def smtlib_declare_as_parameter(self, k: Optional[int] = None) -> str:
+        """ Declare a place.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return "({} Int)".format(self.smtlib(k))
+
     def minizinc_declare(self) -> str:
         """ Declare a place.
 
@@ -678,7 +767,7 @@ class Place:
         """
         return "(assert (= {} {}))\n".format(self.smtlib(k), self.initial_marking)
 
-    def smtlib_state_equation(self, k: Optional[int] = None, parikh: bool = False) -> str:
+    def smtlib_state_equation(self, k: Optional[int] = None, parikh: bool = False, assertion: bool = True) -> str:
         """ Assert the state equation.
 
         Parameters
@@ -703,7 +792,8 @@ class Place:
         if not smt_input:
             smt_input = "0"
 
-        return "(assert (= {} {}))\n".format(self.smtlib(k), smt_input)
+        constraint = "(= {} {})".format(self.smtlib(k), smt_input)
+        return "(assert {})\n".format(constraint) if assertion else constraint
 
     def smtlib_declare_trap(self) -> str:
         """ Declare trap Boolean variable.
@@ -879,6 +969,16 @@ class Transition:
         identifier = self.id + "@t" if parikh else self.id
         return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(identifier, identifier)
 
+    def smtlib_declare_as_parameter(self) -> str:
+        """ Declare a transition.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return "({} Int)".format(self.id)
+
     def smtlib_read_arc_constraints(self, parikh : bool = False) -> str:
         """ Assert read arc constraints.
 
@@ -1013,6 +1113,22 @@ class Marking:
             SMT-LIB format.
         """
         return ''.join(map(lambda pl: "(assert (= {} {}))\n".format(pl.smtlib(k), self.tokens[pl]), self.tokens.keys()))
+
+    def smtlib_as_formula(self, k: int = None) -> str:
+        """ Formula corresponding to the marking.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        smt_input = ''.join(map(lambda pl: "(= {} {})".format(pl.smtlib(k), self.tokens[pl]), self.tokens.keys()))
+        return "(and {})".format(smt_input)
 
     def smtlib_trap_initially_marked(self) -> str:
         """ Assert that places in the trap must be initially marked.

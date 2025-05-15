@@ -320,7 +320,7 @@ class Parallelizer:
             prover = RandomWalk(self.ptnet_walk_pdr, self.formula_walk_pdr, parikh=False, slice=self.slice,  high_restart=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'STATE-EQUATION':
-            prover = StateEquation(self.ptnet_state_equation, self.formula_state_equation, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, pre_run=self.pre_run, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
+            prover = StateEquation(self.ptnet_state_equation, self.formula_state_equation, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, pre_run=self.pre_run, check_proof=self.check_proof, path_proof=self.path_proof, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'INDUCTION':
             prover = Induction(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, show_model=self.show_model, debug=self.debug, solver_pids=self.solver_pids)
@@ -341,7 +341,7 @@ class Parallelizer:
             prover = PDR(self.ptnet_walk_pdr, self.formula_walk_pdr, debug=self.debug, state_equation=self.mcc, check_proof=self.check_proof, path_proof=self.path_proof, method='REACH', saturation=True, solver_pids=self.solver_pids)
 
         elif method == 'SMT':
-            prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=False, solver_pids=self.solver_pids)
+            prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, check_proof=self.check_proof, path_proof=self.path_proof, debug=self.debug, minizinc=False, solver_pids=self.solver_pids)
 
         elif method == 'CP':
             prover = CP(self.ptnet, self.formula, self.system, show_model=self.show_model, debug=self.debug, minizinc=True, solver_pids=self.solver_pids)

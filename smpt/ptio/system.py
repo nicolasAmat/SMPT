@@ -107,6 +107,22 @@ class System:
 
         return smt_input
 
+    def smtlib_as_one_formula(self, k_initial: Optional[int] = None) -> str:
+        """ Return a formula corresponding to the system of equations.
+
+        Parameters
+        ----------
+        k_initial : int, optional
+            Order for the initial net.
+
+        Returns
+        --------
+        str
+            SMT-LIB format.
+        """
+        smt_input = ' '.join(map(lambda eq: eq.smtlib_without_assertion(k_initial=k_initial), self.equations))
+        return "(and {})".format(smt_input)
+
     def minizinc(self) -> str:
         """ Declare the additional variables and assert the equations.
 
@@ -154,6 +170,27 @@ class System:
             if not var.in_reduced:
                 var_name = var.id if k_initial is None else "{}@{}".format(var.id, k_initial)
                 smt_input += "(declare-const {} Int)\n".format(var_name)
+
+        return smt_input
+
+    def smtlib_declare_additional_variables_as_parameters(self, k: Optional[int] = None) -> str:
+        """ Declare the additional variables as parameters.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+        
+        Returns
+        --------
+        str
+            SMT-LIB format.
+        """
+        smt_input = ""
+
+        for var in self.additional_vars.values():
+            var_name = var.id if k is None else "{}@{}".format(var.id, k)
+            smt_input += "({} Int)".format(var_name)
 
         return smt_input
 
@@ -311,6 +348,24 @@ class Equation:
                + self.member_smtlib(self.left, k_initial) \
                + self.member_smtlib(self.right, k_initial) \
                + "))"
+
+    def smtlib_without_assertion(self, k_initial: Optional[int] = None) -> str:
+        """ Return the Equation.
+
+        Parameters
+        ----------
+        k_initial : int, optional
+            Order for the initial net.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return "({}".format(self.operator) \
+               + self.member_smtlib(self.left, k_initial) \
+               + self.member_smtlib(self.right, k_initial) \
+               + ")"
 
     def minizinc(self) -> str:
         """ Assert the Equation.
