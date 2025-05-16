@@ -30,7 +30,7 @@ from typing import Optional
 from smpt.ptio.formula import Formula
 from smpt.ptio.ptnet import PetriNet
 
-def certificate(ptnet: PetriNet, formula: Formula, certificate: str, path: Optional[str] = None, check: bool = False) -> None:
+def certificate(ptnet: PetriNet, formula: Formula, certificate: str, k: Optional[int] = int, path: Optional[str] = None, check: bool = False) -> None:
     """ Write an invariance certificate in a file (with its checking assertions), and check if required. 
     """
     certificate_path = path if path is not None else NamedTemporaryFile(suffix='.aut', delete=False)
@@ -38,7 +38,7 @@ def certificate(ptnet: PetriNet, formula: Formula, certificate: str, path: Optio
     with open(certificate_path, 'w') as fp:
         fp.write("(set-logic LIA)\n\n")
         fp.write("; Certificate\n\n")
-        fp.write("(define-fun cert ({}) Bool {})\n".format(ptnet.smtlib_declare_places_as_parameters(), certificate))
+        fp.write("(define-fun cert ({}) Bool {})\n".format(ptnet.smtlib_declare_places_as_parameters(k), certificate))
         
         fp.write("\n\n; Check\n\n")
         fp.write(ptnet.smtlib_declare_places(0))

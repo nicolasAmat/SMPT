@@ -32,6 +32,7 @@ from tempfile import NamedTemporaryFile
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
+from smpt.exec.certificate import certificate
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.play import play
 from smpt.interfaces.z3 import Z3
@@ -320,6 +321,8 @@ class BMC(AbstractChecker):
                 k_induction_iteration = self.induction_queue.get()
 
             if k >= k_induction_iteration:
+                if self.check_proof or self.path_proof is not None:
+                    self.manage_certificate(k_induction_iteration)
                 return -1
 
             info("[BMC] > Pop")
@@ -340,9 +343,9 @@ class BMC(AbstractChecker):
             info("[BMC] > Formula to check the satisfiability (order: {})".format(k))
             self.solver.write(self.formula.R.smtlib(k, assertion=True))
 
-        # Proof management
+        # Trace management
         if self.check_proof or self.path_proof:
-            self.proof(self.ptnet, k)
+            self.manage_trace(self.ptnet, k)
 
         return k
 
@@ -394,6 +397,8 @@ class BMC(AbstractChecker):
                 k_induction_iteration = self.induction_queue.get()
 
             if k >= k_induction_iteration:
+                # if self.check_proof or self.path_proof is not None:
+                #     self.manage_certificate(k_induction_iteration)
                 return -1
 
             info("[BMC] > Pop")
@@ -417,14 +422,14 @@ class BMC(AbstractChecker):
             info("[BMC] > Link initial and reduced Petri nets")
             self.solver.write(self.system.smtlib_link_nets(k))
 
-        # Proof management
+        # Trace management
         if self.check_proof or self.path_proof:
-            self.proof(self.ptnet_reduced, k)
+            self.manage_trace(self.ptnet_reduced, k)
 
         return k
 
-    def proof(self, ptnet: PetriNet, trace_length: int) -> None:
-        """ Proof management.
+    def manage_trace(self, ptnet: PetriNet, trace_length: int) -> None:
+        """ Trace management.
 
         Parameters
         ----------
@@ -453,3 +458,20 @@ class BMC(AbstractChecker):
 
         if not self.path_proof:
             remove(filename)
+
+    def manage_certificate(self, k) -> None:
+        """ Invariance certificate management.
+
+            Warning: not compatible with the state-equation and reductions for the moment. 
+            --------
+        """
+        forall, literals, nonnegative, transitions = "", "", "", ""
+
+        for i in range(k - 1):
+            forall += self.ptnet.smtlib_declare_places_as_parameters(i + 1) 
+            nonnegative += self.ptnet.smtlib_nonnegative_places(i + 1)
+            transitions += self.ptnet.smtlib_transition_relation_without_assertion(i)
+            literals += self.formula.P.smtlib(i + 1)
+
+        cert = "(and {} (forall ({}) (=> (and {} {}) (and {}))))".format(self.formula.P.smtlib(0), forall, nonnegative, transitions, literals)
+        certificate(self.ptnet, self.formula, cert, k=0, path=self.path_proof, check=self.check_proof)

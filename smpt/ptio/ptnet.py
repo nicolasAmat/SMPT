@@ -187,6 +187,21 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.smtlib_declare_as_parameter(k), self.places.values()))
     
+    def smtlib_nonnegative_places(self, k: Optional[int] = None) -> str:
+        """ Declare places.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return ''.join(map(lambda pl: pl.smtlib_nonnegative(k), self.places.values()))
+    
     def smtlib_call_places_as_parameters(self, k: Optional[int] = None) -> str:
         """ Call places.
 
@@ -741,6 +756,21 @@ class Place:
             SMT-LIB format.
         """
         return "({} Int)".format(self.smtlib(k))
+
+    def smtlib_nonnegative(self, k: Optional[int] = None) -> str:
+        """ Nonnegative constraint.
+
+        Parameters
+        ----------
+        k : int, optional
+            Order.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return "(>= {} 0)".format(self.smtlib(k))
 
     def minizinc_declare(self) -> str:
         """ Declare a place.
