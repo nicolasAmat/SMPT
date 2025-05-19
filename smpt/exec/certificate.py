@@ -33,7 +33,7 @@ from smpt.ptio.ptnet import PetriNet
 def certificate(ptnet: PetriNet, formula: Formula, certificate: str, k: Optional[int] = int, path: Optional[str] = None, check: bool = False) -> None:
     """ Write an invariance certificate in a file (with its checking assertions), and check if required. 
     """
-    certificate_path = path if path is not None else NamedTemporaryFile(suffix='.aut', delete=False)
+    certificate_path = path if path is not None else NamedTemporaryFile(suffix='.aut', delete=False).name
     
     with open(certificate_path, 'w') as fp:
         fp.write("(set-logic LIA)\n\n")
@@ -64,7 +64,7 @@ def certificate(ptnet: PetriNet, formula: Formula, certificate: str, k: Optional
         fp.write("(check-sat)\n")
     
     if check:
-        system("cvc5 --incremental {}".format(certificate_path))
+        system("z3 -smt2 {}".format(certificate_path))
 
     if path is None:
         remove(certificate_path)
