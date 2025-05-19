@@ -798,6 +798,16 @@ class Formula:
             value = int(formula_xml.text)
             return IntegerConstant(value)
 
+        elif node == 'integer-add':
+            # Parse addition (e.g., <integer-add><integer-mul>...)
+            operands = [self.parse_simple_expression_xml(child, skeleton) for child in formula_xml]
+            return ArithmeticOperation(operands, operator='+')
+
+        elif node == 'integer-mul':
+            # Parse multiplication (e.g., <integer-mul><integer-constant>2</constant><place>X1</place>)
+            operands = [self.parse_simple_expression_xml(child, skeleton) for child in formula_xml]
+            return ArithmeticOperation(operands, operator='*')
+
         else:
             raise ValueError("Invalid .xml node")
 
@@ -3614,6 +3624,17 @@ class ArithmeticOperation(SimpleExpression):
         """
         return self
 
+    def eval(self, m: Marking) -> int:
+        if self.operator == '+':
+            return sum(op.eval(m) for op in self.operands)
+        elif self.operator == '*':
+            result = 1
+            for op in self.operands:
+                result *= op.eval(m)
+            return result
+        else:
+            raise ValueError(f"Unsupported operator '{self.operator}' in ArithmeticOperation.eval")
+
     def minizinc(self) -> str:
         raise NotImplementedError
 
@@ -3624,9 +3645,6 @@ class ArithmeticOperation(SimpleExpression):
         raise NotImplementedError
 
     def dnf(self) -> SimpleExpression:
-        raise NotImplementedError
-
-    def eval(self, m: Marking) -> int:
         raise NotImplementedError
     
     def normal_form_hash(self, negation: bool = False) -> str:
