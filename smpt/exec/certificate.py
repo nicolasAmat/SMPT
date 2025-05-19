@@ -38,7 +38,7 @@ def certificate(ptnet: PetriNet, formula: Formula, certificate: str, k: Optional
     with open(certificate_path, 'w') as fp:
         fp.write("(set-logic LIA)\n\n")
         fp.write("; Certificate\n\n")
-        fp.write("(define-fun cert ({}) Bool {})\n".format(ptnet.smtlib_declare_places_as_parameters(k), certificate))
+        fp.write("(define-fun cert ({}) Bool {})\n".format(ptnet.smtlib_declare_places_as_parameters(), certificate))
         
         fp.write("\n\n; Check\n\n")
         fp.write(ptnet.smtlib_declare_places(0))

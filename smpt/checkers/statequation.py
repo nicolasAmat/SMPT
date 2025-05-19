@@ -380,7 +380,7 @@ class StateEquation(AbstractChecker):
         if self.ptnet_reduced is not None:
             cert = "(exists ({}) (and {} {}))".format(self.system.smtlib_declare_additional_variables_as_parameters(), self.system.smtlib_as_one_formula(), cert)
 
-        certificate(self.ptnet, self.formula, cert, path=self.path_proof, check=self.check_proof)
+        certificate(ptnet_current, self.formula, cert, path=self.path_proof, check=self.check_proof)
 
 class TrapConstraints:
     """ Compute trap constraints.
