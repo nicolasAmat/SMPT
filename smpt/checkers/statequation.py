@@ -116,6 +116,10 @@ class StateEquation(AbstractChecker):
         # Trap constraints
         self.traps: Optional[TrapConstraints] = None
 
+        # Generated constraints
+        self.read_arcs_are_used: bool = False
+        self.used_traps: list[str] = []
+
     def smtlib(self):
         """ SMT-LIB format for understanding.
         """
@@ -242,6 +246,7 @@ class StateEquation(AbstractChecker):
 
         info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(ptnet.smtlib_read_arc_constraints(parikh=self.parikh and not skeleton))
+        self.read_arcs_are_used = True
 
         info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
@@ -316,6 +321,7 @@ class StateEquation(AbstractChecker):
 
         info("[STATE-EQUATION] > Add read arc constraints")
         self.solver.write(self.ptnet_reduced.smtlib_read_arc_constraints(parikh=self.parikh))
+        self.read_arcs_are_used = True
 
         info("[STATE-EQUATION] > Check satisfiability")
         if not self.solver.check_sat():
@@ -346,11 +352,13 @@ class StateEquation(AbstractChecker):
             if trap:
                 # Assert trap constraints
                 info("[STATE-EQUATION] > Assert a trap violating a witness")
-                smt_input = ''.join(
-                    map(lambda pl: "(> {} 0)".format(pl.id), trap))
+                smt_input = ''.join(map(lambda pl: "(> {} 0)".format(pl.id), trap))
 
                 if len(trap) > 1:
                     smt_input = "(or {})".format(smt_input)
+
+                if self.check_proof or self.path_proof:
+                    self.used_traps.append(smt_input)
 
                 self.solver.write("(assert {})\n".format(smt_input))
 
@@ -375,7 +383,17 @@ class StateEquation(AbstractChecker):
         """
         ptnet_current = self.ptnet_reduced if self.ptnet_reduced is not None else self.ptnet
 
-        cert = "(exists ({}) (and {}))".format(ptnet_current.smtlib_declare_transitions_as_parameters(), ptnet_current.smtlib_state_equation(assertion=False))
+        qf_cert = "(and {} {})".format(ptnet_current.smtlib_nonnegative_transitions(), ptnet_current.smtlib_state_equation(assertion=False))
+
+        if self.read_arcs_are_used:
+            constraints = ptnet_current.smtlib_read_arc_constraints(assertion=False)
+            if constraints:
+                qf_cert = "(and {} {})".format(qf_cert, constraints)
+
+        if self.used_traps:
+            qf_cert = "(and {} {})".format(qf_cert, ''.join(self.used_traps))
+
+        cert = "(exists ({}) {})".format(ptnet_current.smtlib_declare_transitions_as_parameters(), qf_cert)
 
         if self.ptnet_reduced is not None:
             cert = "(exists ({}) (and {} {}))".format(self.system.smtlib_declare_additional_variables_as_parameters(), self.system.smtlib_as_one_formula(), cert)

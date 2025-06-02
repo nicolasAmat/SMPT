@@ -188,7 +188,7 @@ class PetriNet:
         return ''.join(map(lambda pl: pl.smtlib_declare_as_parameter(k), self.places.values()))
     
     def smtlib_nonnegative_places(self, k: Optional[int] = None) -> str:
-        """ Declare places.
+        """ Nonnegative constraints for places.
 
         Parameters
         ----------
@@ -202,6 +202,21 @@ class PetriNet:
         """
         return ''.join(map(lambda pl: pl.smtlib_nonnegative(k), self.places.values()))
     
+    def smtlib_nonnegative_transitions(self, parikh: bool = False) -> str:
+        """ Nonnegative constraints for transitions.
+
+        Parameters
+        ----------
+        parikh : bool, optional
+            Computation of parikh vector enabled.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return ''.join(map(lambda tr: tr.smtlib_nonnegative(parikh), self.transitions.values()))
+
     def smtlib_call_places_as_parameters(self, k: Optional[int] = None) -> str:
         """ Call places.
 
@@ -355,9 +370,14 @@ class PetriNet:
         str
             SMT-LIB format.
         """
-        return ''.join(map(lambda pl: pl.smtlib_state_equation(k, parikh, assertion), self.places.values()))
+        smt_input = ''.join(map(lambda pl: pl.smtlib_state_equation(k, parikh, assertion), self.places.values()))
 
-    def smtlib_read_arc_constraints(self, parikh: bool = False) -> str:
+        if not assertion:
+            smt_input = "(and {})".format(smt_input)
+
+        return smt_input
+
+    def smtlib_read_arc_constraints(self, parikh: bool = False, assertion: bool = True) -> str:
         """ Assert read arc constraints.
 
         Parameters
@@ -369,7 +389,12 @@ class PetriNet:
         -------
             SMTT-LIB format.
         """
-        return ''.join(map(lambda tr: tr.smtlib_read_arc_constraints(parikh), self.transitions.values()))
+        smt_input = ''.join(map(lambda tr: tr.smtlib_read_arc_constraints(parikh, assertion), self.transitions.values()))
+
+        if not assertion and smt_input:
+            smt_input = "(and {})".format(smt_input)
+
+        return smt_input
 
     def smtlib_declare_trap(self) -> str:
         """ Declare trap Boolean variable for each place.
@@ -999,6 +1024,22 @@ class Transition:
         identifier = self.id + "@t" if parikh else self.id
         return "(declare-const {} Int)\n(assert (>= {} 0))\n".format(identifier, identifier)
 
+    def smtlib_nonnegative(self, parikh: bool = False) -> str:
+        """ Nonnegative constraint.
+
+        Parameters
+        ----------
+        parikh : bool, optional
+            Computation of parikh vector enabled.
+
+        Returns
+        -------
+        str
+            SMT-LIB format.
+        """
+        return "(>= {} 0)".format(self.id + "@t" if parikh else self.id)
+
+
     def smtlib_declare_as_parameter(self) -> str:
         """ Declare a transition.
 
@@ -1009,7 +1050,7 @@ class Transition:
         """
         return "({} Int)".format(self.id)
 
-    def smtlib_read_arc_constraints(self, parikh : bool = False) -> str:
+    def smtlib_read_arc_constraints(self, parikh: bool = False, assertion: bool = True) -> str:
         """ Assert read arc constraints.
 
         Parameters
@@ -1036,7 +1077,9 @@ class Transition:
                     smt_input_right_member = ''.join(right_member)
                 else:
                     smt_input_right_member = "(or {})".format(''.join(right_member))
-                smt_input += "(assert (=> (> {} 0) {}))\n".format(self.id + "@t" if parikh else self.id, smt_input_right_member)
+                smt_input += "(=> (> {} 0) {})".format(self.id + "@t" if parikh else self.id, smt_input_right_member)
+                if assertion:
+                    smt_input = "(assert {})\n".format(smt_input)
 
         return smt_input
 
