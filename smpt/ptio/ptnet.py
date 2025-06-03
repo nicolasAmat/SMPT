@@ -1077,9 +1077,12 @@ class Transition:
                     smt_input_right_member = ''.join(right_member)
                 else:
                     smt_input_right_member = "(or {})".format(''.join(right_member))
-                smt_input += "(=> (> {} 0) {})".format(self.id + "@t" if parikh else self.id, smt_input_right_member)
+                smt_input_implication = "(=> (> {} 0) {})".format(self.id + "@t" if parikh else self.id, smt_input_right_member)
+
                 if assertion:
-                    smt_input = "(assert {})\n".format(smt_input)
+                    smt_input += "(assert {})\n".format(smt_input_implication)
+                else:
+                    smt_input += smt_input_implication
 
         return smt_input
 
