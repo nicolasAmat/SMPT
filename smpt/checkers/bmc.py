@@ -467,11 +467,15 @@ class BMC(AbstractChecker):
         """
         forall, literals, nonnegative, transitions = "", "", "", ""
 
-        for i in range(k - 1):
-            forall += self.ptnet.smtlib_declare_places_as_parameters(i + 1) 
-            nonnegative += self.ptnet.smtlib_nonnegative_places(i + 1)
-            transitions += self.ptnet.smtlib_transition_relation_without_assertion(i)
-            literals += self.formula.P.smtlib(i + 1)
+        if k:
+            for i in range(k - 1):
+                forall += self.ptnet.smtlib_declare_places_as_parameters(i + 1) 
+                nonnegative += self.ptnet.smtlib_nonnegative_places(i + 1)
+                transitions += self.ptnet.smtlib_transition_relation_without_assertion(i)
+                literals += self.formula.P.smtlib(i + 1)
 
-        cert = "(and {} (forall ({}) (=> (and {} {}) (and {}))))".format(self.formula.P.smtlib(0), forall, nonnegative, transitions, literals)
+            cert = "(and {} (forall ({}) (=> (and {} {}) (and {}))))".format(self.formula.P.smtlib(0), forall, nonnegative, transitions, literals)
+        else:
+            cert = self.formula.P.smtlib(0)
+
         certificate(self.ptnet, self.formula, cert, k=0, path=self.path_proof, check=self.check_proof)

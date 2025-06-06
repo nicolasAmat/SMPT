@@ -1,3 +1,4 @@
+# I need to implement the certificate generation here!
 """
 Induction
 
@@ -26,6 +27,7 @@ from logging import info
 from typing import Optional
 
 from smpt.checkers.abstractchecker import AbstractChecker
+from smpt.exec.certificate import certificate
 from smpt.exec.utils import STOP, send_signal_pids
 from smpt.interfaces.z3 import Z3
 from smpt.ptio.verdict import Verdict
@@ -36,7 +38,7 @@ class Induction(AbstractChecker):
     Induction method.
     """
 
-    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, debug=False, solver_pids=None):
+    def __init__(self, ptnet, formula, ptnet_reduced=None, system=None, show_model=False, check_proof=False, path_proof=None, debug=False, solver_pids=None):
         """ Initializer.
         """
         # Initial Petri net
@@ -53,6 +55,10 @@ class Induction(AbstractChecker):
 
         # Show model option
         self.show_model = show_model
+
+        # Proof checking options
+        self.check_proof = check_proof
+        self.path_proof = path_proof
 
         # SMT solver
         self.debug = debug
@@ -185,6 +191,8 @@ class Induction(AbstractChecker):
             verdict = Verdict.CEX
         else:
             verdict = Verdict.INV
+            if self.path_proof or self.check_proof:
+                self.manage_certificate()
 
         # Put the result in the queue
         result.put((verdict, None))
@@ -274,3 +282,8 @@ class Induction(AbstractChecker):
             return False
 
         return None
+
+    def manage_certificate(self) -> None:
+        """ Invariance certificate management.
+        """
+        certificate(self.ptnet, self.formula, self.formula.P.smtlib(), path=self.path_proof, check=self.check_proof)

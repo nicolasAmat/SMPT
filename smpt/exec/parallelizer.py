@@ -323,7 +323,7 @@ class Parallelizer:
             prover = StateEquation(self.ptnet_state_equation, self.formula_state_equation, ptnet_reduced=self.ptnet_reduced_state_equation, system=self.system_state_equation, ptnet_skeleton=self.ptnet_skeleton, formula_skeleton=self.formula_skeleton, pre_run=self.pre_run, check_proof=self.check_proof, path_proof=self.path_proof, debug=self.debug, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
 
         elif method == 'INDUCTION':
-            prover = Induction(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, show_model=self.show_model, debug=self.debug, solver_pids=self.solver_pids)
+            prover = Induction(self.ptnet, self.formula, ptnet_reduced=self.ptnet_reduced, system=self.system, show_model=self.show_model, check_proof=self.check_proof, path_proof=self.path_proof, debug=self.debug, solver_pids=self.solver_pids)
 
         elif method == 'BMC':
             prover = BMC(self.ptnet_switched, self.formula_switched, ptnet_reduced=self.optional_ptnet_reduced, system=self.optional_system, show_model=self.show_model, debug=self.debug, mcc=self.mcc, check_proof=self.check_proof, path_proof=self.path_proof, induction_queue=self.induction_queue, solver_pids=self.solver_pids, additional_techniques=self.additional_techniques)
