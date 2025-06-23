@@ -23,7 +23,7 @@ __license__ = "GPLv3"
 __version__ = "5.0"
 
 
-from os import remove, system
+from os import fsync, remove, system
 from tempfile import NamedTemporaryFile
 from typing import Optional
 
@@ -63,6 +63,10 @@ def certificate(ptnet: PetriNet, formula: Formula, certificate: str, k: Optional
         fp.write('(assert (and (cert {}) {}))\n'.format(call_0, formula.R.smtlib(0)))
         fp.write("(check-sat)\n")
     
+        # Ensure the file is written to disk before external programs read it
+        fp.flush()
+        fsync(fp.fileno())
+
     if check:
         system("z3 -smt2 {}".format(certificate_path))
 
