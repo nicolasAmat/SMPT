@@ -841,7 +841,7 @@ class Place:
         if self.initial_marking != 0:
             smt_input += " " + str(self.initial_marking)
 
-        if self.initial_marking != 0 or len(self.delta) > 1:
+        if (self.initial_marking != 0 and self.delta) or len(self.delta) > 1:
             smt_input = "(+ {})".format(smt_input)
 
         if not smt_input:

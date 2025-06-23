@@ -55,7 +55,8 @@ def certificate(ptnet: PetriNet, formula: Formula, certificate: str, k: Optional
 
         fp.write('\n(echo "<> Cert /\ T => Cert\' (must be unsat)")\n')
         fp.write("(push)\n")
-        fp.write('(assert (and (cert {}) {} (not (cert {}))))\n'.format(call_0, ptnet.smtlib_transition_relation_without_assertion(0), call_1))
+        transition_relation = ptnet.smtlib_transition_relation_without_assertion(0) if ptnet.transitions else "false"
+        fp.write('(assert (and (cert {}) {} (not (cert {}))))\n'.format(call_0, transition_relation, call_1))
         fp.write("(check-sat)\n")
         fp.write("(pop)\n")
 

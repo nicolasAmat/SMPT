@@ -393,7 +393,10 @@ class StateEquation(AbstractChecker):
         if self.used_traps:
             qf_cert = "(and {} {})".format(qf_cert, ''.join(self.used_traps))
 
-        cert = "(exists ({}) {})".format(ptnet_current.smtlib_declare_transitions_as_parameters(), qf_cert)
+        if ptnet_current.transitions:
+            cert = "(exists ({}) {})".format(ptnet_current.smtlib_declare_transitions_as_parameters(), qf_cert)
+        else:
+            cert = qf_cert
 
         if self.ptnet_reduced is not None:
             cert = "(exists ({}) (and {} {}))".format(self.system.smtlib_declare_additional_variables_as_parameters(), self.system.smtlib_as_one_formula(), cert)
