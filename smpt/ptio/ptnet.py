@@ -320,6 +320,9 @@ class PetriNet:
         if not self.places:
             return smt_input
 
+        if not self.transitions:
+            return "(assert false)\n"
+
         if tr:
             smt_input += "(declare-const TRACE@{} Int)\n".format(k)
 
