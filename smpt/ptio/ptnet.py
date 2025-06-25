@@ -321,7 +321,14 @@ class PetriNet:
             return smt_input
 
         if not self.transitions:
-            return "(assert false)\n"
+            if eq:
+                smt_input += "(assert (and\n\t"
+                if tr:
+                    smt_input += "(= TRACE@{} (-1))\n\t".format(k)
+                smt_input += ''.join(map(lambda pl: "(= {}@{} {}@{})".format(pl.id, k + 1, pl.id, k), self.places.values()))
+                smt_input += "\n))"
+            else:
+                return "(assert false)\n"
 
         if tr:
             smt_input += "(declare-const TRACE@{} Int)\n".format(k)
