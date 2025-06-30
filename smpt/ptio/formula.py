@@ -800,13 +800,65 @@ class Formula:
 
         elif node == 'integer-add':
             # Parse addition (e.g., <integer-add><integer-mul>...)
-            operands = [self.parse_simple_expression_xml(child, skeleton) for child in formula_xml]
-            return ArithmeticOperation(operands, operator='+')
+            integer_constant = None
+            token_count = None
+
+            for child in formula_xml:
+                parsed_child = self.parse_simple_expression_xml(child, skeleton)
+                if isinstance(parsed_child, IntegerConstant):
+                    if integer_constant is None:
+                        integer_constant = parsed_child
+                    else:
+                        integer_constant.value += parsed_child.value
+
+                elif isinstance(parsed_child, TokenCount):
+                    if token_count is None:
+                        token_count = parsed_child
+                    else:
+                        for pl in parsed_child.places:
+                            multiplier = parsed_child.multipliers.get(pl, 1)
+                            if pl not in token_count.places:
+                                token_count.places.append(pl)
+                            else:
+                                multiplier += token_count.multipliers.get(pl, 1)
+                            if multiplier != 1:
+                                 token_count.multipliers[pl] = multiplier   
+                        token_count.delta += parsed_child.delta
+
+            if token_count is not None and integer_constant is not None:
+                token_count.delta += integer_constant.value
+                return token_count
+            
+            return token_count if token_count is not None else integer_constant
+
 
         elif node == 'integer-mul':
             # Parse multiplication (e.g., <integer-mul><integer-constant>2</constant><place>X1</place>)
-            operands = [self.parse_simple_expression_xml(child, skeleton) for child in formula_xml]
-            return ArithmeticOperation(operands, operator='*')
+            integer_constant = None
+            token_count = None
+
+            for child in formula_xml:
+                parsed_child = self.parse_simple_expression_xml(child, skeleton)
+                if isinstance(parsed_child, IntegerConstant):
+                    if integer_constant is None:
+                        integer_constant = parsed_child
+                    else:
+                        integer_constant.value *= parsed_child.value
+
+                elif isinstance(parsed_child, TokenCount):
+                    if token_count is None:
+                        token_count = parsed_child
+                    else:
+                        raise ValueError("Non-linear integer arithmetic")
+
+            if token_count is not None and integer_constant is not None:
+                for pl in token_count.places:
+                    multiplier = token_count.multipliers.get(pl, 1) * integer_constant.value
+                    if multiplier != 1:
+                        token_count.multipliers[pl] = multiplier
+                return token_count
+            else:
+                return integer_constant
 
         else:
             raise ValueError("Invalid .xml node")
@@ -2483,12 +2535,12 @@ class Atom(Expression):
             self_literals, opposite_literals = [], []
             
             for pl in operand.places:
-                if operand.multipliers is None or pl not in operand.multipliers:
+                if pl not in operand.multipliers or operand.multipliers[pl] == 1:
                     self_literals.append(place_id(pl))
                 elif operand.multipliers[pl] > 0:
-                    self_literals.append("{}*{}".format(operand.multipliers[pl], place_id(pl)))
+                    self_literals.extend([place_id(pl) for _ in range(operand.multipliers[pl])])
                 else:
-                    opposite_literals.append("{}*{}".format(- operand.multipliers[pl], place_id(pl)))
+                    opposite_literals.extend([place_id(pl) for _ in range(- operand.multipliers[pl])])
 
             if operand.delta > 0:
                 self_literals.append(str(operand.delta))
@@ -2512,8 +2564,15 @@ class Atom(Expression):
         left = self_left + opposite_right
         right = self_right + opposite_left
 
-        walk_input = "{} {} {}".format(addition(left), COMPARISON_OPERATORS_TO_WALK[self.operator], addition(right))
-
+        if self.operator in ['<=', '<']:
+            walk_input = "{} {} {}".format(addition(left), COMPARISON_OPERATORS_TO_WALK[self.operator], addition(right))
+        elif self.operator in ['>=', '>']:
+            op = '<=' if self.operator == '>=' else '<'
+            walk_input = "{} {} {}".format(addition(right), op, addition(left))
+        elif self.operator == '=':
+            l, r = addition(left), addition(right)
+            walk_input = "({} <= {}) /\ ({} <= {})".format(l, r, r, l)
+        
         if self.operator == 'distinct':
             walk_input = "- {}".format(walk_input)
 
@@ -3129,7 +3188,9 @@ class TokenCount(SimpleExpression):
             saturated_delta = []
         self.saturated_delta: list[Expression] = saturated_delta
 
-        self.multipliers: dict[Place, int] = multipliers
+        self.multipliers: dict[Place, int] = {}
+        if multipliers is not None:
+            self.multipliers = multipliers
 
     def __str__(self) -> str:
         """ TokenCount to textual format.
@@ -3139,7 +3200,7 @@ class TokenCount(SimpleExpression):
         str
             Debugging format.
         """
-        text = ' + '.join(map(lambda pl: pl.id if self.multipliers is None or pl not in self.multipliers else "({}.{})".format(
+        text = ' + '.join(map(lambda pl: pl.id if pl not in self.multipliers else "({}.{})".format(
             self.multipliers[pl], pl.id), self.places))
 
         if self.delta:
@@ -3199,7 +3260,7 @@ class TokenCount(SimpleExpression):
             SMT-LIB format.
         """
         def place_smtlib(pl, k):
-            return pl.smtlib(k) if self.multipliers is None or pl not in self.multipliers else "(* {} {})".format(pl.smtlib(k), self.multipliers[pl])
+            return pl.smtlib(k) if pl not in self.multipliers else "(* {} {})".format(pl.smtlib(k), self.multipliers[pl])
 
         if delta is not None:
             smt_input = ' '.join(map(lambda pl: "(+ {} {})".format(place_smtlib(
@@ -3232,7 +3293,7 @@ class TokenCount(SimpleExpression):
         str
             MiniZinc format.
         """
-        minizinc_input = ' + '.join(map(lambda pl: pl.id if self.multipliers is None or pl not in self.multipliers else "{} * {}".format(
+        minizinc_input = ' + '.join(map(lambda pl: pl.id if pl not in self.multipliers else "{} * {}".format(
             pl.id, self.multipliers[pl]), self.places))
 
         if len(self.places) > 1:
@@ -3264,7 +3325,7 @@ class TokenCount(SimpleExpression):
         def place_id(pl):
             return "{{{}}}".format(pl.id) if '-' in pl.id or '.' in pl.id else pl.id
 
-        walk_input = ' + '.join(map(lambda pl: place_id(pl) if self.multipliers is None or pl not in self.multipliers else "{}*{}".format(self.multipliers[pl], place_id(pl)), self.places))
+        walk_input = ' + '.join(map(lambda pl: place_id(pl) if pl not in self.multipliers else "{}*{}".format(self.multipliers[pl], place_id(pl)), self.places))
 
         if len(self.places) > 1:
             walk_input = "({})".format(walk_input)
@@ -3334,7 +3395,7 @@ class TokenCount(SimpleExpression):
         int
             Satisfiability of the TokenCount at marking m.
         """
-        return sum([m.tokens[pl] if self.multipliers is None or pl not in self.multipliers else self.multipliers[pl] * m.tokens[pl] for pl in self.places]) + self.delta
+        return sum([m.tokens[pl] if pl not in self.multipliers else self.multipliers[pl] * m.tokens[pl] for pl in self.places]) + self.delta
     
     def normal_form_hash(self, negation: bool = False) -> str:
         """ Hash the TokenCount into a normal form (places sorted).
@@ -3349,7 +3410,7 @@ class TokenCount(SimpleExpression):
         str
             Hash.
         """
-        nf_hash = ' + '.join(map(lambda place: "{}*{}".format(self.multipliers[place], place.id) if self.multipliers is not None and place in self.multipliers else place.id, sorted(self.places, key=lambda pl: pl.id)))
+        nf_hash = ' + '.join(map(lambda place: "{}*{}".format(self.multipliers[place], place.id) if place in self.multipliers else place.id, sorted(self.places, key=lambda pl: pl.id)))
         if self.delta:
             nf_hash += ' {}'.format(self.delta)
         return nf_hash
